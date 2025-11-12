@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Apps Script デプロイチュートリアル</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 16px;
+    }
+
+    .content {
+      padding: 50px;
+    }
+
+    .step {
+      margin-bottom: 50px;
+      padding-bottom: 40px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .step:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+
+    .step-number {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 40px;
+      font-weight: bold;
+      font-size: 20px;
+      margin-right: 15px;
+    }
+
+    .step-title {
+      display: inline-block;
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    .step-description {
+      margin-left: 55px;
+      color: #555;
+      line-height: 1.8;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+
+    .step-image {
+      margin-left: 55px;
+      background: #f8f8f8;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      color: #999;
+      font-style: italic;
+    }
+
+    .code-block {
+      margin-left: 55px;
+      background: #f8f8f8;
+      border-left: 4px solid #667eea;
+      padding: 20px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      overflow-x: auto;
+      position: relative;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 8px 16px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: #45a049;
+    }
+
+    .warning-box {
+      margin-left: 55px;
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 15px;
+      color: #856404;
+    }
+
+    .success-box {
+      margin-left: 55px;
+      background: #d4edda;
+      border-left: 4px solid #28a745;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 15px;
+      color: #155724;
+    }
+
+    .info-box {
+      margin-left: 55px;
+      background: #d1ecf1;
+      border-left: 4px solid #17a2b8;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 15px;
+      color: #0c5460;
+    }
+
+    .btn-back {
+      display: block;
+      margin: 30px auto 0;
+      padding: 15px 40px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      text-align: center;
+      transition: all 0.2s;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .btn-back:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    ul {
+      margin-left: 75px;
+      margin-top: 10px;
+      line-height: 1.8;
+      color: #555;
+    }
+
+    ul li {
+      margin-bottom: 8px;
+    }
+
+    .highlight {
+      background: #fff3cd;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: 600;
+      color: #856404;
+    }
+
+    .video-placeholder {
+      margin-left: 55px;
+      background: #000;
+      border-radius: 8px;
+      padding: 100px 20px;
+      text-align: center;
+      color: #fff;
+      font-size: 18px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📚 Google Apps Script デプロイチュートリアル</h1>
+      <p>スプレッドシート連携を始めるための完全ガイド</p>
+    </div>
+
+    <div class="content">
+      <!-- 前提：拡張機能のインストール -->
+      <div class="step">
+        <span class="step-number">0</span>
+        <h2 class="step-title">拡張機能をインストール済みですか？</h2>
+        <p class="step-description">
+          このチュートリアルはGoogleスプレッドシート連携の設定方法です。拡張機能のインストールがまだの方は、先に<strong>完全版説明書</strong>の「拡張機能のインストール」セクションをご覧ください。
+        </p>
+        <div class="info-box">
+          💡 <strong>インストール済みの方:</strong> 次のステップに進んでください。
+        </div>
+      </div>
+
+      <!-- ステップ1 -->
+      <div class="step">
+        <span class="step-number">1</span>
+        <h2 class="step-title">Googleスプレッドシートを作成</h2>
+        <p class="step-description">
+          まず、商品データを保存するためのGoogleスプレッドシートを新規作成します。
+        </p>
+        <ul>
+          <li><a href="https://sheets.google.com" target="_blank">Google スプレッドシート</a>にアクセス</li>
+          <li>「空白」のスプレッドシートを新規作成</li>
+          <li>分かりやすい名前をつける（例：「商品データ管理」「eBay仕入れリスト」など）</li>
+        </ul>
+        <div class="info-box">
+          💡 <strong>ヒント:</strong> 用途別に複数のスプレッドシートを作成して使い分けることができます。
+        </div>
+      </div>
+
+      <!-- ステップ2 -->
+      <div class="step">
+        <span class="step-number">2</span>
+        <h2 class="step-title">Apps Script エディタを開く</h2>
+        <p class="step-description">
+          作成したスプレッドシートからApps Scriptエディタを開きます。
+        </p>
+        <ul>
+          <li>メニューバーから <span class="highlight">拡張機能</span> をクリック</li>
+          <li><span class="highlight">Apps Script</span> を選択</li>
+          <li>新しいタブでApps Scriptエディタが開きます</li>
+        </ul>
+        <div class="warning-box">
+          ⚠️ 初めて利用する場合、Googleアカウントの権限確認が表示される場合があります。
+        </div>
+      </div>
+
+      <!-- ステップ3 -->
+      <div class="step">
+        <span class="step-number">3</span>
+        <h2 class="step-title">スクリプトコードを確認・貼り付け</h2>
+        <p class="step-description">
+          Apps Scriptエディタで <code>doPost</code> 関数が存在するか確認します。
+        </p>
+        <div class="info-box">
+          💡 <strong>重要:</strong> 一括登録用のスプレッドシートなど、すでに <code>doPost</code> 関数が存在する場合は、このステップをスキップしてください。新しく個別のシートを作成する場合のみ、以下のコードを貼り付けてください。
+        </div>
+        <ul style="margin-top: 20px;">
+          <li>エディタ内で <code>function doPost(e)</code> という関数を探す</li>
+          <li>関数が<strong>ない場合</strong>：下記のコードをコピーして貼り付け</li>
+          <li>関数が<strong>ある場合</strong>：このステップはスキップして次へ</li>
+          <li>💾 保存ボタンをクリック（またはCtrl+S / Cmd+S）</li>
+        </ul>
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyCode()">📋 コピー</button>
+          <pre id="scriptCode">function doPost(e) {
+  try {
+    // リクエストボディを解析
+    const data = JSON.parse(e.postData.contents);
+    const values = data.values;
+    const sheetName = data.sheetName || 'インポート用';
+
+    // スプレッドシートを取得
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = spreadsheet.getSheetByName(sheetName);
+
+    // シートが存在しない場合は作成
+    if (!sheet) {
+      sheet = spreadsheet.insertSheet(sheetName);
+    }
+
+    // データを追加
+    const row = sheet.getLastRow() + 1;
+    if (values.length > 0) {
+      sheet.getRange(row, 1, 1, values.length).setValues([values]);
+
+      // 画像がある場合、行の高さを調整
+      if (values.length > 6 && values[6] && values[6].toString().startsWith('=IMAGE(')) {
+        sheet.setRowHeight(row, 150);
+      }
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: sheetName + 'に追加しました'
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}</pre>
+        </div>
+      </div>
+
+      <!-- ステップ4 -->
+      <div class="step">
+        <span class="step-number">4</span>
+        <h2 class="step-title">ウェブアプリとしてデプロイ</h2>
+        <p class="step-description">
+          スクリプトをウェブアプリとして公開し、外部から呼び出せるようにします。
+        </p>
+        <ul>
+          <li>右上の <span class="highlight">デプロイ</span> ボタンをクリック</li>
+          <li><span class="highlight">新しいデプロイ</span> を選択</li>
+          <li>「種類の選択」で <span class="highlight">⚙️ ウェブアプリ</span> を選択</li>
+        </ul>
+      </div>
+
+      <!-- ステップ5 -->
+      <div class="step">
+        <span class="step-number">5</span>
+        <h2 class="step-title">デプロイ設定を行う</h2>
+        <p class="step-description">
+          ウェブアプリの設定を以下のように行います：
+        </p>
+        <ul>
+          <li><strong>説明:</strong> 任意（例：「商品データ受信用」）</li>
+          <li><strong>次のユーザーとして実行:</strong> <span class="highlight">自分</span></li>
+          <li><strong>アクセスできるユーザー:</strong> <span class="highlight">全員</span></li>
+        </ul>
+        <div class="warning-box">
+          ⚠️ <strong>重要:</strong> 「アクセスできるユーザー」を <strong>「全員」</strong> に設定してください。これにより、Chrome拡張機能からデータを送信できるようになります。
+        </div>
+        <ul style="margin-top: 20px;">
+          <li><span class="highlight">デプロイ</span> ボタンをクリック</li>
+          <li>初回は権限の承認が必要です。指示に従って承認してください</li>
+        </ul>
+        <div class="info-box">
+          💡 権限承認時に「このアプリは確認されていません」と表示される場合は、「詳細」→「安全でないページに移動」をクリックして進めてください。これは自分で作成したスクリプトなので安全です。
+        </div>
+      </div>
+
+      <!-- ステップ6 -->
+      <div class="step">
+        <span class="step-number">6</span>
+        <h2 class="step-title">ウェブアプリのURLをコピー</h2>
+        <p class="step-description">
+          デプロイが完了すると、ウェブアプリのURLが表示されます。
+        </p>
+        <ul>
+          <li><span class="highlight">ウェブアプリ</span> の下に表示されるURLをコピー</li>
+          <li>URLの形式: <code>https://script.google.com/macros/s/.../exec</code></li>
+          <li>📋 <span class="highlight">コピー</span> ボタンをクリックしてクリップボードに保存</li>
+          <li><span class="highlight">完了</span> をクリック</li>
+        </ul>
+        <div class="success-box">
+          ✅ このURLがChrome拡張機能に設定する「Webhook URL」になります！
+        </div>
+      </div>
+
+      <!-- ステップ7 -->
+      <div class="step">
+        <span class="step-number">7</span>
+        <h2 class="step-title">Chrome拡張機能に設定</h2>
+        <p class="step-description">
+          取得したURLを拡張機能の設定ページに登録します。
+        </p>
+        <ul>
+          <li>拡張機能の <span class="highlight">設定ページ</span> を開く</li>
+          <li>「Googleスプレッドシート連携」セクションの <span class="highlight">新しいスプレッドシートを追加</span> へ</li>
+          <li><strong>識別名:</strong> 分かりやすい名前を入力（例：「eBay仕入れ用」「商品リスト」）</li>
+          <li><strong>Webhook URL:</strong> コピーしたURLを貼り付け</li>
+          <li><strong>出力先シート名:</strong> データを追加するシート名（デフォルト: 「インポート用」）</li>
+          <li><span class="highlight">➕ 追加</span> ボタンをクリック</li>
+        </ul>
+      </div>
+
+      <!-- ステップ8 -->
+      <div class="step">
+        <span class="step-number">8</span>
+        <h2 class="step-title">接続テストを実行</h2>
+        <p class="step-description">
+          正しく設定できたか確認するため、テストを実行します。
+        </p>
+        <ul>
+          <li>登録したスプレッドシートの <span class="highlight">🧪 テスト</span> ボタンをクリック</li>
+          <li>「接続成功！」のメッセージが表示されればOK</li>
+          <li>スプレッドシートに「テストデータ」が追加されているか確認</li>
+        </ul>
+        <div class="success-box">
+          🎉 <strong>完了！</strong> これでChrome拡張機能から商品データをスプレッドシートに送信できるようになりました！
+        </div>
+      </div>
+
+      <!-- トラブルシューティング -->
+      <div class="step">
+        <span class="step-number">❓</span>
+        <h2 class="step-title">よくある問題と解決方法</h2>
+        <p class="step-description">
+          うまく動作しない場合は、以下を確認してください：
+        </p>
+
+        <h3 style="margin-left: 55px; margin-top: 20px; margin-bottom: 10px; color: #666;">❌ 「接続失敗」と表示される</h3>
+        <ul>
+          <li>Webhook URLが正しくコピーされているか確認</li>
+          <li>URLの末尾が <code>/exec</code> になっているか確認（<code>/dev</code> ではない）</li>
+          <li>デプロイ設定で「アクセスできるユーザー」が「全員」になっているか確認</li>
+        </ul>
+
+        <h3 style="margin-left: 55px; margin-top: 20px; margin-bottom: 10px; color: #666;">❌ データが追加されない</h3>
+        <ul>
+          <li>Apps Scriptのコードが正しく貼り付けられているか確認</li>
+          <li>スプレッドシートに指定したシート名が存在するか確認（自動作成されます）</li>
+          <li>Apps Scriptエディタの「実行ログ」でエラーを確認</li>
+        </ul>
+
+        <h3 style="margin-left: 55px; margin-top: 20px; margin-bottom: 10px; color: #666;">❌ 権限エラーが出る</h3>
+        <ul>
+          <li>デプロイ時の権限承認を再度実行</li>
+          <li>Googleアカウントのセキュリティ設定を確認</li>
+          <li>一度デプロイを削除して、再度デプロイを試す</li>
+        </ul>
+
+        <div class="info-box">
+          💡 それでも解決しない場合は、Apps Scriptエディタの「実行ログ」（メニューバーの「表示」→「ログ」）でエラーメッセージを確認してください。
+        </div>
+      </div>
+
+      <button class="btn-back" id="backBtn">⬅️ 設定ページに戻る</button>
+    </div>
+  </div>
+
+  <script>
+    function copyCode() {
+      const code = document.getElementById('scriptCode').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        const originalText = btn.textContent;
+        btn.textContent = '✅ コピーしました！';
+        btn.style.background = '#28a745';
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.style.background = '#4CAF50';
+        }, 2000);
+      }).catch(err => {
+        alert('コピーに失敗しました。手動でコピーしてください。');
+      });
+    }
+
+    // 設定ページに戻るボタン
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('backBtn').addEventListener('click', () => {
+        chrome.tabs.create({ url: chrome.runtime.getURL('options.html') });
+      });
+    });
+  </script>
+</body>
+</html>

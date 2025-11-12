@@ -1,0 +1,86 @@
+{
+  "manifest_version": 3,
+  "name": "Universal Product Scraper",
+  "version": "1.0.0",
+  "description": "eBay、楽天、Amazon、メルカリ、ヤフオク、ラクマの商品情報を抽出し、スプレッドシートにエクスポートまたはクリップボードにコピーします。",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "clipboardWrite",
+    "storage"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'self'"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon128.png",
+      "48": "icon128.png",
+      "128": "icon128.png"
+    }
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.ebay.com/*",
+        "https://*.ebay.co.jp/*",
+        "https://*.ebay.co.uk/*",
+        "https://*.ebay.de/*",
+        "https://*.ebay.fr/*",
+        "https://*.ebay.it/*",
+        "https://*.ebay.es/*",
+        "https://*.ebay.ca/*",
+        "https://*.ebay.com.au/*",
+        "https://*.rakuten.co.jp/*",
+        "https://www.amazon.co.jp/*",
+        "https://*.mercari.com/*",
+        "https://jp.mercari.com/*",
+        "https://auctions.yahoo.co.jp/*",
+        "https://page.auctions.yahoo.co.jp/*",
+        "https://paypayfleamarket.yahoo.co.jp/*",
+        "https://shopping.yahoo.co.jp/*",
+        "https://store.shopping.yahoo.co.jp/*",
+        "https://*.fril.jp/*",
+        "https://fril.jp/*",
+        "https://item.fril.jp/*"
+      ],
+      "js": ["default_setting_json.js", "external-links.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icon128.png",
+    "48": "icon128.png",
+    "128": "icon128.png"
+  },
+  "host_permissions": [
+    "https://*.ebay.com/*",
+    "https://*.ebay.co.jp/*",
+    "https://*.ebay.co.uk/*",
+    "https://*.ebay.de/*",
+    "https://*.ebay.fr/*",
+    "https://*.ebay.it/*",
+    "https://*.ebay.es/*",
+    "https://*.ebay.ca/*",
+    "https://*.ebay.com.au/*",
+    "https://*.rakuten.co.jp/*",
+    "https://www.amazon.co.jp/*",
+    "https://*.mercari.com/*",
+    "https://jp.mercari.com/*",
+    "https://auctions.yahoo.co.jp/*",
+    "https://page.auctions.yahoo.co.jp/*",
+    "https://paypayfleamarket.yahoo.co.jp/*",
+    "https://shopping.yahoo.co.jp/*",
+    "https://store.shopping.yahoo.co.jp/*",
+    "https://*.fril.jp/*",
+    "https://fril.jp/*",
+    "https://item.fril.jp/*",
+    "https://script.google.com/*",
+    "https://script.googleusercontent.com/*"
+  ]
+}

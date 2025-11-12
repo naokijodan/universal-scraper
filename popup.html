@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Universal Product Scraper</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      width: 300px;
+      font-size: 14px;
+    }
+    h1 {
+      font-size: 18px;
+      margin: 0 0 16px 0;
+      color: #333;
+      border-bottom: 2px solid #4CAF50;
+      padding-bottom: 8px;
+    }
+    .info {
+      line-height: 1.6;
+      color: #666;
+      margin-bottom: 16px;
+    }
+    .supported-sites {
+      background: #f5f5f5;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .supported-sites h2 {
+      font-size: 14px;
+      margin: 0 0 8px 0;
+      color: #555;
+    }
+    .site-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .site-list li {
+      padding: 4px 0;
+      color: #666;
+    }
+    .site-list li:before {
+      content: "✓ ";
+      color: #4CAF50;
+      font-weight: bold;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    .footer {
+      font-size: 12px;
+      color: #999;
+      text-align: center;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #eee;
+    }
+  </style>
+</head>
+<body>
+  <h1>🌐 Universal Product Scraper</h1>
+
+  <div class="info">
+    商品ページを開くと、「📋 商品情報コピー」ボタンが表示されます。
+  </div>
+
+  <div class="supported-sites">
+    <h2>対応サイト</h2>
+    <ul class="site-list">
+      <li>eBay（全ドメイン）</li>
+      <li>楽天市場</li>
+      <li>Amazon.co.jp</li>
+      <li>メルカリ</li>
+      <li>ヤフオク</li>
+      <li>ラクマ</li>
+    </ul>
+  </div>
+
+  <button id="openOptions">⚙️ 設定を開く</button>
+
+  <div class="footer">
+    Version 1.0.0
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

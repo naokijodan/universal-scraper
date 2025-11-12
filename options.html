@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>設定 - 商品情報スクレイパー（統合版）</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+
+    .content {
+      padding: 40px;
+    }
+
+    .section {
+      margin-bottom: 40px;
+    }
+
+    .section:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #667eea;
+    }
+
+    .setting-item {
+      margin-bottom: 25px;
+    }
+
+    .setting-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .setting-label {
+      display: block;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    .setting-description {
+      font-size: 13px;
+      color: #777;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 50px;
+      height: 26px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: 0.3s;
+      border-radius: 26px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .toggle-slider {
+      background-color: #667eea;
+    }
+
+    input:checked + .toggle-slider:before {
+      transform: translateX(24px);
+    }
+
+    .toggle-status {
+      font-size: 14px;
+      color: #555;
+      font-weight: 500;
+    }
+
+    input[type="number"],
+    input[type="text"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    input[type="number"]:focus,
+    input[type="text"]:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .btn-container {
+      display: flex;
+      gap: 15px;
+      margin-top: 30px;
+      padding-top: 30px;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background-color: #f5f5f5;
+      color: #666;
+    }
+
+    .btn-secondary:hover {
+      background-color: #e0e0e0;
+    }
+
+    .btn-verify {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 10px;
+    }
+
+    .btn-verify:hover {
+      background-color: #45a049;
+    }
+
+    .status-message {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 6px;
+      text-align: center;
+      font-weight: 500;
+      display: none;
+    }
+
+    .status-message.success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #a5d6a7;
+    }
+
+    .status-message.error {
+      background-color: #ffebee;
+      color: #c62828;
+      border: 1px solid #ef9a9a;
+    }
+
+    .site-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+
+    .badge-ebay {
+      background-color: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .badge-rakuten {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+
+    .badge-amazon {
+      background-color: #fff3e0;
+      color: #e65100;
+    }
+
+    .badge-sheets {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(to right, transparent, #e0e0e0, transparent);
+      margin: 30px 0;
+    }
+
+    .info-box {
+      background-color: #e3f2fd;
+      border-left: 4px solid #1976d2;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #1565c0;
+      margin-top: 10px;
+    }
+
+    .info-box a {
+      color: #1565c0;
+      text-decoration: underline;
+    }
+
+    .verification-result {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .verification-result.success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #a5d6a7;
+    }
+
+    .verification-result.error {
+      background-color: #ffebee;
+      color: #c62828;
+      border: 1px solid #ef9a9a;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>商品情報スクレイパー 設定</h1>
+      <p>各サイトの有効/無効と動作設定を変更できます</p>
+    </div>
+
+    <div class="content">
+      <!-- サイト有効/無効設定 -->
+      <div class="section">
+        <h2 class="section-title">対応サイトの設定</h2>
+
+        <div class="setting-item">
+          <label class="setting-label">
+            eBay
+            <span class="site-badge badge-ebay">eBay</span>
+          </label>
+          <div class="setting-description">
+            eBayの商品ページでスクレイパーを有効化します
+          </div>
+          <div class="toggle-container">
+            <label class="toggle-switch">
+              <input type="checkbox" id="enableEbay">
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-status" id="statusEbay">有効</span>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="setting-item">
+          <label class="setting-label">
+            楽天市場
+            <span class="site-badge badge-rakuten">楽天</span>
+          </label>
+          <div class="setting-description">
+            楽天市場の商品ページでスクレイパーを有効化します
+          </div>
+          <div class="toggle-container">
+            <label class="toggle-switch">
+              <input type="checkbox" id="enableRakuten">
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-status" id="statusRakuten">有効</span>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="setting-item">
+          <label class="setting-label">
+            Amazon
+            <span class="site-badge badge-amazon">Amazon</span>
+          </label>
+          <div class="setting-description">
+            Amazon.co.jpの商品ページでスクレイパーを有効化します
+          </div>
+          <div class="toggle-container">
+            <label class="toggle-switch">
+              <input type="checkbox" id="enableAmazon">
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-status" id="statusAmazon">有効</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 画像出力設定 -->
+      <div class="section">
+        <h2 class="section-title">
+          画像出力設定
+          <span class="site-badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">画像</span>
+        </h2>
+
+        <div class="setting-item">
+          <label class="setting-label" for="imageOutputCount">出力する画像枚数</label>
+          <div class="setting-description">
+            スプレッドシートとクリップボードに出力する画像の最大枚数を設定します
+          </div>
+          <select id="imageOutputCount" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; margin-top: 10px;">
+            <option value="0">画像なし</option>
+            <option value="1">1枚</option>
+            <option value="3">3枚</option>
+            <option value="5" selected>5枚（デフォルト）</option>
+            <option value="10">10枚</option>
+            <option value="999">全ての画像</option>
+          </select>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="setting-item">
+          <label class="setting-label">クリップボードコピー時の画像URL</label>
+          <div class="setting-description">
+            「クリップボードにコピー」実行時に画像URLを含めるか設定します
+          </div>
+          <div class="toggle-container">
+            <label class="toggle-switch">
+              <input type="checkbox" id="enableImageInClipboard">
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-status" id="statusImageInClipboard">無効</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Googleスプレッドシート設定 -->
+      <div class="section">
+        <h2 class="section-title">
+          Googleスプレッドシート連携（複数登録可能）
+          <span class="site-badge badge-sheets">Google Sheets</span>
+        </h2>
+
+        <!-- チュートリアルボタン -->
+        <div style="margin-bottom: 25px; text-align: center; padding: 20px; background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-radius: 8px;">
+          <p style="margin-bottom: 15px; color: #555; font-size: 15px;">
+            📚 初めてスプレッドシート連携を設定する方はこちら
+          </p>
+          <button id="openTutorialBtn" style="padding: 12px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+            📖 デプロイ方法を見る（詳しいチュートリアル）
+          </button>
+        </div>
+
+        <!-- 登録済みスプレッドシート一覧 -->
+        <div class="setting-item">
+          <label class="setting-label">登録済みスプレッドシート <span id="sheetCount" style="color: #666;">(0/10)</span></label>
+          <div class="setting-description">
+            商品のエクスポート先を複数登録できます。作業中に簡単に切り替え可能です。
+          </div>
+          <div id="spreadsheetList" style="margin-top: 15px;">
+            <!-- 動的に生成される -->
+          </div>
+        </div>
+
+        <!-- 新規追加フォーム -->
+        <div class="setting-item" style="border-top: 2px solid #e0e0e0; padding-top: 20px; margin-top: 20px;">
+          <label class="setting-label">➕ 新しいスプレッドシートを追加</label>
+
+          <div style="margin-top: 15px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #555;">識別名 <span style="color: red;">*</span></label>
+            <input type="text" id="newSheetName" placeholder="例: 小型家電、大型家具、作業者A用" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; margin-bottom: 15px;">
+          </div>
+
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #555;">Webhook URL <span style="color: red;">*</span></label>
+            <input type="text" id="newWebhookUrl" placeholder="https://script.google.com/macros/s/...../exec" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+          </div>
+
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #555;">出力先シート名 <span style="color: red;">*</span></label>
+            <input type="text" id="newTargetSheet" placeholder="例: インポート用" value="インポート用" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+            <div style="font-size: 12px; color: #666; margin-top: 5px;">
+              Googleスプレッドシート内のシート名を指定してください
+            </div>
+          </div>
+
+          <button id="addSheetBtn" style="padding: 12px 24px; background: #4CAF50; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+            ➕ 追加
+          </button>
+          <div id="addSheetResult" style="margin-top: 10px;"></div>
+        </div>
+
+        <div class="info-box" style="margin-top: 20px;">
+          <strong>💡 使い方:</strong><br>
+          1. 複数のスプレッドシートを事前に登録<br>
+          2. 商品エクスポート時にドロップダウンから選択<br>
+          3. 前回選択したものが自動的に選ばれます
+        </div>
+
+        <details class="script-accordion">
+          <summary style="cursor: pointer; font-weight: bold; padding: 10px; background: #f5f5f5; border-radius: 4px; margin: 10px 0;">
+            📋 Google Apps Scriptのコードを表示
+          </summary>
+          <div style="margin-top: 10px;">
+            <pre style="background: #f8f8f8; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px;">
+function doPost(e) {
+  try {
+    // リクエストボディを解析
+    const data = JSON.parse(e.postData.contents);
+    const values = data.values;
+    const sheetName = data.sheetName || 'インポート用'; // デフォルト
+
+    // スプレッドシートを取得
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = spreadsheet.getSheetByName(sheetName);
+
+    // シートが存在しない場合は作成
+    if (!sheet) {
+      sheet = spreadsheet.insertSheet(sheetName);
+    }
+
+    // データを追加
+    sheet.appendRow(values);
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: sheetName + 'に追加しました'
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}</pre>
+            <button id="copyScriptBtn" class="copy-script-btn" style="margin-top: 10px; padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+              コードをコピー
+            </button>
+          </div>
+        </details>
+      </div>
+
+      <!-- 画像読み込み待機時間設定 -->
+      <div class="section">
+        <h2 class="section-title">画像読み込み待機時間設定</h2>
+        <div class="setting-description" style="margin-bottom: 20px;">
+          各サイトで画像の遅延読み込みに対応するため、データ抽出前の待機時間を設定できます
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label" for="amazonLoadDelay">Amazon 待機時間（秒）</label>
+          <div class="setting-description">
+            Amazonの画像が遅延読み込みされるため、3秒推奨
+          </div>
+          <input type="number" id="amazonLoadDelay" min="0" max="10" step="0.5" value="3">
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label" for="ebayLoadDelay">eBay 待機時間（秒）</label>
+          <div class="setting-description">
+            eBayで画像読み込みが遅い場合に調整してください（0 = 待機なし）
+          </div>
+          <input type="number" id="ebayLoadDelay" min="0" max="10" step="0.5" value="0">
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label" for="rakutenLoadDelay">楽天市場 待機時間（秒）</label>
+          <div class="setting-description">
+            楽天で画像読み込みが遅い場合に調整してください（0 = 待機なし）
+          </div>
+          <input type="number" id="rakutenLoadDelay" min="0" max="10" step="0.5" value="0">
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label" for="mercariLoadDelay">メルカリ 待機時間（秒）</label>
+          <div class="setting-description">
+            メルカリで画像読み込みが遅い場合に調整してください（0 = 待機なし）
+          </div>
+          <input type="number" id="mercariLoadDelay" min="0" max="10" step="0.5" value="0">
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label" for="yahooLoadDelay">ヤフオク 待機時間（秒）</label>
+          <div class="setting-description">
+            ヤフオクで画像読み込みが遅い場合に調整してください（0 = 待機なし）
+          </div>
+          <input type="number" id="yahooLoadDelay" min="0" max="10" step="0.5" value="0">
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label" for="frilLoadDelay">ラクマ 待機時間（秒）</label>
+          <div class="setting-description">
+            ラクマで画像読み込みが遅い場合に調整してください（0 = 待機なし）
+          </div>
+          <input type="number" id="frilLoadDelay" min="0" max="10" step="0.5" value="0">
+        </div>
+      </div>
+
+      <!-- その他の設定 -->
+      <div class="section">
+        <h2 class="section-title">その他の設定</h2>
+
+        <div class="setting-item">
+          <label class="setting-label" for="alertKeywords">除外キーワード（1行に1つ）</label>
+          <div class="setting-description">
+            商品名や詳細に含まれている場合に警告を表示するキーワードを設定します
+          </div>
+          <textarea id="alertKeywords" placeholder="例：&#10;並行輸入&#10;訳あり&#10;中古"></textarea>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label" for="popupKeywords">注目キーワード（1行に1つ）</label>
+          <div class="setting-description">
+            商品名や詳細に含まれている場合に通知を表示するキーワードを設定します
+          </div>
+          <textarea id="popupKeywords" placeholder="例：&#10;送料無料&#10;ポイント10倍&#10;ジャンク&#10;現状&#10;訳あり"></textarea>
+        </div>
+
+        <h3 class="section-title">フリマ設定（メルカリ、ヤフオク、PayPayフリマ、ラクマ）</h3>
+
+        <div class="setting-item">
+          <label class="setting-label">悪い評価の割合アラート</label>
+          <div class="setting-description">
+            悪い評価率が次の値以上の場合にアラートを表示します
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="number" id="alertBadRate" min="0" max="100" step="0.1" style="width: 100px;">
+            <span>%以上ならアラートを表示</span>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label">評価件数のアラート</label>
+          <div class="setting-description">
+            評価件数が次の値以下の場合にアラートを表示します
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="number" id="alertLowReviewCount" min="0" step="1" style="width: 100px;">
+            <span>件以下ならアラートを表示</span>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label">出品経過日数アラート</label>
+          <div class="setting-description">
+            出品からの経過日数が次の値以上の場合にアラートを表示します
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="number" id="alertDaysFromListing" min="0" step="1" style="width: 100px;">
+            <span>日経過したらアラートを表示</span>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label">更新経過日数アラート</label>
+          <div class="setting-description">
+            更新からの経過日数が次の値以上の場合にアラートを表示します
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="number" id="alertDaysFromUpdate" min="0" step="1" style="width: 100px;">
+            <span>日経過したらアラートを表示</span>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label">発送日数アラート</label>
+          <div class="setting-description">
+            発送までの日数が「4〜7日」の場合にアラートを表示します
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" id="alertHandlingDays" style="width: 20px; height: 20px;">
+            <span>「4〜7日」でアラートを表示する</span>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label" for="buttonPosition">ボタン配置</label>
+          <div class="setting-description">
+            スクレイパーボタンの表示位置を選択します
+          </div>
+          <select id="buttonPosition">
+            <option value="top-right">右上</option>
+            <option value="bottom-right">右下</option>
+            <option value="inline">価格の下（インライン）</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 保存ボタン -->
+      <div class="btn-container">
+        <button class="btn btn-secondary" id="resetBtn">デフォルトに戻す</button>
+        <button class="btn btn-primary" id="saveBtn">設定を保存</button>
+      </div>
+
+      <div class="status-message" id="statusMessage"></div>
+    </div>
+  </div>
+
+  <script src="default_setting_json.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
