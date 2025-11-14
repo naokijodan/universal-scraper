@@ -180,6 +180,22 @@ Wham-o
   return data.trim().split('\n');
 }
 
+// デフォルトの注目キーワード（黄色ハイライト）
+function defaultPopupKeywords() {
+  const data = `
+ジャンク
+訳あり
+未確認
+動作未確認
+電池切れ
+電池は切れ
+電池が切れ
+不動
+海外発送
+`;
+  return data.trim().split('\n');
+}
+
 // デフォルト設定
 const default_setting_json = {
   // サイト別有効/無効
@@ -199,17 +215,17 @@ const default_setting_json = {
 
   // サイト別読み込み待機時間（秒）
   amazonLoadDelay: 3, // Amazon画像の遅延読み込み対応
-  ebayLoadDelay: 0,
-  rakutenLoadDelay: 0,
-  mercariLoadDelay: 0,
-  yahooLoadDelay: 0,
-  frilLoadDelay: 0,
+  ebayLoadDelay: 3,
+  rakutenLoadDelay: 3,
+  mercariLoadDelay: 3,
+  yahooLoadDelay: 3,
+  frilLoadDelay: 3,
 
   // アラート・除外設定
   // alertKeywords: オプション画面の「除外キーワード」（赤ハイライト）
   // popupKeywords: オプション画面の「注目キーワード」（黄色ハイライト）
   alertKeywords: defaultAlertKeywords(),
-  popupKeywords: [],
+  popupKeywords: defaultPopupKeywords(),
   excludeKeywords: defaultExcludeKeywords(), // 旧設定（互換性のため保持）
   excludeSellerIds: [], // 除外セラーID
 

@@ -6,7 +6,7 @@ const defaultSettings = {
   enableRakuten: true,
   enableAmazon: true,
   alertKeywords: defaultAlertKeywords().join('\n'), // 除外キーワード（赤ハイライト）
-  popupKeywords: '', // 注目キーワード（黄色ハイライト）
+  popupKeywords: defaultPopupKeywords().join('\n'), // 注目キーワード（黄色ハイライト）
   buttonPosition: 'top-right',
   spreadsheets: [], // 複数スプレッドシート対応
   lastUsedSheetId: null, // 最後に使ったシートID
@@ -15,11 +15,11 @@ const defaultSettings = {
   enableImageInClipboard: true, // クリップボードコピー時に画像URLを含める（デフォルト有効）
   // 画像読み込み待機時間（秒）
   amazonLoadDelay: 3,
-  ebayLoadDelay: 0,
-  rakutenLoadDelay: 0,
-  mercariLoadDelay: 0,
-  yahooLoadDelay: 0,
-  frilLoadDelay: 0,
+  ebayLoadDelay: 3,
+  rakutenLoadDelay: 3,
+  mercariLoadDelay: 3,
+  yahooLoadDelay: 3,
+  frilLoadDelay: 3,
   // フリマサイトアラート条件
   alertBadRate: 5,
   alertLowReviewCount: 100,
