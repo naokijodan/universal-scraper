@@ -13,7 +13,7 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
 
   if (hostname.includes('ebay.') && pathname.includes('/itm/')) {
     currentSite = 'ebay';
-  } else if (hostname.includes('rakuten.co.jp') && (pathname.includes('/item/') || pathname.match(/\/[a-z0-9-]+\/[a-z0-9-]+\//))) {
+  } else if (hostname.includes('rakuten.co.jp') && (pathname.includes('/item/') || pathname.match(/\/[a-z0-9_-]+\/[a-z0-9_-]+\//))) {
     currentSite = 'rakuten';
   } else if (hostname.includes('amazon.co.jp') && (pathname.includes('/dp/') || pathname.includes('/gp/product/'))) {
     currentSite = 'amazon';
