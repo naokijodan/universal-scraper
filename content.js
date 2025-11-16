@@ -4676,6 +4676,53 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
         let bad = null;
         let normal = null;
 
+        // メルカリショップの判定
+        const isShop = window.location.pathname.includes('/shops/product/');
+        console.log('[getSellerRating] メルカリショップ:', isShop);
+
+        // 方法0: メルカリショップの評価数を取得（星の横の数字）
+        if (isShop) {
+          // ショップ情報セクションを探す
+          const shopInfoSection = document.querySelector('[class*="shop" i]') ||
+                                   document.querySelector('[data-testid*="shop" i]');
+
+          if (shopInfoSection) {
+            console.log('[getSellerRating] ショップ情報セクション発見');
+
+            // 星アイコンの近くの数字を探す（例: "227"）
+            const textContent = shopInfoSection.textContent || '';
+            const numberMatches = textContent.match(/\d+/g);
+
+            if (numberMatches && numberMatches.length > 0) {
+              // 最初に見つかった大きめの数字を評価数と仮定
+              const ratingCount = numberMatches.find(num => parseInt(num) > 0);
+              if (ratingCount) {
+                const count = parseInt(ratingCount);
+                console.log('[getSellerRating] メルカリショップ評価数:', count);
+                return { reviewCount: String(count), badRate: '' };
+              }
+            }
+          }
+
+          // より広範囲に星評価の数字を探す
+          const allText = document.body.innerText || '';
+          // "★ 227" や "⭐ 227" のようなパターンを探す
+          const starRatingMatch = allText.match(/[★⭐]\s*(\d+)/);
+          if (starRatingMatch) {
+            const count = parseInt(starRatingMatch[1]);
+            console.log('[getSellerRating] 星評価パターンから取得:', count);
+            return { reviewCount: String(count), badRate: '' };
+          }
+
+          // "メルカリShops" の後に続く数字を探す
+          const shopsMatch = allText.match(/メルカリShops[^\d]*(\d+)/);
+          if (shopsMatch) {
+            const count = parseInt(shopsMatch[1]);
+            console.log('[getSellerRating] メルカリShopsパターンから取得:', count);
+            return { reviewCount: String(count), badRate: '' };
+          }
+        }
+
         // 方法1: #furima-assist-seller-ratings から取得（元の拡張機能が挿入する要素）
         const assistRatings = document.querySelector("#furima-assist-seller-ratings");
         if (assistRatings) {
