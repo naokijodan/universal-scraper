@@ -4681,22 +4681,29 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
         if (isShop) {
           console.log('[getSellerRating] メルカリショップモード');
 
-          // ページ全体のテキストから「ショップ情報...メルカリShops」パターンを探す
+          // ページ全体のテキストから評価数を探す
           const bodyText = document.body.innerText || '';
 
-          // 「ショップ情報」から「メルカリShops」までのテキストを抽出
-          const shopInfoMatch = bodyText.match(/ショップ情報[\s\S]{0,200}メルカリShops/);
+          // パターン1: 「優良ショップ」の直前にある数字（優良ショップバッジがある場合）
+          const excellentShopMatch = bodyText.match(/(\d{1,5})\s*優良ショップ/);
+          if (excellentShopMatch) {
+            const total = parseInt(excellentShopMatch[1]);
+            console.log('[getSellerRating] ショップ星評価取得（優良ショップ前）:', total);
+            return { reviewCount: String(total), badRate: '' };
+          }
 
-          if (shopInfoMatch) {
-            const shopInfoText = shopInfoMatch[0];
-            console.log('[getSellerRating] ショップ情報テキスト:', shopInfoText);
+          // パターン2: 「メルカリShops」の直前にある数字（優良ショップバッジが無い場合）
+          // ショップ情報セクション内のメルカリShopsを対象にするため、範囲を限定
+          const shopSectionMatch = bodyText.match(/ショップ情報[\s\S]{0,300}メルカリShops/);
+          if (shopSectionMatch) {
+            const sectionText = shopSectionMatch[0];
+            console.log('[getSellerRating] ショップ情報セクション:', sectionText.substring(0, 100));
 
-            // このテキスト内の全ての数字を取得し、最後の数字を評価数とする
-            // （ショップ名に数字が含まれる可能性があるため、最後の数字が評価数）
-            const allNumbers = shopInfoText.match(/\d+/g);
-            if (allNumbers && allNumbers.length > 0) {
-              const total = parseInt(allNumbers[allNumbers.length - 1]);
-              console.log('[getSellerRating] ショップ星評価取得:', total, '(全数字:', allNumbers, ')');
+            // このセクション内で「メルカリShops」の直前の数字を探す
+            const shopsMatch = sectionText.match(/(\d{1,5})\s*メルカリShops/);
+            if (shopsMatch) {
+              const total = parseInt(shopsMatch[1]);
+              console.log('[getSellerRating] ショップ星評価取得（メルカリShops前）:', total);
               return { reviewCount: String(total), badRate: '' };
             }
           }
