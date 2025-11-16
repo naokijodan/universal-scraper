@@ -4681,46 +4681,18 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
         if (isShop) {
           console.log('[getSellerRating] メルカリショップモード');
 
-          // ショップ情報セクションを複数の方法で探す
-          let shopSection = null;
+          // ページ全体のテキストから「ショップ情報...★ 数字...メルカリShops」パターンを探す
+          const bodyText = document.body.innerText || '';
 
-          // 方法1: "ショップ情報" テキストを含む要素を探す
-          const allElements = document.querySelectorAll('*');
-          for (const el of allElements) {
-            const text = el.textContent || '';
-            if (text.includes('ショップ情報') && text.includes('メルカリShops')) {
-              shopSection = el;
-              console.log('[getSellerRating] ショップ情報セクション発見（テキスト検索）');
-              break;
-            }
-          }
+          // 「ショップ情報」から「メルカリShops」までのテキストを抽出
+          const shopInfoMatch = bodyText.match(/ショップ情報[\s\S]{0,200}メルカリShops/);
 
-          // 方法2: "メルカリShops" を含むリンクの親要素
-          if (!shopSection) {
-            const shopsLinks = Array.from(document.querySelectorAll('a')).filter(a =>
-              (a.textContent || '').includes('メルカリShops')
-            );
-            if (shopsLinks.length > 0) {
-              // リンクの親要素（カードやセクション）を探す
-              let parent = shopsLinks[0].parentElement;
-              while (parent && parent !== document.body) {
-                const parentText = parent.textContent || '';
-                if (parentText.includes('★') || parentText.includes('⭐')) {
-                  shopSection = parent;
-                  console.log('[getSellerRating] ショップ情報セクション発見（リンク経由）');
-                  break;
-                }
-                parent = parent.parentElement;
-              }
-            }
-          }
+          if (shopInfoMatch) {
+            const shopInfoText = shopInfoMatch[0];
+            console.log('[getSellerRating] ショップ情報テキスト:', shopInfoText);
 
-          if (shopSection) {
-            const sectionText = shopSection.textContent || '';
-            console.log('[getSellerRating] ショップセクションテキスト:', sectionText.substring(0, 200));
-
-            // セクション内で星評価パターンを探す
-            const starMatch = sectionText.match(/[★⭐☆]\s*(\d+)/);
+            // このテキスト内で星評価パターンを探す
+            const starMatch = shopInfoText.match(/[★⭐☆]\s*(\d+)/);
             if (starMatch) {
               const total = parseInt(starMatch[1]);
               console.log('[getSellerRating] ショップ星評価取得:', total);
