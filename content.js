@@ -4682,45 +4682,70 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
 
         // 方法0: メルカリショップの評価数を取得（星の横の数字）
         if (isShop) {
-          // ショップ情報セクションを探す
+          console.log('[getSellerRating] メルカリショップモード');
+
+          // 最も確実な方法: ページ全体から星評価パターンを探す（優先度高）
+          const allText = document.body.innerText || '';
+
+          // パターン1: "★ 68" や "⭐ 68" (星の直後に数字)
+          const starPattern1 = allText.match(/[★⭐]\s*(\d+)/);
+          if (starPattern1) {
+            const count = parseInt(starPattern1[1]);
+            console.log('[getSellerRating] 星評価パターン1から取得:', count);
+            return { reviewCount: String(count), badRate: '' };
+          }
+
+          // パターン2: ショップ名の後、星の前後にある数字
+          // 例: "イヤホンの道 ★ 68 メルカリShops"
+          const shopNameMatch = allText.match(/([^\n]+?)\s*[★⭐]\s*(\d+)/);
+          if (shopNameMatch) {
+            const count = parseInt(shopNameMatch[2]);
+            console.log('[getSellerRating] ショップ名+星パターンから取得:', count);
+            return { reviewCount: String(count), badRate: '' };
+          }
+
+          // パターン3: "メルカリShops" の前にある数字（星の後）
+          const shopsPattern = allText.match(/[★⭐]\s*(\d+)[^\d]*メルカリShops/);
+          if (shopsPattern) {
+            const count = parseInt(shopsPattern[1]);
+            console.log('[getSellerRating] メルカリShopsパターンから取得:', count);
+            return { reviewCount: String(count), badRate: '' };
+          }
+
+          // パターン4: ショップ情報セクション内を詳細に探す
           const shopInfoSection = document.querySelector('[class*="shop" i]') ||
                                    document.querySelector('[data-testid*="shop" i]');
 
           if (shopInfoSection) {
             console.log('[getSellerRating] ショップ情報セクション発見');
+            const sectionText = shopInfoSection.textContent || '';
 
-            // 星アイコンの近くの数字を探す（例: "227"）
-            const textContent = shopInfoSection.textContent || '';
-            const numberMatches = textContent.match(/\d+/g);
+            // セクション内の星評価パターン
+            const sectionStarMatch = sectionText.match(/[★⭐]\s*(\d+)/);
+            if (sectionStarMatch) {
+              const count = parseInt(sectionStarMatch[1]);
+              console.log('[getSellerRating] セクション内星評価:', count);
+              return { reviewCount: String(count), badRate: '' };
+            }
 
-            if (numberMatches && numberMatches.length > 0) {
-              // 最初に見つかった大きめの数字を評価数と仮定
-              const ratingCount = numberMatches.find(num => parseInt(num) > 0);
-              if (ratingCount) {
-                const count = parseInt(ratingCount);
-                console.log('[getSellerRating] メルカリショップ評価数:', count);
+            // セクション内の全数字から最大値を取得（最終手段）
+            const numbers = sectionText.match(/\d+/g);
+            if (numbers && numbers.length > 0) {
+              // 数字を整数に変換し、異常値を除外（1〜100000の範囲）
+              const validNumbers = numbers
+                .map(n => parseInt(n))
+                .filter(n => n >= 1 && n <= 100000);
+
+              if (validNumbers.length > 0) {
+                // 複数ある場合は最大値を選択（評価数は通常最も大きい）
+                const count = Math.max(...validNumbers);
+                console.log('[getSellerRating] セクション内最大値:', count, '候補:', validNumbers);
                 return { reviewCount: String(count), badRate: '' };
               }
             }
           }
 
-          // より広範囲に星評価の数字を探す
-          const allText = document.body.innerText || '';
-          // "★ 227" や "⭐ 227" のようなパターンを探す
-          const starRatingMatch = allText.match(/[★⭐]\s*(\d+)/);
-          if (starRatingMatch) {
-            const count = parseInt(starRatingMatch[1]);
-            console.log('[getSellerRating] 星評価パターンから取得:', count);
-            return { reviewCount: String(count), badRate: '' };
-          }
-
-          // "メルカリShops" の後に続く数字を探す
-          const shopsMatch = allText.match(/メルカリShops[^\d]*(\d+)/);
-          if (shopsMatch) {
-            const count = parseInt(shopsMatch[1]);
-            console.log('[getSellerRating] メルカリShopsパターンから取得:', count);
-            return { reviewCount: String(count), badRate: '' };
-          }
+          console.log('[getSellerRating] メルカリショップの評価数を検出できませんでした');
         }
 
         // 方法1: #furima-assist-seller-ratings から取得（元の拡張機能が挿入する要素）
