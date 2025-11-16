@@ -4414,10 +4414,19 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
         throw new Error('対応していないサイトです');
       }
 
-      // データをクリーンアップ（タブ、改行を削除）
+      // データをクリーンアップ（タブ、改行、セル内改行を完全に削除）
       values = values.map(field => {
         if (typeof field === 'string') {
-          return field.replace(/\t/g, ' ').replace(/\n/g, ' ').replace(/\r/g, '');
+          // あらゆる種類の改行・タブを半角スペースに置換
+          return field
+            .replace(/\r\n/g, ' ')     // Windows改行
+            .replace(/\r/g, ' ')        // Mac改行
+            .replace(/\n/g, ' ')        // Unix改行
+            .replace(/\u2028/g, ' ')    // ラインセパレータ
+            .replace(/\u2029/g, ' ')    // パラグラフセパレータ
+            .replace(/\t/g, ' ')        // タブ
+            .replace(/\s+/g, ' ')       // 連続する空白を1つに
+            .trim();                    // 前後の空白を削除
         }
         return field;
       });
@@ -4502,7 +4511,16 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
           const allJson = JSON.parse(ldjson.textContent);
           const json = allJson['@graph']?.[2];
           if (json && json.description) {
-            description = json.description.replace(/[\n\r]+/g, ' ').trim().replace(/\t/g, '  ');
+            // あらゆる種類の改行・タブを半角スペースに置換
+            description = json.description
+              .replace(/\r\n/g, ' ')     // Windows改行
+              .replace(/\r/g, ' ')        // Mac改行
+              .replace(/\n/g, ' ')        // Unix改行
+              .replace(/\u2028/g, ' ')    // ラインセパレータ
+              .replace(/\u2029/g, ' ')    // パラグラフセパレータ
+              .replace(/\t/g, ' ')        // タブ
+              .replace(/\s+/g, ' ')       // 連続する空白を1つに
+              .trim();                    // 前後の空白を削除
           }
         } catch (e) {
           console.warn('⚠️ 商品説明パース失敗', e);
@@ -5262,7 +5280,15 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
       const price = String(dataJson.offers?.price || '');
 
       // 説明文（ld+jsonから）
-      let description = (dataJson.description || '').replace(/[\n\r]+/g, ' ').trim();
+      let description = (dataJson.description || '')
+        .replace(/\r\n/g, ' ')
+        .replace(/\r/g, ' ')
+        .replace(/\n/g, ' ')
+        .replace(/\u2028/g, ' ')
+        .replace(/\u2029/g, ' ')
+        .replace(/\t/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 
       // テーブルから詳細情報を取得
       const rows = document.querySelectorAll("table.ItemTable__Component tr");
@@ -5606,7 +5632,15 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
       }
 
       // 説明文
-      let description = (itemJson.description || '').replace(/[\n\r]+/g, ' ').trim().replace(/\t/g, '  ');
+      let description = (itemJson.description || '')
+        .replace(/\r\n/g, ' ')
+        .replace(/\r/g, ' ')
+        .replace(/\n/g, ' ')
+        .replace(/\u2028/g, ' ')
+        .replace(/\u2029/g, ' ')
+        .replace(/\t/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 
       // 出品日時・更新日時をld+jsonから取得（方法1）
       let listedFmt = '';
