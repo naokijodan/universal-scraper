@@ -4681,7 +4681,7 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
         if (isShop) {
           console.log('[getSellerRating] メルカリショップモード');
 
-          // ページ全体のテキストから「ショップ情報...★ 数字...メルカリShops」パターンを探す
+          // ページ全体のテキストから「ショップ情報...メルカリShops」パターンを探す
           const bodyText = document.body.innerText || '';
 
           // 「ショップ情報」から「メルカリShops」までのテキストを抽出
@@ -4691,11 +4691,12 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
             const shopInfoText = shopInfoMatch[0];
             console.log('[getSellerRating] ショップ情報テキスト:', shopInfoText);
 
-            // このテキスト内で星評価パターンを探す
-            const starMatch = shopInfoText.match(/[★⭐☆]\s*(\d+)/);
-            if (starMatch) {
-              const total = parseInt(starMatch[1]);
-              console.log('[getSellerRating] ショップ星評価取得:', total);
+            // このテキスト内の全ての数字を取得し、最後の数字を評価数とする
+            // （ショップ名に数字が含まれる可能性があるため、最後の数字が評価数）
+            const allNumbers = shopInfoText.match(/\d+/g);
+            if (allNumbers && allNumbers.length > 0) {
+              const total = parseInt(allNumbers[allNumbers.length - 1]);
+              console.log('[getSellerRating] ショップ星評価取得:', total, '(全数字:', allNumbers, ')');
               return { reviewCount: String(total), badRate: '' };
             }
           }
