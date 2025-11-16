@@ -4676,6 +4676,61 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
         let bad = null;
         let normal = null;
 
+        // メルカリショップの場合は、ショップ情報セクション内の星評価を取得
+        const isShop = window.location.pathname.includes('/shops/product/');
+        if (isShop) {
+          console.log('[getSellerRating] メルカリショップモード');
+
+          // ショップ情報セクションを複数の方法で探す
+          let shopSection = null;
+
+          // 方法1: "ショップ情報" テキストを含む要素を探す
+          const allElements = document.querySelectorAll('*');
+          for (const el of allElements) {
+            const text = el.textContent || '';
+            if (text.includes('ショップ情報') && text.includes('メルカリShops')) {
+              shopSection = el;
+              console.log('[getSellerRating] ショップ情報セクション発見（テキスト検索）');
+              break;
+            }
+          }
+
+          // 方法2: "メルカリShops" を含むリンクの親要素
+          if (!shopSection) {
+            const shopsLinks = Array.from(document.querySelectorAll('a')).filter(a =>
+              (a.textContent || '').includes('メルカリShops')
+            );
+            if (shopsLinks.length > 0) {
+              // リンクの親要素（カードやセクション）を探す
+              let parent = shopsLinks[0].parentElement;
+              while (parent && parent !== document.body) {
+                const parentText = parent.textContent || '';
+                if (parentText.includes('★') || parentText.includes('⭐')) {
+                  shopSection = parent;
+                  console.log('[getSellerRating] ショップ情報セクション発見（リンク経由）');
+                  break;
+                }
+                parent = parent.parentElement;
+              }
+            }
+          }
+
+          if (shopSection) {
+            const sectionText = shopSection.textContent || '';
+            console.log('[getSellerRating] ショップセクションテキスト:', sectionText.substring(0, 200));
+
+            // セクション内で星評価パターンを探す
+            const starMatch = sectionText.match(/[★⭐☆]\s*(\d+)/);
+            if (starMatch) {
+              const total = parseInt(starMatch[1]);
+              console.log('[getSellerRating] ショップ星評価取得:', total);
+              return { reviewCount: String(total), badRate: '' };
+            }
+          }
+
+          console.log('[getSellerRating] ショップ情報セクションが見つかりませんでした');
+        }
+
         // 方法1: #furima-assist-seller-ratings から取得（元の拡張機能が挿入する要素）
         const assistRatings = document.querySelector("#furima-assist-seller-ratings");
         if (assistRatings) {
@@ -4742,19 +4797,11 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
           if (normalMatch) normal = parseInt(normalMatch[1].replace(/,/g, ''));
           if (badMatch) bad = parseInt(badMatch[1].replace(/,/g, ''));
 
-          // 「評価」だけで合計が取れた場合
+          // 「評価」だけで合計が取れた場合（通常のメルカリ用）
           const totalMatch = bodyText.match(/評価[^\d]*([0-9,]+)/);
           if ((good === null || bad === null) && totalMatch) {
             const total = parseInt(totalMatch[1].replace(/,/g, ''));
             console.log('[getSellerRating] 評価合計のみ取得:', total);
-            return { reviewCount: String(total), badRate: '' };
-          }
-
-          // メルカリショップの星評価パターン（「★ 488」など）
-          const starMatch = bodyText.match(/[★⭐☆]\s*([0-9,]+)/);
-          if ((good === null || bad === null) && starMatch) {
-            const total = parseInt(starMatch[1].replace(/,/g, ''));
-            console.log('[getSellerRating] 星評価パターンで取得:', total);
             return { reviewCount: String(total), badRate: '' };
           }
         }
