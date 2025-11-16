@@ -4749,6 +4749,14 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
             console.log('[getSellerRating] 評価合計のみ取得:', total);
             return { reviewCount: String(total), badRate: '' };
           }
+
+          // メルカリショップの星評価パターン（「★ 488」など）
+          const starMatch = bodyText.match(/[★⭐☆]\s*([0-9,]+)/);
+          if ((good === null || bad === null) && starMatch) {
+            const total = parseInt(starMatch[1].replace(/,/g, ''));
+            console.log('[getSellerRating] 星評価パターンで取得:', total);
+            return { reviewCount: String(total), badRate: '' };
+          }
         }
 
         // 合計と悪い評価率を計算
