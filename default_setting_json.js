@@ -211,7 +211,7 @@ const default_setting_json = {
 
   // 画像設定
   imageOutputCount: 20, // 20枚固定
-  enableImageInClipboard: true,
+  enableImageInClipboard: false,
 
   // サイト別読み込み待機時間（秒）
   amazonLoadDelay: 3, // Amazon画像の遅延読み込み対応
@@ -234,7 +234,7 @@ const default_setting_json = {
   alertLowReviewCount: 100, // 評価件数が次以下でアラート
   alertDaysFromListing: 180, // 出品からの日数が次以上でアラート
   alertDaysFromUpdate: 90, // 更新からの日数が次以上でアラート
-  alertHandlingDays: false, // 発送までの日数が4〜7日の場合にアラート（true/false）
+  alertHandlingDays: true, // 発送までの日数が4〜7日の場合にアラート（true/false）
 
   // メルカリ/ヤフオク専用の除外条件（スキップ）
   skipReviewCount: null, // 評価件数が次未満をスキップ（nullは無効）
