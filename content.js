@@ -4380,7 +4380,7 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
         }
 
         values = [
-          data.platform || (site === 'rakuten' ? 'rakuten' : 'yahooshopping'),
+          data.platform || (site === 'rakuten' ? 'rakuten' : 'yahoo_shopping'),
           data.url || window.location.href,
           data.price || '',
           data.name || '',
@@ -6489,7 +6489,7 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
 
       console.log('✅ 抽出成功');
       return {
-        platform: 'yahooshopping',
+        platform: 'yahoo_shopping',
         url: url,
         price: price,
         name: name,
