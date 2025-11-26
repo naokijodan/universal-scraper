@@ -3,6 +3,75 @@
 
 console.log('🌐 Universal Product Scraper content.js が読み込まれました');
 
+// ========================================
+// 共通ノイズフィルタ関数（全プラットフォーム共通）
+// ========================================
+function isNoiseText(text) {
+  if (!text || typeof text !== 'string') return true;
+
+  const trimmed = text.trim();
+  if (trimmed.length < 5) return true;
+
+  // ※で始まる注意書き
+  if (/^※/.test(trimmed)) return true;
+
+  // 支払い関連
+  if (/支払い方法|お支払い|クレジットカード|銀行振込|代金引換|コンビニ払い|後払い|分割払い|ボーナス払い/.test(trimmed)) return true;
+
+  // ポイント・カード関連
+  if (/獲得ポイント|ポイント加算|ポイントの|Amazonポイント|楽天ポイント|Tポイント|PayPayポイント/.test(trimmed)) return true;
+  if (/Mastercard|プライム会員|キャンペーン等|ポイント還元|ポイント倍/.test(trimmed)) return true;
+
+  // 配送関連
+  if (/配送方法|配送地域|送料無料|送料込|送料別|配送料|お届け日|届け先|発送元|配送について/.test(trimmed)) return true;
+  if (/宅配便|ゆうパック|クロネコ|佐川|ヤマト運輸|日本郵便|メール便|ネコポス|ゆうメール/.test(trimmed)) return true;
+  if (/代引き|代金引換|沖縄|離島|送料を頂|別途送料|追加送料|送料がかかり/.test(trimmed)) return true;
+  if (/出荷は受け付けて|発送不可|配送不可|お届けできません/.test(trimmed)) return true;
+
+  // 保証関連
+  if (/保証期間|メーカー保証|延長保証|保証書|保証の有無|保証について|返品保証/.test(trimmed)) return true;
+
+  // 返品・交換関連
+  if (/返品について|返品条件|交換について|キャンセル|返金/.test(trimmed)) return true;
+
+  // 店舗・ショップ情報関連
+  if (/営業時間|定休日|店舗情報|お問い合わせ|カスタマー|サポート/.test(trimmed)) return true;
+
+  // Amazon/楽天の定型文
+  if (/取り扱い開始日|この商品を見た|よく一緒に購入|スポンサー|おすすめ商品/.test(trimmed)) return true;
+  if (/ウィッシュリスト|お気に入り|シェアする|ツイート|いいね/.test(trimmed)) return true;
+
+  // レビュー関連
+  if (/レビュー済み|グローバルレーティング|役に立った|参考になった|カスタマーレビュー/.test(trimmed)) return true;
+  if (/^\d{4}年\d{1,2}月\d{1,2}日/.test(trimmed)) return true; // 日付で始まる
+
+  // タグの集団を検出（短い単語がスペースで多数並んでいる）
+  // 例: "時計 メンズ ブランド 腕時計 プレゼント ギフト 人気 おすすめ"
+  // ただし、商品情報らしいキーワードが含まれている場合は除外しない
+  const productInfoKeywords = /ブランド|サイズ|素材|カラー|色|生産国|原産国|メーカー|品番|型番|重量|cm|mm|kg|g|%/;
+  if (!productInfoKeywords.test(trimmed)) {
+    const words = trimmed.split(/[\s　,、]+/);
+    // 8単語以上あり、90%以上が短い単語（3文字以下） = タグの集団と判定
+    if (words.length >= 8) {
+      const veryShortWords = words.filter(w => w.length <= 3);
+      if (veryShortWords.length / words.length >= 0.9) {
+        return true;
+      }
+    }
+  }
+
+  // 「|」区切りで短い単語が多数並んでいる場合もタグ（条件を厳しく）
+  const pipeWords = trimmed.split(/\|/).map(w => w.trim());
+  if (pipeWords.length >= 6) {
+    const shortPipeWords = pipeWords.filter(w => w.length <= 5);
+    if (shortPipeWords.length / pipeWords.length >= 0.9) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 (async function() {
   console.log('🚀 Universal Product Scraper 実行開始');
 
@@ -432,8 +501,9 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
       }
     }
 
-    // 評価件数のチェック
-    if (settings.alertLowReviewCount && data.reviewCount) {
+    // 評価件数のチェック（0件も含む）
+    if (settings.alertLowReviewCount !== null && settings.alertLowReviewCount !== undefined &&
+        data.reviewCount !== null && data.reviewCount !== undefined && data.reviewCount !== '') {
       const reviewCount = parseInt(data.reviewCount);
       if (!isNaN(reviewCount) && reviewCount <= settings.alertLowReviewCount) {
         alerts.push({
@@ -776,8 +846,9 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
         }
       }
 
-      // 評価件数のハイライト（件数の数字だけ）
-      if (settings.alertLowReviewCount && data.reviewCount) {
+      // 評価件数のハイライト（件数の数字だけ、0件も含む）
+      if (settings.alertLowReviewCount !== null && settings.alertLowReviewCount !== undefined &&
+          data.reviewCount !== null && data.reviewCount !== undefined && data.reviewCount !== '') {
         const reviewCount = parseInt(data.reviewCount);
         if (!isNaN(reviewCount) && reviewCount <= settings.alertLowReviewCount) {
           console.log('⚠️ 評価件数少ない:', reviewCount, '基準:', settings.alertLowReviewCount);
@@ -3399,6 +3470,7 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
       price = price + shipping;
 
       // 商品詳細抽出（より厳密なフィルタリング）
+      // 楽天の各ショップで使われる様々なセレクタに対応
       const descriptionSelectors = [
         '[itemprop="description"]',
         '.item_desc',
@@ -3406,7 +3478,45 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
         '.item_caption',
         'div[class*="description"]',
         'div[class*="spec"]',
-        'div[id*="description"]'
+        'div[id*="description"]',
+        // 楽天ショップ特有のセレクタを追加
+        '.rakutenLimitedId_ImageMain1-3 + div', // メイン画像の隣の説明
+        'div.item-explain',
+        'div.itemExplain',
+        'div#item-explain',
+        'div#itemExplain',
+        '.item_info',
+        '.itemInfo',
+        '#item_info',
+        '#itemInfo',
+        '.goods_detail',
+        '.goodsDetail',
+        '.product_detail',
+        '.productDetail',
+        'div[class*="itemDesc"]',
+        'div[class*="item-desc"]',
+        'div[class*="goodsDesc"]',
+        'div[class*="goods-desc"]',
+        // テーブル形式の商品情報
+        '.item_spec_table',
+        '.spec_table',
+        '#spec_table',
+        // 商品説明エリア
+        '.item_text',
+        '.itemText',
+        '#item_text',
+        '#itemText',
+        '.desc_area',
+        '.descArea',
+        // 商品特徴
+        '.item_feature',
+        '.itemFeature',
+        '#item_feature',
+        // 楽天GOLDページ用
+        'div[class*="explain"]',
+        'div[id*="explain"]',
+        'div[class*="detail"]',
+        'div[id*="detail"]'
       ];
 
       // 除外すべき要素（ノイズ）
@@ -3463,7 +3573,7 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
       if (!description || description.length < 50) {
         console.warn('⚠️ 標準セレクタで説明文が取得できませんでした。フォールバック実行中...');
 
-        // より広範囲に探索
+        // より広範囲に探索（楽天ショップ特有のパターンを追加）
         const fallbackSelectors = [
           'div.item_explain',
           'div.item-explain',
@@ -3475,7 +3585,32 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
           'div[id*="item"]',
           'div[id*="product"]',
           'div[class*="detail"]',
-          'div[class*="info"]'
+          'div[class*="info"]',
+          // 楽天ショップ独自のレイアウト用追加セレクタ
+          '.goods_info',
+          '.goodsInfo',
+          '#goods_info',
+          '#goodsInfo',
+          '.main_content',
+          '.mainContent',
+          '#main_content',
+          '#mainContent',
+          '.contents_main',
+          '.contentsMain',
+          // 商品説明が画像とテキストで構成されている場合
+          'div[class*="catch"]',
+          'div[class*="point"]',
+          'div[class*="feature"]',
+          // iframeを使わないショップの商品説明エリア
+          'td[class*="item"]',
+          'td[class*="desc"]',
+          'td[class*="explain"]',
+          // center/tableベースの古いレイアウト
+          'table[class*="item"] td',
+          'table[id*="item"] td',
+          // 楽天GOLDページ用
+          '#rakutenLimitedId_ImageMain1-3',
+          '.rakutenLimitedId_ImageMain1-3'
         ];
 
         fallbackSelectors.forEach(selector => {
@@ -3519,11 +3654,30 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
       }
 
       // テーブルから仕様情報も取得（重複除去）
-      const specTables = document.querySelectorAll('table.spec, table.item_spec, table[class*="spec"], table[class*="detail"]');
+      // より広範囲にテーブルを検索（商品情報らしいキーを含むテーブルを優先）
+      const productInfoKeys = /品番|型番|駆動|ムーブメント|素材|ケース|ベルト|風防|文字盤|サイズ|重[さ量]|防水|仕様|付属|保証|ブランド|メーカー|原産国|製造国/;
+
+      // まず全てのテーブルを取得
+      const allTables = document.querySelectorAll('table');
       let specText = '';
       const specSet = new Set(); // 重複を防ぐ
 
-      specTables.forEach(table => {
+      // 商品情報らしいテーブルを優先的に処理
+      const sortedTables = Array.from(allTables).sort((a, b) => {
+        const aText = a.innerText || '';
+        const bText = b.innerText || '';
+        const aMatch = (aText.match(productInfoKeys) || []).length;
+        const bMatch = (bText.match(productInfoKeys) || []).length;
+        return bMatch - aMatch; // マッチ数が多い順
+      });
+
+      sortedTables.forEach(table => {
+        const tableText = table.innerText || '';
+        // 商品情報らしいキーワードを含まないテーブルはスキップ
+        if (!productInfoKeys.test(tableText)) return;
+        // 関連商品・おすすめ商品のテーブルはスキップ
+        if (/閲覧した商品|おすすめ|関連商品|ランキング/.test(tableText)) return;
+
         const rows = table.querySelectorAll('tr');
         rows.forEach(row => {
           const th = row.querySelector('th');
@@ -3534,7 +3688,9 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
             const value = td.innerText?.trim() || '';
 
             // 有効なキー・バリューペアのみ追加
-            if (key && value && key.length < 50 && value.length < 150) {
+            if (key && value && key.length < 50 && value.length < 300) {
+              // ノイズキーを除外
+              if (/閲覧|おすすめ|ランキング|レビュー|評価/.test(key)) return;
               const pair = `${key}: ${value}`;
               // 重複チェック
               if (!specSet.has(pair)) {
@@ -3545,6 +3701,8 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
           }
         });
       });
+
+      console.log('📋 テーブルから取得した仕様情報:', specText.substring(0, 200));
 
       // 説明文が短い場合のみ、specTextを追加（重複を避ける）
       if (description.length < 300 && specText) {
@@ -3567,11 +3725,61 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
         .replace(/検索[：:].*/g, '') // 検索キーワード削除
         .replace(/タグ[：:].*/g, '') // タグ削除
         .replace(/関連[キーワード|ワード|商品][：:].*/g, '') // 関連情報削除
-        .replace(/送料[無料込別].*/g, '') // 送料情報削除（価格に含まれるため）
         .replace(/[★☆]{3,}/g, '') // 星マーク削除
         .replace(/レビュー数[:：]\d+/g, '') // レビュー数削除
         .replace(/[▼▲►◄]+/g, '') // 矢印記号削除
         .replace(/クリック|タップ|こちら|詳細を見る/gi, '') // ナビゲーション文言削除
+        // === 楽天専用ノイズ除去（パターンマッチで直接削除） ===
+        // 配送関連
+        .replace(/[こちらの]?の?商品は[、,]?代引き[でのは]*出荷[はを]?受け付けておりません[。]?/g, '')
+        .replace(/沖縄[、,]?離島[はへ]?[別途]?送料[をが]?[頂ご][きざ]ます[。]?/g, '')
+        .replace(/沖縄[、,]?離島[はへ]?[別途]?[追加]?送料[がを]?[かかり発生し]ます[。]?/g, '')
+        .replace(/北海道[、,]?沖縄[、,]?離島[はへのへは]*[別途]?送料[^。]{0,30}[。]?/g, '')
+        .replace(/送料[無料込別][。、,]?/g, '')
+        .replace(/[ご]?注文[^。]{0,20}営業日[^。]{0,20}発送[^。]{0,30}[。]?/g, '')
+        // 支払い関連
+        .replace(/代[金引]引[換き][はでの]*[^。]{0,30}[。]?/gi, '')
+        .replace(/お支払い[方法はについて][^。]{0,50}[。]?/g, '')
+        .replace(/クレジットカード[^。]{0,30}[。]?/g, '')
+        // ポイント関連
+        .replace(/ポイント[0-9０-９]*倍[^。]{0,30}[。]?/g, '')
+        .replace(/[楽天]?ポイント[がを]?[^。]{0,30}[還元付与][^。]{0,20}[。]?/g, '')
+        // 返品・保証関連
+        .replace(/返品[・,、]?交換[はについて][^。]{0,50}[。]?/g, '')
+        .replace(/[ご]?注文後[のは]?[キャンセル返品][^。]{0,30}[。]?/g, '')
+        // 注意書き（※で始まる）
+        .replace(/※[^。]{0,100}[。]?/g, '')
+        // ナビゲーション・UI関連
+        .replace(/商品についてのお問い合わせ/g, '')
+        .replace(/不適切な商品を報告/g, '')
+        .replace(/この商品を[お気に入りに]?[登録追加][^。]{0,20}[。]?/g, '')
+        // 価格関連の注意書き
+        .replace(/店頭価格[：:\s]*[\d,]+円[^。]*[。]?/g, '')
+        .replace(/販売価格は[^。]+[。]/g, '')
+        .replace(/当サイトの価格は[^。]+[。]/g, '')
+        // 関連キーワード（セクションごと削除）
+        .replace(/関連キーワード\s*[A-Za-z0-9\s\-\.]+[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\s]+(?:Present|Gift|Anniversary|Birthday)[\s\S]{0,50}/gi, '')
+        .replace(/関連キーワード[^]*?(?=商品状態|$)/g, '') // 関連キーワード以降を削除（商品状態があればそこまで）
+        // 撮影・画像・モニター関連の注意書き
+        .replace(/色[、,]?素材感に注意して撮影[^。]+[。]?/g, '')
+        .replace(/デジカメの特性[^。]+[。]?/g, '')
+        .replace(/ご覧になられている機器[^。]+[。]?/g, '')
+        .replace(/実際の[色商品][^。]*異なる[^。]+[。]?/g, '')
+        .replace(/お客様のモニター[^。]+[。]?/g, '')
+        .replace(/実物を[蛍光灯自然光]+[^。]+色味[^。]+[。]?/g, '')
+        .replace(/ご理解の上[ご購入お買い求め][^。]+[。]?/g, '')
+        // 類似商品・新着商品・再販商品（セクションごと削除）
+        .replace(/類似商品は[＼\\]?[^]+$/g, '') // 類似商品以降を全て削除
+        .replace(/新着商品は\d{4}\/\d{1,2}\/\d{1,2}[^]+$/g, '') // 新着商品以降を全て削除
+        .replace(/再販商品は\d{4}\/\d{1,2}\/\d{1,2}[^]+$/g, '') // 再販商品以降を全て削除
+        // ブラックフライデー・セール関連
+        .replace(/[＼\\]ブラックフライデー[^／\\]*[／\\]/g, '')
+        .replace(/point\d+倍/gi, '')
+        // カラーコード・謎の文字列
+        .replace(/#[a-fA-F0-9]{6}[,\s]*/g, '')
+        .replace(/,\d+,[ア-ン]/g, '') // ",118,オ" のようなパターン
+        // 連続スペースを再度整理
+        .replace(/\s+/g, ' ')
         .trim();
 
       // 文字数制限（最大1500文字）
@@ -3900,6 +4108,8 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
       if (v.includes('詳細はこちら')) return;
       if (v.length > 250) return;
       if (seen.has(v)) return;
+      // 共通ノイズフィルタを適用
+      if (isNoiseText(v)) return;
       seen.add(v);
       out.push(v);
     };
@@ -3913,8 +4123,53 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
       push(`${key}: ${val}`);
     };
 
+    // 商品の特徴（bullet points）- 複数のセレクタパターンに対応
+    // 通常ページ
     document.querySelectorAll('#feature-bullets ul li, #feature-bullets li .a-list-item')
       .forEach(li => { if (isVisible(li)) push(li.textContent); });
+
+    // バリエーション商品ページ用（「この商品について」セクション）
+    document.querySelectorAll('#featurebullets_feature_div li, #featurebullets_feature_div .a-list-item')
+      .forEach(li => { if (isVisible(li)) push(li.textContent); });
+
+    // productFacts（展開可能なセクション）
+    document.querySelectorAll('#productFactsDesktopExpander li, #productFactsDesktopExpander .a-list-item')
+      .forEach(li => { if (isVisible(li)) push(li.textContent); });
+
+    // 「この商品について」の別パターン
+    document.querySelectorAll('[data-feature-name="featurebullets"] li')
+      .forEach(li => { if (isVisible(li)) push(li.textContent); });
+
+    // a-unordered-list内のbullet points（汎用）
+    document.querySelectorAll('#centerCol .a-unordered-list.a-vertical li .a-list-item')
+      .forEach(li => {
+        // レビューセクション内は除外
+        if (li.closest('#customerReviews') || li.closest('#reviews-medley-footer')) return;
+        if (isVisible(li)) push(li.textContent);
+      });
+
+    // 商品説明（A+コンテンツ、ブランドストーリーなど）
+    const descriptionSelectors = [
+      '#productDescription',
+      '#aplus_feature_div',
+      '#aplus',
+      '#dpx-aplus-product-description_feature_div',
+      '#dpx-aplus-3p-product-description_feature_div',
+      '.apm-tablemodule',
+      '#brand-snapshot_feature_div',
+      '#important-information_feature_div',
+      '.a-section.a-spacing-medium.a-spacing-top-small'
+    ];
+
+    descriptionSelectors.forEach(sel => {
+      const el = document.querySelector(sel);
+      if (el && isVisible(el)) {
+        const text = clean(el.textContent);
+        if (text && text.length > 20 && text.length < 500) {
+          push(text);
+        }
+      }
+    });
 
     document.querySelectorAll('#detailBullets_feature_div li span.a-list-item')
       .forEach(span => {
@@ -3934,18 +4189,176 @@ console.log('🌐 Universal Product Scraper content.js が読み込まれまし�
         if (isVisible(tr) && th && td) pushKV(th.textContent, td.textContent);
       });
 
-    ['#productDetails_techSpec_section_1', '#productDetails_techSpec_section_2', '#technicalSpecifications_section_1', '#prodDetails']
-      .forEach(sel => {
+    // 商品仕様テーブル（複数パターン対応）
+    const techSpecSelectors = [
+      '#productDetails_techSpec_section_1',
+      '#productDetails_techSpec_section_2',
+      '#technicalSpecifications_section_1',
+      '#prodDetails',
+      '#productDetails_detailBullets_sections1',
+      '#productDetails_feature_div table',
+      '#detailBulletsWrapper_feature_div',
+      '.a-keyvalue',
+      '#tech-specs-desktop',
+      '#tech-specs-mobile',
+      // バリエーション商品ページ用（登録情報セクション）
+      '#productDetails_db_sections',
+      '#productDetails_expanderTables_dep498',
+      '#poExpander',
+      '#productOverview_feature_div',
+      '.product-facts-detail',
+      '#nic-po-expander-content'
+    ];
+
+    techSpecSelectors.forEach(sel => {
         const table = document.querySelector(sel);
         if (!table) return;
         table.querySelectorAll('tr').forEach(row => {
-          const heading = row.querySelector('th, td.a-color-secondary');
-          const value = row.querySelector('td, td.a-color-base');
+          const heading = row.querySelector('th, td.a-color-secondary, .a-span3, .a-text-bold');
+          const value = row.querySelector('td, td.a-color-base, .a-span9');
           if (isVisible(row) && heading && value && value !== heading) {
             pushKV(heading.textContent, value.textContent);
           }
         });
       });
+
+    // 「登録情報」の別フォーマット（dl/dt/dd形式）
+    document.querySelectorAll('#productDetails_feature_div dl, #detailBullets dl, .product-facts dl').forEach(dl => {
+      const dts = dl.querySelectorAll('dt');
+      const dds = dl.querySelectorAll('dd');
+      dts.forEach((dt, i) => {
+        if (dds[i] && isVisible(dt)) {
+          pushKV(dt.textContent, dds[i].textContent);
+        }
+      });
+    });
+
+    // span.a-text-bold + span 形式の仕様情報
+    document.querySelectorAll('#productDetails_feature_div .a-row, #poExpander .a-row').forEach(row => {
+      const label = row.querySelector('.a-text-bold, .a-color-secondary');
+      const value = row.querySelector('.a-text-bold + span, .po-break-word');
+      if (label && value && isVisible(row)) {
+        pushKV(label.textContent, value.textContent);
+      }
+    });
+
+    // 追加の商品情報（よく一緒に見られている情報など以外）
+    const additionalInfoSelectors = [
+      '#variation_size_name .selection',
+      '#variation_color_name .selection',
+      '.a-size-base.a-color-secondary'
+    ];
+
+    additionalInfoSelectors.forEach(sel => {
+      document.querySelectorAll(sel).forEach(el => {
+        if (isVisible(el)) {
+          const text = clean(el.textContent);
+          if (text && text.length > 5 && text.length < 100) {
+            push(text);
+          }
+        }
+      });
+    });
+
+    // フォールバック: セレクタで十分な情報が取れなかった場合、スコアリング方式で取得
+    if (out.length < 3) {
+      console.log('⚠️ セレクタベースで十分な情報が取れませんでした。スコアリング方式を試行...');
+
+      const scoredBlocks = [];
+
+      // 商品説明らしいキーワード（スコア加算）
+      const productKeywords = [
+        'サイズ', '素材', 'カラー', '色', '仕様', '対応', '付属', 'セット',
+        '重量', '重さ', 'cm', 'mm', 'kg', 'g', '幅', '高さ', '長さ', '厚さ',
+        'ブランド', 'メーカー', '型番', '品番', '材質', '原産国', '生産国',
+        '容量', '電池', '防水', '保証', 'ギフト', 'プレゼント',
+        'ウール', 'コットン', 'ポリエステル', 'レザー', 'ステンレス',
+        '日本製', '海外製', '並行輸入', '正規品'
+      ];
+
+      // ノイズキーワード（スコア減算）
+      const noiseKeywords = [
+        'カート', 'ログイン', 'レビュー', '評価', 'ランキング', 'おすすめ',
+        '関連商品', 'この商品を見た', 'よく一緒に購入', 'スポンサー',
+        'Amazon', 'プライム', '配送', '届け', '在庫', '残り',
+        '販売元', '出品者', 'マーケットプレイス', 'ギフト設定',
+        'シェア', 'ツイート', 'ウィッシュリスト', 'お気に入り'
+      ];
+
+      // ページ内のテキストブロックを収集（リスト項目と段落）
+      const candidateSelectors = [
+        '#centerCol li',
+        '#centerCol p',
+        '#centerCol div',
+        '#dpx-product-details li',
+        '#dpx-product-details p',
+        'div[data-feature-name] li',
+        'div[data-feature-name] p'
+      ];
+
+      const seenTexts = new Set();
+
+      candidateSelectors.forEach(sel => {
+        document.querySelectorAll(sel).forEach(el => {
+          // レビューセクションを除外
+          if (el.closest('#customerReviews') ||
+              el.closest('#reviews-medley-footer') ||
+              el.closest('#sp_detail') ||
+              el.closest('#nav-main') ||
+              el.closest('footer') ||
+              el.closest('header')) return;
+
+          if (!isVisible(el)) return;
+
+          const text = clean(el.textContent);
+          if (!text || text.length < 15 || text.length > 300) return;
+          if (seenTexts.has(text)) return;
+          seenTexts.add(text);
+
+          // 共通ノイズフィルタを適用
+          if (isNoiseText(text)) return;
+
+          // スコアリング
+          let score = 0;
+
+          // テキスト長スコア（50-150文字が理想）
+          if (text.length >= 30 && text.length <= 200) score += 10;
+          if (text.length >= 50 && text.length <= 150) score += 5;
+
+          // 商品キーワードスコア
+          productKeywords.forEach(kw => {
+            if (text.includes(kw)) score += 3;
+          });
+
+          // ノイズキーワードスコア（減点）
+          noiseKeywords.forEach(kw => {
+            if (text.includes(kw)) score -= 5;
+          });
+
+          // 箇条書き的なパターンにボーナス（「:」や「：」を含む）
+          if (/[:：]/.test(text)) score += 5;
+
+          // 数値+単位を含むとボーナス
+          if (/\d+\s*(cm|mm|kg|g|ml|L|%|個|枚|本)/.test(text)) score += 5;
+
+          if (score > 0) {
+            scoredBlocks.push({ text, score });
+          }
+        });
+      });
+
+      // スコア順にソートして上位を採用
+      scoredBlocks.sort((a, b) => b.score - a.score);
+      const topBlocks = scoredBlocks.slice(0, 10);
+
+      topBlocks.forEach(block => {
+        if (!seen.has(block.text)) {
+          seen.add(block.text);
+          out.push(block.text);
+          console.log(`✅ スコアリングで採用 (score: ${block.score}):`, block.text.substring(0, 50));
+        }
+      });
+    }
 
     return out.slice(0, 30).join(' | ');
   }
