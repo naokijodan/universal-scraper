@@ -5,6 +5,96 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Universal Product Scraper - 完全版説明書</title>
   <style>
+    /* テーマ変数 */
+    :root {
+      --bg-gradient-1: #667eea;
+      --bg-gradient-2: #764ba2;
+      --container-bg: white;
+      --text-color: #333;
+      --text-muted: #555;
+      --text-light: #666;
+      --accent-color: #667eea;
+      --border-color: #e0e0e0;
+      --nav-bg: #f8f8f8;
+      --nav-border: #e0e0e0;
+      --feature-card-bg: #f8f8f8;
+      --info-box-bg: #e3f2fd;
+      --info-box-border: #1976d2;
+      --info-box-text: #1565c0;
+      --warning-box-bg: #fff3cd;
+      --warning-box-border: #ffc107;
+      --warning-box-text: #856404;
+      --success-box-bg: #d4edda;
+      --success-box-border: #28a745;
+      --success-box-text: #155724;
+      --code-bg: #f8f8f8;
+      --table-header-bg: #667eea;
+      --table-even-row: #f8f8f8;
+      --header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --header-text: white;
+      --btn-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    /* シンプルテーマ */
+    body.theme-simple {
+      --bg-gradient-1: #f5f5f5;
+      --bg-gradient-2: #f5f5f5;
+      --container-bg: white;
+      --text-color: #333;
+      --text-muted: #555;
+      --text-light: #666;
+      --accent-color: #333;
+      --border-color: #e0e0e0;
+      --nav-bg: #fafafa;
+      --nav-border: #e0e0e0;
+      --feature-card-bg: #fafafa;
+      --info-box-bg: #f5f5f5;
+      --info-box-border: #666;
+      --info-box-text: #333;
+      --warning-box-bg: #f5f5f5;
+      --warning-box-border: #999;
+      --warning-box-text: #333;
+      --success-box-bg: #f5f5f5;
+      --success-box-border: #666;
+      --success-box-text: #333;
+      --code-bg: #fafafa;
+      --table-header-bg: #333;
+      --table-even-row: #fafafa;
+      --header-bg: #333;
+      --header-text: white;
+      --btn-bg: #333;
+    }
+
+    /* ダークテーマ */
+    body.theme-dark {
+      --bg-gradient-1: #0a0a0f;
+      --bg-gradient-2: #0a0a0f;
+      --container-bg: #12121a;
+      --text-color: #ffffff;
+      --text-muted: #ccccdd;
+      --text-light: #8888aa;
+      --accent-color: #00d4ff;
+      --border-color: #2a2a3a;
+      --nav-bg: #0d0d12;
+      --nav-border: #2a2a3a;
+      --feature-card-bg: rgba(255, 255, 255, 0.03);
+      --info-box-bg: rgba(0, 212, 255, 0.1);
+      --info-box-border: #00d4ff;
+      --info-box-text: #00d4ff;
+      --warning-box-bg: rgba(255, 221, 0, 0.1);
+      --warning-box-border: #ffdd00;
+      --warning-box-text: #ffdd00;
+      --success-box-bg: rgba(0, 255, 136, 0.1);
+      --success-box-border: #00ff88;
+      --success-box-text: #00ff88;
+      --code-bg: rgba(255, 255, 255, 0.05);
+      --table-header-bg: linear-gradient(135deg, #00d4ff, #bf00ff);
+      --table-even-row: rgba(255, 255, 255, 0.03);
+      --header-bg: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(191, 0, 255, 0.2));
+      --header-text: #ffffff;
+      --btn-bg: linear-gradient(135deg, #00d4ff, #0099cc);
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -13,30 +103,60 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 100%);
       min-height: 100vh;
       padding: 40px 20px;
+      transition: all 0.3s ease;
+    }
+
+    body.theme-dark {
+      background-image:
+        linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
     }
 
     .container {
       max-width: 1000px;
       margin: 0 auto;
-      background: white;
+      background: var(--container-bg);
       border-radius: 12px;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
       overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    body.theme-dark .container {
+      border: 1px solid var(--border-color);
     }
 
     .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      background: var(--header-bg);
+      color: var(--header-text);
       padding: 50px 40px;
       text-align: center;
+    }
+
+    body.theme-dark .header {
+      border-bottom: 1px solid var(--border-color);
     }
 
     .header h1 {
       font-size: 36px;
       margin-bottom: 15px;
+      white-space: nowrap;
+    }
+
+    body.theme-simple .header h1 {
+      font-size: 28px;
+    }
+
+    body.theme-dark .header h1 {
+      font-size: 32px;
+      background: linear-gradient(135deg, #00d4ff, #bf00ff, #ff0080);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
     .header p {
@@ -45,15 +165,19 @@
       line-height: 1.6;
     }
 
+    body.theme-dark .header p {
+      color: var(--text-light);
+    }
+
     .nav {
-      background: #f8f8f8;
+      background: var(--nav-bg);
       padding: 20px 40px;
-      border-bottom: 2px solid #e0e0e0;
+      border-bottom: 2px solid var(--nav-border);
     }
 
     .nav h3 {
       margin-bottom: 15px;
-      color: #333;
+      color: var(--text-color);
     }
 
     .nav-links {
@@ -64,29 +188,35 @@
 
     .nav-link {
       padding: 8px 16px;
-      background: white;
-      border: 2px solid #667eea;
+      background: var(--container-bg);
+      border: 2px solid var(--accent-color);
       border-radius: 6px;
       text-decoration: none;
-      color: #667eea;
+      color: var(--accent-color);
       font-weight: 600;
       transition: all 0.2s;
       font-size: 14px;
     }
 
     .nav-link:hover {
-      background: #667eea;
+      background: var(--accent-color);
       color: white;
+    }
+
+    body.theme-dark .nav-link:hover {
+      color: #0a0a0f;
+      box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
     }
 
     .content {
       padding: 50px;
+      color: var(--text-color);
     }
 
     .section {
       margin-bottom: 60px;
       padding-bottom: 40px;
-      border-bottom: 2px solid #f0f0f0;
+      border-bottom: 2px solid var(--border-color);
     }
 
     .section:last-child {
@@ -97,10 +227,14 @@
     .section-title {
       font-size: 28px;
       font-weight: bold;
-      color: #333;
+      color: var(--text-color);
       margin-bottom: 30px;
       padding-left: 20px;
-      border-left: 6px solid #667eea;
+      border-left: 6px solid var(--accent-color);
+    }
+
+    body.theme-dark .section-title {
+      text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
     }
 
     .step {
@@ -115,7 +249,7 @@
       display: inline-block;
       width: 40px;
       height: 40px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--btn-bg);
       color: white;
       border-radius: 50%;
       text-align: center;
@@ -125,17 +259,22 @@
       margin-right: 15px;
     }
 
+    body.theme-dark .step-number {
+      box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+      color: #0a0a0f;
+    }
+
     .step-title {
       display: inline-block;
       font-size: 22px;
       font-weight: bold;
-      color: #333;
+      color: var(--text-color);
       margin-bottom: 15px;
     }
 
     .step-description {
       margin-left: 55px;
-      color: #555;
+      color: var(--text-muted);
       line-height: 1.8;
       font-size: 16px;
       margin-bottom: 15px;
@@ -143,34 +282,34 @@
 
     .info-box {
       margin-left: 55px;
-      background: #e3f2fd;
-      border-left: 4px solid #1976d2;
+      background: var(--info-box-bg);
+      border-left: 4px solid var(--info-box-border);
       padding: 15px;
       border-radius: 4px;
       margin-top: 15px;
-      color: #1565c0;
+      color: var(--info-box-text);
       line-height: 1.6;
     }
 
     .warning-box {
       margin-left: 55px;
-      background: #fff3cd;
-      border-left: 4px solid #ffc107;
+      background: var(--warning-box-bg);
+      border-left: 4px solid var(--warning-box-border);
       padding: 15px;
       border-radius: 4px;
       margin-top: 15px;
-      color: #856404;
+      color: var(--warning-box-text);
       line-height: 1.6;
     }
 
     .success-box {
       margin-left: 55px;
-      background: #d4edda;
-      border-left: 4px solid #28a745;
+      background: var(--success-box-bg);
+      border-left: 4px solid var(--success-box-border);
       padding: 15px;
       border-radius: 4px;
       margin-top: 15px;
-      color: #155724;
+      color: var(--success-box-text);
       line-height: 1.6;
     }
 
@@ -178,7 +317,7 @@
       margin-left: 75px;
       margin-top: 10px;
       line-height: 1.8;
-      color: #555;
+      color: var(--text-muted);
     }
 
     ul li {
@@ -186,23 +325,24 @@
     }
 
     .highlight {
-      background: #fff3cd;
+      background: var(--warning-box-bg);
       padding: 2px 6px;
       border-radius: 3px;
       font-weight: 600;
-      color: #856404;
+      color: var(--warning-box-text);
     }
 
     .code-block {
       margin-left: 55px;
-      background: #f8f8f8;
-      border-left: 4px solid #667eea;
+      background: var(--code-bg);
+      border-left: 4px solid var(--accent-color);
       padding: 20px;
       border-radius: 4px;
       font-family: 'Courier New', monospace;
       font-size: 14px;
       overflow-x: auto;
       margin-top: 15px;
+      color: var(--text-color);
     }
 
     .feature-grid {
@@ -213,20 +353,26 @@
     }
 
     .feature-card {
-      background: #f8f8f8;
+      background: var(--feature-card-bg);
       border-radius: 8px;
       padding: 20px;
-      border: 2px solid #e0e0e0;
+      border: 2px solid var(--border-color);
+      transition: all 0.3s ease;
+    }
+
+    body.theme-dark .feature-card:hover {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.15);
     }
 
     .feature-card h4 {
-      color: #667eea;
+      color: var(--accent-color);
       margin-bottom: 10px;
       font-size: 18px;
     }
 
     .feature-card p {
-      color: #555;
+      color: var(--text-muted);
       line-height: 1.6;
       font-size: 14px;
     }
@@ -271,16 +417,8 @@
       color: #00695c;
     }
 
-    .screenshot-placeholder {
-      margin-left: 55px;
-      background: #f0f0f0;
-      border: 2px dashed #ccc;
-      border-radius: 8px;
-      padding: 60px 20px;
-      text-align: center;
-      color: #999;
-      font-style: italic;
-      margin-top: 15px;
+    body.theme-dark .site-badge {
+      opacity: 0.9;
     }
 
     table {
@@ -291,27 +429,31 @@
     }
 
     table th {
-      background: #667eea;
+      background: var(--table-header-bg);
       color: white;
       padding: 12px;
       text-align: left;
       font-weight: 600;
     }
 
+    body.theme-dark table th {
+      color: #0a0a0f;
+    }
+
     table td {
       padding: 12px;
-      border: 1px solid #e0e0e0;
-      color: #555;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
     }
 
     table tr:nth-child(even) {
-      background: #f8f8f8;
+      background: var(--table-even-row);
     }
 
     .btn-primary {
       display: inline-block;
       padding: 12px 30px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--btn-bg);
       color: white;
       text-decoration: none;
       border-radius: 6px;
@@ -325,13 +467,163 @@
       margin-top: 15px;
     }
 
+    body.theme-dark .btn-primary {
+      color: #0a0a0f;
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+    }
+
     .btn-primary:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
     }
+
+    body.theme-dark .btn-primary:hover {
+      box-shadow: 0 0 40px rgba(0, 212, 255, 0.6);
+    }
+
+    /* テーマ切替ボタン */
+    .theme-switcher {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 8px 12px;
+      border-radius: 30px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    body.theme-dark .theme-switcher {
+      background: rgba(18, 18, 26, 0.95);
+      border: 1px solid #2a2a3a;
+    }
+
+    .theme-btn {
+      padding: 6px 14px;
+      border: 2px solid #ddd;
+      border-radius: 20px;
+      background: white;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      color: #333;
+    }
+
+    body.theme-dark .theme-btn {
+      background: #1a1a24;
+      border-color: #2a2a3a;
+      color: #8888aa;
+    }
+
+    .theme-btn:hover {
+      border-color: #667eea;
+      color: #667eea;
+    }
+
+    body.theme-dark .theme-btn:hover {
+      border-color: #00d4ff;
+      color: #00d4ff;
+    }
+
+    .theme-btn.active {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-color: transparent;
+      color: white;
+    }
+
+    body.theme-dark .theme-btn.active {
+      background: linear-gradient(135deg, #00d4ff, #bf00ff);
+    }
+
+    a {
+      color: var(--accent-color);
+    }
+
+    code {
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      color: var(--text-color);
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 20px 10px;
+      }
+
+      .header {
+        padding: 30px 20px;
+      }
+
+      .header h1 {
+        font-size: 24px;
+        white-space: normal;
+      }
+
+      body.theme-simple .header h1,
+      body.theme-dark .header h1 {
+        font-size: 22px;
+      }
+
+      .content {
+        padding: 30px 20px;
+      }
+
+      .nav {
+        padding: 15px 20px;
+      }
+
+      .section-title {
+        font-size: 22px;
+      }
+
+      ul {
+        margin-left: 20px;
+      }
+
+      table {
+        margin-left: 0;
+        width: 100%;
+      }
+
+      .info-box, .warning-box, .success-box, .code-block {
+        margin-left: 0;
+      }
+
+      .step-description {
+        margin-left: 0;
+        margin-top: 10px;
+      }
+
+      .btn-primary {
+        margin-left: 0;
+      }
+
+      .theme-switcher {
+        top: 10px;
+        right: 10px;
+        padding: 6px 10px;
+      }
+
+      .theme-btn {
+        padding: 4px 10px;
+        font-size: 11px;
+      }
+    }
   </style>
 </head>
 <body>
+  <!-- テーマ切替 -->
+  <div class="theme-switcher">
+    <button class="theme-btn active" data-theme="default">通常</button>
+    <button class="theme-btn" data-theme="simple">シンプル</button>
+    <button class="theme-btn" data-theme="dark">ダーク</button>
+  </div>
+
   <div class="container">
     <div class="header">
       <h1>Universal Product Scraper</h1>
@@ -356,7 +648,7 @@
       <!-- 概要 -->
       <section id="overview" class="section">
         <h2 class="section-title">概要</h2>
-        <p style="font-size: 16px; line-height: 1.8; color: #555;">
+        <p style="font-size: 16px; line-height: 1.8; color: var(--text-muted);">
           Universal Product Scraperは、eBay、楽天市場、Amazon、メルカリ、ヤフオク、PayPayフリマ、ラクマなど、主要なECサイトやフリマサイトから商品情報を簡単に抽出できるChrome拡張機能です。商品ページを開くだけで、商品名、価格、画像URL、出品者情報などを自動的に取得し、Googleスプレッドシートへのエクスポートやクリップボードへのコピーが可能です。
         </p>
 
@@ -421,32 +713,32 @@
         <h2 class="section-title">対応サイト一覧</h2>
 
         <div style="margin-top: 20px;">
-          <h3 style="margin-bottom: 15px; color: #333; font-size: 20px;">ECサイト</h3>
+          <h3 style="margin-bottom: 15px; color: var(--text-color); font-size: 20px;">ECサイト</h3>
           <div style="margin-bottom: 20px;">
             <span class="site-badge badge-ebay">eBay（全世界対応）</span>
             <span class="site-badge badge-rakuten">楽天市場</span>
             <span class="site-badge badge-amazon">Amazon.co.jp</span>
           </div>
-          <p style="color: #666; line-height: 1.6; margin-bottom: 10px;">
+          <p style="color: var(--text-light); line-height: 1.6; margin-bottom: 10px;">
             <strong>eBay:</strong> .com, .co.jp, .co.uk, .de, .fr, .it, .es, .ca, .com.auなど主要ドメインに対応
           </p>
         </div>
 
         <div style="margin-top: 30px;">
-          <h3 style="margin-bottom: 15px; color: #333; font-size: 20px;">フリマ・オークションサイト</h3>
+          <h3 style="margin-bottom: 15px; color: var(--text-color); font-size: 20px;">フリマ・オークションサイト</h3>
           <div style="margin-bottom: 20px;">
             <span class="site-badge badge-mercari">メルカリ</span>
             <span class="site-badge badge-yahoo">ヤフオク</span>
             <span class="site-badge badge-yahoo">PayPayフリマ</span>
             <span class="site-badge badge-fril">ラクマ</span>
           </div>
-          <p style="color: #666; line-height: 1.6;">
+          <p style="color: var(--text-light); line-height: 1.6;">
             フリマサイトでは商品情報に加えて、出品者の評価数、悪い評価率、出品日、更新日、発送日数なども取得可能
           </p>
         </div>
 
         <div class="info-box" style="margin-left: 0; margin-top: 20px;">
-          💡 <strong>ヒント:</strong> 設定ページで各サイトごとに機能の有効/無効を切り替えられます。使用しないサイトは無効化することで、不要なボタン表示を防げます。
+          <strong>ヒント:</strong> 設定ページで各サイトごとに機能の有効/無効を切り替えられます。使用しないサイトは無効化することで、不要なボタン表示を防げます。
         </div>
       </section>
 
@@ -466,7 +758,7 @@
             <li>解凍先のフォルダは分かりやすい場所に保存（デスクトップや書類フォルダなど）</li>
           </ul>
           <div class="warning-box">
-            ⚠️ <strong>重要:</strong> 解凍後のフォルダは削除しないでください。拡張機能のインストール後も必要です。
+            <strong>重要:</strong> 解凍後のフォルダは削除しないでください。拡張機能のインストール後も必要です。
           </div>
         </div>
 
@@ -507,7 +799,7 @@
             <li>「フォルダーの選択」をクリック</li>
           </ul>
           <div class="success-box">
-            ✅ 拡張機能が読み込まれ、一覧に「Universal Product Scraper」が表示されます！
+            拡張機能が読み込まれ、一覧に「Universal Product Scraper」が表示されます！
           </div>
         </div>
 
@@ -535,12 +827,12 @@
             <li>ツールバーにアイコンが表示されます</li>
           </ul>
           <div class="info-box">
-            💡 ピン留めしたアイコンをクリックすると、設定ページやデータエクスポート画面にすぐアクセスできます。
+            ピン留めしたアイコンをクリックすると、設定ページやデータエクスポート画面にすぐアクセスできます。
           </div>
         </div>
 
         <div class="success-box" style="margin-left: 0; margin-top: 30px;">
-          🎉 <strong>インストール完了！</strong> 次は<a href="#google-sheets" style="color: #155724; text-decoration: underline;">Googleスプレッドシート連携</a>を設定しましょう。
+          <strong>インストール完了！</strong> 次は<a href="#google-sheets" style="color: inherit; text-decoration: underline;">Googleスプレッドシート連携</a>を設定しましょう。
         </div>
       </section>
 
@@ -548,21 +840,21 @@
       <section id="google-sheets" class="section">
         <h2 class="section-title">Googleスプレッドシート連携の設定</h2>
 
-        <p style="font-size: 16px; line-height: 1.8; color: #555; margin-bottom: 20px;">
+        <p style="font-size: 16px; line-height: 1.8; color: var(--text-muted); margin-bottom: 20px;">
           抽出した商品データをGoogleスプレッドシートに自動保存できます。複数のスプレッドシートを登録して、用途別に使い分けることも可能です。
         </p>
 
         <div class="info-box" style="margin-left: 0;">
-          💡 <strong>重要:</strong> スプレッドシート連携の詳しい設定手順は、<strong>tutorial.html</strong>（デプロイチュートリアル）をご覧ください。拡張機能の設定ページからも開けます。
+          <strong>重要:</strong> スプレッドシート連携の詳しい設定手順は、<strong>tutorial.html</strong>（デプロイチュートリアル）をご覧ください。拡張機能の設定ページからも開けます。
         </div>
 
-        <h3 style="margin-top: 30px; margin-bottom: 15px; color: #333; font-size: 20px;">設定の流れ（概要）</h3>
+        <h3 style="margin-top: 30px; margin-bottom: 15px; color: var(--text-color); font-size: 20px;">設定の流れ（概要）</h3>
 
         <div class="step">
           <span class="step-number">1</span>
           <h3 class="step-title">Googleスプレッドシートを作成</h3>
           <p class="step-description">
-            <a href="https://sheets.google.com" target="_blank" style="color: #667eea;">Google スプレッドシート</a>で新しいスプレッドシートを作成します。
+            <a href="https://sheets.google.com" target="_blank">Google スプレッドシート</a>で新しいスプレッドシートを作成します。
           </p>
         </div>
 
@@ -621,7 +913,7 @@
       <section id="usage" class="section">
         <h2 class="section-title">使い方</h2>
 
-        <h3 style="margin-bottom: 20px; color: #333; font-size: 20px;">基本的な使い方</h3>
+        <h3 style="margin-bottom: 20px; color: var(--text-color); font-size: 20px;">基本的な使い方</h3>
 
         <div class="step">
           <span class="step-number">1</span>
@@ -642,7 +934,7 @@
             <li>設定で「価格の下（インライン）」や「右下」に変更可能</li>
           </ul>
           <div class="info-box">
-            💡 画像が多い商品ページでは、設定した待機時間（デフォルト3秒）後にデータが抽出されます。
+            画像が多い商品ページでは、設定した待機時間（デフォルト3秒）後にデータが抽出されます。
           </div>
         </div>
 
@@ -659,10 +951,10 @@
         </div>
 
         <div class="success-box" style="margin-left: 0; margin-top: 20px;">
-          ✅ スプレッドシートを開くと、商品データが追加されています！
+          スプレッドシートを開くと、商品データが追加されています！
         </div>
 
-        <h3 style="margin-top: 40px; margin-bottom: 20px; color: #333; font-size: 20px;">取得できるデータ</h3>
+        <h3 style="margin-top: 40px; margin-bottom: 20px; color: var(--text-color); font-size: 20px;">取得できるデータ</h3>
 
         <table>
           <thead>
@@ -707,7 +999,7 @@
           </tbody>
         </table>
 
-        <h3 style="margin-top: 40px; margin-bottom: 20px; color: #333; font-size: 20px;">アラート機能</h3>
+        <h3 style="margin-top: 40px; margin-bottom: 20px; color: var(--text-color); font-size: 20px;">アラート機能</h3>
 
         <div class="step-description" style="margin-left: 0;">
           設定ページで「除外キーワード」や「注目キーワード」を設定すると、商品情報にそれらのキーワードが含まれている場合に自動的にハイライト表示されます。
@@ -719,10 +1011,10 @@
         </ul>
 
         <div class="info-box" style="margin-left: 0; margin-top: 20px;">
-          💡 フリマサイトでは、悪い評価率、評価件数、出品日、発送日数などの条件でもアラートを設定できます。
+          フリマサイトでは、悪い評価率、評価件数、出品日、発送日数などの条件でもアラートを設定できます。
         </div>
 
-        <h3 style="margin-top: 40px; margin-bottom: 20px; color: #333; font-size: 20px;">複数スプレッドシートの活用</h3>
+        <h3 style="margin-top: 40px; margin-bottom: 20px; color: var(--text-color); font-size: 20px;">複数スプレッドシートの活用</h3>
 
         <div class="step-description" style="margin-left: 0;">
           複数のスプレッドシートを登録しておくことで、以下のような使い分けが可能です。
@@ -736,7 +1028,7 @@
         </ul>
 
         <div class="info-box" style="margin-left: 0; margin-top: 20px;">
-          💡 前回選択したスプレッドシートが自動的に選択されるため、同じ作業を繰り返す場合に便利です。
+          前回選択したスプレッドシートが自動的に選択されるため、同じ作業を繰り返す場合に便利です。
         </div>
       </section>
 
@@ -744,43 +1036,43 @@
       <section id="settings" class="section">
         <h2 class="section-title">設定項目</h2>
 
-        <p style="font-size: 16px; line-height: 1.8; color: #555; margin-bottom: 20px;">
+        <p style="font-size: 16px; line-height: 1.8; color: var(--text-muted); margin-bottom: 20px;">
           拡張機能の設定ページ（options.html）で、以下の項目をカスタマイズできます。
         </p>
 
-        <h3 style="margin-bottom: 15px; color: #333; font-size: 20px;">対応サイトの設定</h3>
+        <h3 style="margin-bottom: 15px; color: var(--text-color); font-size: 20px;">対応サイトの設定</h3>
         <ul style="margin-left: 20px; margin-bottom: 30px;">
           <li>eBay、楽天市場、Amazonの各サイトで機能の有効/無効を切り替え</li>
           <li>使用しないサイトを無効化することで、不要なボタン表示を防げます</li>
         </ul>
 
-        <h3 style="margin-bottom: 15px; color: #333; font-size: 20px;">画像出力設定</h3>
+        <h3 style="margin-bottom: 15px; color: var(--text-color); font-size: 20px;">画像出力設定</h3>
         <ul style="margin-left: 20px; margin-bottom: 30px;">
           <li><strong>出力する画像枚数:</strong> 0枚〜全ての画像（1枚、3枚、5枚、10枚、全て）</li>
           <li><strong>クリップボードコピー時の画像URL:</strong> 有効/無効</li>
         </ul>
 
-        <h3 style="margin-bottom: 15px; color: #333; font-size: 20px;">Googleスプレッドシート連携</h3>
+        <h3 style="margin-bottom: 15px; color: var(--text-color); font-size: 20px;">Googleスプレッドシート連携</h3>
         <ul style="margin-left: 20px; margin-bottom: 30px;">
           <li>複数のスプレッドシートを登録（最大10件）</li>
           <li>各スプレッドシートの識別名、Webhook URL、出力先シート名を設定</li>
           <li>接続テスト機能でデプロイが正しく動作するか確認</li>
         </ul>
 
-        <h3 style="margin-bottom: 15px; color: #333; font-size: 20px;">画像読み込み待機時間</h3>
+        <h3 style="margin-bottom: 15px; color: var(--text-color); font-size: 20px;">画像読み込み待機時間</h3>
         <ul style="margin-left: 20px; margin-bottom: 30px;">
           <li>各サイトごとに画像の遅延読み込み待機時間を設定（0〜10秒）</li>
           <li>Amazonはデフォルト3秒（推奨）</li>
           <li>他のサイトは0秒（待機なし）がデフォルト</li>
         </ul>
 
-        <h3 style="margin-bottom: 15px; color: #333; font-size: 20px;">除外・注目キーワード</h3>
+        <h3 style="margin-bottom: 15px; color: var(--text-color); font-size: 20px;">除外・注目キーワード</h3>
         <ul style="margin-left: 20px; margin-bottom: 30px;">
           <li><strong>除外キーワード:</strong> 1行に1つ入力（例: 並行輸入、訳あり、中古）</li>
           <li><strong>注目キーワード:</strong> 1行に1つ入力（例: 送料無料、ポイント10倍）</li>
         </ul>
 
-        <h3 style="margin-bottom: 15px; color: #333; font-size: 20px;">フリマサイト設定</h3>
+        <h3 style="margin-bottom: 15px; color: var(--text-color); font-size: 20px;">フリマサイト設定</h3>
         <ul style="margin-left: 20px; margin-bottom: 30px;">
           <li><strong>悪い評価の割合アラート:</strong> 指定した%以上の場合に警告表示</li>
           <li><strong>評価件数のアラート:</strong> 指定した件数以下の場合に警告表示</li>
@@ -789,7 +1081,7 @@
           <li><strong>発送日数アラート:</strong> 発送が「4〜7日」の場合に警告表示</li>
         </ul>
 
-        <h3 style="margin-bottom: 15px; color: #333; font-size: 20px;">ボタン配置</h3>
+        <h3 style="margin-bottom: 15px; color: var(--text-color); font-size: 20px;">ボタン配置</h3>
         <ul style="margin-left: 20px; margin-bottom: 30px;">
           <li><strong>右上:</strong> 画面の右上に固定表示（デフォルト）</li>
           <li><strong>右下:</strong> 画面の右下に固定表示</li>
@@ -797,7 +1089,7 @@
         </ul>
 
         <div class="info-box" style="margin-left: 0; margin-top: 20px;">
-          💡 設定を変更したら「設定を保存」ボタンをクリックしてください。「デフォルトに戻す」ボタンで初期設定に戻せます（スプレッドシート登録は削除されません）。
+          設定を変更したら「設定を保存」ボタンをクリックしてください。「デフォルトに戻す」ボタンで初期設定に戻せます（スプレッドシート登録は削除されません）。
         </div>
       </section>
 
@@ -806,7 +1098,7 @@
         <h2 class="section-title">トラブルシューティング</h2>
 
         <div class="step">
-          <span class="step-number">❓</span>
+          <span class="step-number">?</span>
           <h3 class="step-title">ボタンが表示されない</h3>
           <ul>
             <li>拡張機能が有効になっているか確認（chrome://extensions/）</li>
@@ -817,7 +1109,7 @@
         </div>
 
         <div class="step">
-          <span class="step-number">❓</span>
+          <span class="step-number">?</span>
           <h3 class="step-title">データが正しく抽出されない</h3>
           <ul>
             <li>画像読み込み待機時間を長めに設定してみる（3〜5秒）</li>
@@ -827,7 +1119,7 @@
         </div>
 
         <div class="step">
-          <span class="step-number">❓</span>
+          <span class="step-number">?</span>
           <h3 class="step-title">スプレッドシートに送信できない</h3>
           <ul>
             <li>Webhook URLが正しくコピーされているか確認</li>
@@ -839,7 +1131,7 @@
         </div>
 
         <div class="step">
-          <span class="step-number">❓</span>
+          <span class="step-number">?</span>
           <h3 class="step-title">画像がスプレッドシートに表示されない</h3>
           <ul>
             <li>画像URLが正しく取得されているか確認</li>
@@ -850,7 +1142,7 @@
         </div>
 
         <div class="step">
-          <span class="step-number">❓</span>
+          <span class="step-number">?</span>
           <h3 class="step-title">拡張機能が動作しない</h3>
           <ul>
             <li>拡張機能を一度無効化してから再度有効化</li>
@@ -861,7 +1153,7 @@
         </div>
 
         <div class="step">
-          <span class="step-number">❓</span>
+          <span class="step-number">?</span>
           <h3 class="step-title">設定が保存されない</h3>
           <ul>
             <li>chrome.storage APIの容量制限に達している可能性</li>
@@ -871,7 +1163,7 @@
         </div>
 
         <div class="info-box" style="margin-left: 0; margin-top: 30px;">
-          💡 <strong>それでも解決しない場合:</strong><br>
+          <strong>それでも解決しない場合:</strong><br>
           • Chromeのデベロッパーツール（F12）のコンソールでエラーメッセージを確認<br>
           • Apps Scriptエディタの「実行ログ」（メニュー → 表示 → ログ）でエラーを確認<br>
           • 開発者にお問い合わせください（エラーメッセージのスクリーンショットがあると解決が早くなります）
@@ -879,11 +1171,45 @@
       </section>
 
       <!-- フッター -->
-      <div style="margin-top: 60px; padding-top: 30px; border-top: 2px solid #e0e0e0; text-align: center; color: #666;">
+      <div style="margin-top: 60px; padding-top: 30px; border-top: 2px solid var(--border-color); text-align: center; color: var(--text-light);">
         <p style="margin-bottom: 10px;">Universal Product Scraper v1.0.0</p>
         <p style="font-size: 14px;">ご不明な点がございましたら、設定ページまたはチュートリアルをご参照ください。</p>
       </div>
     </div>
   </div>
+
+  <script>
+    // テーマ切替機能
+    const themeButtons = document.querySelectorAll('.theme-btn');
+    const body = document.body;
+
+    function setTheme(theme) {
+      body.classList.remove('theme-simple', 'theme-dark');
+      if (theme === 'simple') {
+        body.classList.add('theme-simple');
+      } else if (theme === 'dark') {
+        body.classList.add('theme-dark');
+      }
+
+      themeButtons.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.theme === theme) {
+          btn.classList.add('active');
+        }
+      });
+
+      localStorage.setItem('bulk-guide-theme', theme);
+    }
+
+    themeButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        setTheme(btn.dataset.theme);
+      });
+    });
+
+    // 保存されたテーマを読み込み
+    const savedTheme = localStorage.getItem('bulk-guide-theme') || 'default';
+    setTheme(savedTheme);
+  </script>
 </body>
 </html>
