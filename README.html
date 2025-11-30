@@ -831,6 +831,14 @@
           </div>
         </div>
 
+        <h3 style="margin-top: 40px; margin-bottom: 20px; color: var(--text-color); font-size: 20px;">拡張機能のダウンロードから使用開始まで</h3>
+        <p style="font-size: 16px; line-height: 1.8; color: var(--text-muted); margin-bottom: 20px;">
+          以下の動画で、拡張機能のダウンロードからインストール、使用開始までの流れを確認できます。
+        </p>
+        <div class="image-area" style="margin-left: 0; background: var(--feature-card-bg); border-radius: 8px; padding: 20px; border: 2px solid var(--border-color);">
+          <div style="padding:64.95% 0 0 0;position:relative;"><iframe src="https://player.vimeo.com/video/1141760936?h=033c3c362c&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" referrerpolicy="strict-origin-when-cross-origin" style="position:absolute;top:0;left:0;width:100%;height:100%;" title="拡張機能のダウンロードから使用開始まで"></iframe></div><script src="https://player.vimeo.com/api/player.js"></script>
+        </div>
+
         <div class="success-box" style="margin-left: 0; margin-top: 30px;">
           <strong>インストール完了！</strong> 次は<a href="#google-sheets" style="color: inherit; text-decoration: underline;">Googleスプレッドシート連携</a>を設定しましょう。
         </div>
@@ -844,33 +852,18 @@
           抽出した商品データをGoogleスプレッドシートに自動保存できます。複数のスプレッドシートを登録して、用途別に使い分けることも可能です。
         </p>
 
-        <div class="info-box" style="margin-left: 0;">
-          <strong>重要:</strong> スプレッドシート連携の詳しい設定手順は、<strong>tutorial.html</strong>（デプロイチュートリアル）をご覧ください。拡張機能の設定ページからも開けます。
-        </div>
-
         <h3 style="margin-top: 30px; margin-bottom: 15px; color: var(--text-color); font-size: 20px;">設定の流れ（概要）</h3>
 
         <div class="step">
           <span class="step-number">1</span>
-          <h3 class="step-title">Googleスプレッドシートを作成</h3>
+          <h3 class="step-title">一括登録シートを用意</h3>
           <p class="step-description">
-            <a href="https://sheets.google.com" target="_blank">Google スプレッドシート</a>で新しいスプレッドシートを作成します。
+            一括登録シートを用意します。
           </p>
         </div>
 
         <div class="step">
           <span class="step-number">2</span>
-          <h3 class="step-title">Apps Scriptを設定</h3>
-          <p class="step-description">
-            スプレッドシートのメニューから「拡張機能」→「Apps Script」を開き、スクリプトコードを貼り付けます。
-          </p>
-          <div class="info-box">
-            スクリプトコードは拡張機能の設定ページまたはtutorial.htmlに記載されています。
-          </div>
-        </div>
-
-        <div class="step">
-          <span class="step-number">3</span>
           <h3 class="step-title">ウェブアプリとしてデプロイ</h3>
           <p class="step-description">
             Apps Scriptエディタから「デプロイ」→「新しいデプロイ」→「ウェブアプリ」を選択し、アクセス権を「全員」に設定してデプロイします。
@@ -878,7 +871,7 @@
         </div>
 
         <div class="step">
-          <span class="step-number">4</span>
+          <span class="step-number">3</span>
           <h3 class="step-title">Webhook URLを取得</h3>
           <p class="step-description">
             デプロイ完了後に表示されるウェブアプリのURL（https://script.google.com/macros/s/.../exec）をコピーします。
@@ -886,7 +879,7 @@
         </div>
 
         <div class="step">
-          <span class="step-number">5</span>
+          <span class="step-number">4</span>
           <h3 class="step-title">拡張機能に登録</h3>
           <p class="step-description">
             拡張機能の設定ページを開き、「新しいスプレッドシートを追加」セクションで以下を入力して「追加」ボタンをクリックします。
@@ -899,14 +892,20 @@
         </div>
 
         <div class="step">
-          <span class="step-number">6</span>
+          <span class="step-number">5</span>
           <h3 class="step-title">接続テスト</h3>
           <p class="step-description">
             登録したスプレッドシートの「テスト」ボタンをクリックして、正しく接続できるか確認します。
           </p>
         </div>
 
-        <a href="tutorial.html" class="btn-primary" target="_blank">詳しいチュートリアルを開く →</a>
+        <h3 style="margin-top: 40px; margin-bottom: 20px; color: var(--text-color); font-size: 20px;">一括登録シートとの連携方法</h3>
+        <p style="font-size: 16px; line-height: 1.8; color: var(--text-muted); margin-bottom: 20px;">
+          以下の動画で、一括登録シートと拡張機能を連携させる方法を確認できます。
+        </p>
+        <div class="image-area" style="margin-left: 0; background: var(--feature-card-bg); border-radius: 8px; padding: 20px; border: 2px solid var(--border-color);">
+          <div style="padding:64.95% 0 0 0;position:relative;"><iframe src="https://player.vimeo.com/video/1139841863?h=26080ddfa3&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" referrerpolicy="strict-origin-when-cross-origin" style="position:absolute;top:0;left:0;width:100%;height:100%;" title="拡張機能との連携方法"></iframe></div><script src="https://player.vimeo.com/api/player.js"></script>
+        </div>
       </section>
 
       <!-- 使い方 -->
@@ -952,6 +951,14 @@
 
         <div class="success-box" style="margin-left: 0; margin-top: 20px;">
           スプレッドシートを開くと、商品データが追加されています！
+        </div>
+
+        <h3 style="margin-top: 40px; margin-bottom: 20px; color: var(--text-color); font-size: 20px;">拡張機能の使い方</h3>
+        <p style="font-size: 16px; line-height: 1.8; color: var(--text-muted); margin-bottom: 20px;">
+          以下の動画で、拡張機能を使った商品情報の取得方法を確認できます。
+        </p>
+        <div class="image-area" style="margin-left: 0; background: var(--feature-card-bg); border-radius: 8px; padding: 20px; border: 2px solid var(--border-color);">
+          <div style="padding:64.95% 0 0 0;position:relative;"><iframe src="https://player.vimeo.com/video/1139842997?h=602fecacd6&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" referrerpolicy="strict-origin-when-cross-origin" style="position:absolute;top:0;left:0;width:100%;height:100%;" title="拡張機能の使い方"></iframe></div><script src="https://player.vimeo.com/api/player.js"></script>
         </div>
 
         <h3 style="margin-top: 40px; margin-bottom: 20px; color: var(--text-color); font-size: 20px;">取得できるデータ</h3>
