@@ -166,11 +166,6 @@ function setupEventListeners() {
   // スプレッドシート追加ボタン
   document.getElementById('addSheetBtn').addEventListener('click', addSpreadsheet);
 
-  // チュートリアルボタン
-  document.getElementById('openTutorialBtn').addEventListener('click', () => {
-    chrome.tabs.create({ url: chrome.runtime.getURL('tutorial.html') });
-  });
-
   // Apps Scriptコードコピーボタン
   const copyScriptBtn = document.getElementById('copyScriptBtn');
   if (copyScriptBtn) {
