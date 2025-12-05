@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プライバシーポリシー - Universal Product Scraper</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans CJK JP", sans-serif;
+      line-height: 1.8;
+      color: #333;
+      background-color: #f5f5f5;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      font-size: 1.8em;
+      margin-bottom: 10px;
+      color: #2c3e50;
+      border-bottom: 3px solid #3498db;
+      padding-bottom: 10px;
+    }
+    .app-name {
+      color: #7f8c8d;
+      font-size: 0.9em;
+      margin-bottom: 30px;
+    }
+    h2 {
+      font-size: 1.3em;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      color: #2c3e50;
+      padding-left: 10px;
+      border-left: 4px solid #3498db;
+    }
+    p, li {
+      margin-bottom: 10px;
+      color: #555;
+    }
+    ul {
+      padding-left: 25px;
+      margin-bottom: 15px;
+    }
+    .highlight {
+      background-color: #e8f4f8;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 15px 0;
+    }
+    .last-updated {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+      color: #999;
+      font-size: 0.9em;
+    }
+    a {
+      color: #3498db;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>プライバシーポリシー</h1>
+    <p class="app-name">Universal Product Scraper Chrome拡張機能</p>
+
+    <h2>はじめに</h2>
+    <p>本プライバシーポリシーは、Chrome拡張機能「Universal Product Scraper」（以下「本拡張機能」）における、ユーザー情報の取り扱いについて説明します。</p>
+
+    <h2>収集するデータ</h2>
+    <p>本拡張機能は、以下のデータを取得します：</p>
+    <ul>
+      <li>ECサイト（eBay、楽天、Amazon、メルカリ、ヤフオク、ラクマ等）の商品情報（商品名、価格、URL、画像URL等）</li>
+      <li>ユーザーが設定した拡張機能の設定値</li>
+    </ul>
+    <div class="highlight">
+      <strong>重要：</strong>本拡張機能は、ユーザーの個人情報（氏名、住所、クレジットカード情報等）を収集することはありません。
+    </div>
+
+    <h2>データの使用目的</h2>
+    <p>収集したデータは、以下の目的でのみ使用されます：</p>
+    <ul>
+      <li>商品情報の表示およびクリップボードへのコピー</li>
+      <li>ユーザーが指定したGoogleスプレッドシートへのデータエクスポート</li>
+      <li>拡張機能の設定の保存と復元</li>
+    </ul>
+
+    <h2>データの送信</h2>
+    <p>本拡張機能は、ユーザーの明示的な操作により、以下の送信を行います：</p>
+    <ul>
+      <li>ユーザー自身が指定したGoogleスプレッドシートへの商品データの送信</li>
+    </ul>
+    <div class="highlight">
+      <strong>重要：</strong>本拡張機能の開発者は、ユーザーのデータを収集、保存、または第三者に提供することはありません。すべてのデータ送信は、ユーザー自身の管理下にあるGoogleスプレッドシートに対してのみ行われます。
+    </div>
+
+    <h2>データの保存</h2>
+    <ul>
+      <li>拡張機能の設定情報は、ユーザーのブラウザ内のローカルストレージ（chrome.storage.local）に保存されます</li>
+      <li>保存されたデータは、ユーザーのブラウザ内にのみ存在し、外部サーバーには送信されません</li>
+      <li>拡張機能をアンインストールすると、保存されたデータは削除されます</li>
+    </ul>
+
+    <h2>第三者への提供</h2>
+    <p>本拡張機能は、ユーザーのデータを第三者に販売、貸与、または提供することはありません。</p>
+
+    <h2>権限について</h2>
+    <p>本拡張機能は、以下の権限を使用します：</p>
+    <ul>
+      <li><strong>activeTab：</strong>現在表示中のタブで商品情報を取得するため</li>
+      <li><strong>scripting：</strong>ECサイトのページから商品情報を抽出するため</li>
+      <li><strong>clipboardWrite：</strong>商品情報をクリップボードにコピーするため</li>
+      <li><strong>storage：</strong>拡張機能の設定を保存するため</li>
+      <li><strong>host_permissions：</strong>対応ECサイトおよびGoogleスプレッドシートと連携するため</li>
+    </ul>
+
+    <h2>プライバシーポリシーの変更</h2>
+    <p>本プライバシーポリシーは、必要に応じて更新されることがあります。重要な変更がある場合は、拡張機能のアップデート時にお知らせします。</p>
+
+    <h2>お問い合わせ</h2>
+    <p>本プライバシーポリシーに関するご質問やお問い合わせは、以下のGitHubリポジトリよりお願いいたします：</p>
+    <p><a href="https://github.com/naokijodan/universal-scraper/issues" target="_blank">https://github.com/naokijodan/universal-scraper/issues</a></p>
+
+    <p class="last-updated">最終更新日: 2024年12月5日</p>
+  </div>
+</body>
+</html>
