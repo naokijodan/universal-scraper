@@ -388,7 +388,7 @@ async function saveSettings() {
       alertKeywords: document.getElementById('alertKeywords').value,
       popupKeywords: document.getElementById('popupKeywords').value,
       buttonPosition: document.getElementById('buttonPosition').value,
-      imageOutputCount: parseInt(document.getElementById('imageOutputCount').value) || 5,
+      imageOutputCount: (() => { const v = parseInt(document.getElementById('imageOutputCount').value); return isNaN(v) ? 5 : v; })(),
       enableImageInClipboard: document.getElementById('enableImageInClipboard').checked,
       // 画像読み込み待機時間（秒）
       amazonLoadDelay: parseFloat(document.getElementById('amazonLoadDelay').value) || 0,

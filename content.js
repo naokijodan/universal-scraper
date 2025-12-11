@@ -2465,7 +2465,7 @@ function isNoiseText(text) {
         // 8以降: 画像
         if (data.imageUrl) {
           const imageUrls = data.imageUrl.split(',').map(url => url.trim());
-          const maxImages = settings.imageOutputCount === 999 ? imageUrls.length : Math.min(imageUrls.length, settings.imageOutputCount || 5);
+          const maxImages = settings.imageOutputCount === 999 ? imageUrls.length : Math.min(imageUrls.length, typeof settings.imageOutputCount === 'number' ? settings.imageOutputCount : 5);
           const imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
           console.log('🖼️ IMAGE()関数を追加（タブ区切り）:', imageFormulas.length + '枚');
           row.push(...imageFormulas);
@@ -2501,7 +2501,7 @@ function isNoiseText(text) {
         // 8以降: 画像
         if (data.imageUrl) {
           const imageUrls = data.imageUrl.split(',').map(url => url.trim());
-          const maxImages = settings.imageOutputCount === 999 ? imageUrls.length : Math.min(imageUrls.length, settings.imageOutputCount || 5);
+          const maxImages = settings.imageOutputCount === 999 ? imageUrls.length : Math.min(imageUrls.length, typeof settings.imageOutputCount === 'number' ? settings.imageOutputCount : 5);
           const imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
           console.log('🖼️ IMAGE()関数を追加（タブ区切り）:', imageFormulas.length + '枚');
           row.push(...imageFormulas);
@@ -4673,7 +4673,7 @@ function isNoiseText(text) {
       const syncSettings = await chrome.storage.sync.get(['spreadsheets', 'imageOutputCount']);
       const localSettings = await chrome.storage.local.get(['lastUsedSheetId']);
       const spreadsheets = syncSettings.spreadsheets || [];
-      const imageOutputCount = syncSettings.imageOutputCount || 5;
+      const imageOutputCount = typeof syncSettings.imageOutputCount === 'number' ? syncSettings.imageOutputCount : 5;
 
       // スプレッドシートが未登録の場合
       if (spreadsheets.length === 0) {
@@ -4733,14 +4733,18 @@ function isNoiseText(text) {
           window.location.href              // 7. ページURL（新規追加）
         ];
 
-        // 画像20フィールド（フリマサイトは常にIMAGE関数で出力）
+        // 画像20フィールド（imageOutputCount設定に従う）
         const imageUrls = Array.isArray(data.imageUrl) ? data.imageUrl :
                           typeof data.imageUrl === 'string' ? data.imageUrl.split(',').map(url => url.trim()) : [];
 
+        // imageOutputCountが0の場合は全て空、999の場合は全画像、それ以外は指定枚数まで
+        const maxImages = imageOutputCount === 0 ? 0 :
+                          imageOutputCount === 999 ? 20 :
+                          Math.min(imageOutputCount, 20);
+
         for (let i = 0; i < 20; i++) {
-          const url = imageUrls[i] || '';
+          const url = (i < maxImages) ? (imageUrls[i] || '') : '';
           if (url) {
-            // フリマサイトは常にIMAGE関数で出力
             values.push(`=IMAGE("${url}")`);
           } else {
             values.push(''); // 空文字

@@ -78,7 +78,9 @@ function generateOutputFields() {
   return fields;
 }
 
-// デフォルトのアラートキーワード（mercari_yahoo_extensionから継承）
+// デフォルトのアラートキーワード
+// 偽造品リスクや海外での訴訟が多いブランド名を検知し、
+// ユーザーに注意喚起するためのキーワード（リサーチ対象外とするため）
 function defaultAlertKeywords() {
   const data = `
 なると
@@ -130,6 +132,8 @@ Wham-o
 }
 
 // デフォルトの除外キーワード
+// 偽造品リスクや訴訟リスクのある商品を検知するためのキーワード
+// alertKeywordsと同様、リサーチ時の注意喚起に使用
 function defaultExcludeKeywords() {
   const data = `
 なると
