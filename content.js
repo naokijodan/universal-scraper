@@ -5093,12 +5093,33 @@ function isNoiseText(text) {
         let bad = null;
         let normal = null;
 
-        // メルカリショップの場合は、ショップ情報セクション内の星評価を取得
+        // メルカリショップの場合は、ショップ情報セクションから評価数を取得
         const isShop = window.location.pathname.includes('/shops/product/');
         if (isShop) {
           console.log('[getSellerRating] メルカリショップモード');
 
-          // ページ全体のテキストから評価数を探す
+          // 方法0（最優先）: data-testid="shops-information" または "shops-profile-link" から取得
+          // 形式: "ショップ名\n\n評価数\n\nメルカリShops"
+          const shopsInfoEl = document.querySelector('[data-testid="shops-information"]') ||
+                              document.querySelector('[data-testid="shops-profile-link"]');
+          if (shopsInfoEl) {
+            const shopsText = shopsInfoEl.innerText || '';
+            console.log('[getSellerRating] shops-information テキスト:', shopsText.substring(0, 100));
+
+            // 改行で分割して評価数を取得（2番目の要素が評価数）
+            const lines = shopsText.split('\n').filter(line => line.trim() !== '');
+            console.log('[getSellerRating] shops-information 行分割:', lines);
+
+            if (lines.length >= 2) {
+              const reviewCount = parseInt(lines[1].trim());
+              if (!Number.isNaN(reviewCount) && reviewCount > 0) {
+                console.log('[getSellerRating] ショップ評価数取得成功:', reviewCount);
+                return { reviewCount: String(reviewCount), badRate: '' };
+              }
+            }
+          }
+
+          // 方法1（フォールバック）: ページ全体のテキストから評価数を探す
           const bodyText = document.body.innerText || '';
 
           // パターン1: 「優良ショップ」の直前にある数字（優良ショップバッジがある場合）
@@ -5110,14 +5131,12 @@ function isNoiseText(text) {
           }
 
           // パターン2: 「メルカリShops」の直前にある数字（優良ショップバッジが無い場合）
-          // ショップ情報セクション内のメルカリShopsを対象にするため、範囲を限定
-          const shopSectionMatch = bodyText.match(/ショップ情報[\s\S]{0,300}メルカリShops/);
+          const shopSectionMatch = bodyText.match(/ショップ情報[\s\S]{0,500}メルカリShops/);
           if (shopSectionMatch) {
             const sectionText = shopSectionMatch[0];
             console.log('[getSellerRating] ショップ情報セクション:', sectionText.substring(0, 100));
 
-            // このセクション内で「メルカリShops」の直前の数字を探す
-            const shopsMatch = sectionText.match(/(\d{1,5})\s*メルカリShops/);
+            const shopsMatch = sectionText.match(/(\d{1,6})\s*メルカリShops/);
             if (shopsMatch) {
               const total = parseInt(shopsMatch[1]);
               console.log('[getSellerRating] ショップ星評価取得（メルカリShops前）:', total);
@@ -5128,20 +5147,65 @@ function isNoiseText(text) {
           console.log('[getSellerRating] ショップ情報セクションが見つかりませんでした');
         }
 
-        // 方法1: #furima-assist-seller-ratings から取得（元の拡張機能が挿入する要素）
-        const assistRatings = document.querySelector("#furima-assist-seller-ratings");
-        if (assistRatings) {
-          const spans = assistRatings.querySelectorAll("span");
-          if (spans.length >= 2) {
-            good = parseInt((spans[0]?.textContent || "").replace(/[^\d]/g, ''));
-            bad = parseInt((spans[1]?.textContent || "").replace(/[^\d]/g, ''));
-            if (spans[2]) {
-              normal = parseInt((spans[2]?.textContent || "").replace(/[^\d]/g, ''));
+        // 方法0（最優先）: data-testid="seller-link" から取得
+        // 形式: "出品者名\n\n合計評価数\n 良い評価数  悪い評価数\n本人確認済" など
+        const sellerLinkEl = document.querySelector('[data-testid="seller-link"]');
+        if (sellerLinkEl) {
+          const sellerText = sellerLinkEl.innerText || '';
+          console.log('[getSellerRating] seller-link テキスト:', sellerText.substring(0, 100));
+
+          // 数値を全て抽出（改行や空白で区切られた数値）
+          const allNumbers = sellerText.match(/\d+/g);
+          console.log('[getSellerRating] seller-link 数値一覧:', allNumbers);
+
+          if (allNumbers && allNumbers.length >= 3) {
+            // パターン: [合計, 良い, 悪い] または [合計, 良い, 普通, 悪い]
+            const nums = allNumbers.map(n => parseInt(n)).filter(n => !Number.isNaN(n));
+            const total = nums[0];
+            const goodVal = nums[1];
+            const remaining = nums.slice(2);
+
+            // 合計 = 良い + 悪い (+ 普通) かどうか検証
+            if (remaining.length === 1) {
+              const badVal = remaining[0];
+              if (Math.abs(total - (goodVal + badVal)) <= 1) {
+                good = goodVal;
+                bad = badVal;
+                console.log('[getSellerRating] seller-link 解析成功（良い/悪い）:', { total, good, bad });
+              }
+            } else if (remaining.length >= 2) {
+              const normalVal = remaining[0];
+              const badVal = remaining[1];
+              if (Math.abs(total - (goodVal + normalVal + badVal)) <= 1) {
+                good = goodVal;
+                normal = normalVal;
+                bad = badVal;
+                console.log('[getSellerRating] seller-link 解析成功（良い/普通/悪い）:', { total, good, normal, bad });
+              } else if (Math.abs(total - (goodVal + remaining[0])) <= 1) {
+                good = goodVal;
+                bad = remaining[0];
+                console.log('[getSellerRating] seller-link 解析成功（良い/悪い + 余分）:', { total, good, bad });
+              }
             }
-            good = Number.isNaN(good) ? null : good;
-            bad = Number.isNaN(bad) ? null : bad;
-            normal = Number.isNaN(normal) ? null : normal;
-            console.log('[getSellerRating] #furima-assist-seller-ratings経由:', {good, bad, normal});
+          }
+        }
+
+        // 方法1: #furima-assist-seller-ratings から取得（フリマアシスト拡張機能）
+        if (good === null || bad === null) {
+          const assistRatings = document.querySelector("#furima-assist-seller-ratings");
+          if (assistRatings) {
+            const spans = assistRatings.querySelectorAll("span");
+            if (spans.length >= 2) {
+              good = parseInt((spans[0]?.textContent || "").replace(/[^\d]/g, ''));
+              bad = parseInt((spans[1]?.textContent || "").replace(/[^\d]/g, ''));
+              if (spans[2]) {
+                normal = parseInt((spans[2]?.textContent || "").replace(/[^\d]/g, ''));
+              }
+              good = Number.isNaN(good) ? null : good;
+              bad = Number.isNaN(bad) ? null : bad;
+              normal = Number.isNaN(normal) ? null : normal;
+              console.log('[getSellerRating] #furima-assist-seller-ratings経由:', {good, bad, normal});
+            }
           }
         }
 
