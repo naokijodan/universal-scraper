@@ -206,8 +206,8 @@ function isNoiseText(text) {
     console.log('🎨 ページ要素のハイライト開始');
 
     // 除外キーワードと注目キーワードを取得
-    const excludeKeywords = settings.alertKeywords ? settings.alertKeywords.split('\n').filter(k => k.trim()) : [];
-    const attentionKeywords = settings.popupKeywords ? settings.popupKeywords.split('\n').filter(k => k.trim()) : [];
+    const excludeKeywords = Array.isArray(settings.alertKeywords) ? settings.alertKeywords.filter(k => k.trim()) : (typeof settings.alertKeywords === 'string' && settings.alertKeywords ? settings.alertKeywords.split('\n').filter(k => k.trim()) : []);
+    const attentionKeywords = Array.isArray(settings.popupKeywords) ? settings.popupKeywords.filter(k => k.trim()) : (typeof settings.popupKeywords === 'string' && settings.popupKeywords ? settings.popupKeywords.split('\n').filter(k => k.trim()) : []);
 
     if (excludeKeywords.length === 0 && attentionKeywords.length === 0) {
       console.log('⚠️ キーワード設定なし');
@@ -1599,8 +1599,8 @@ function isNoiseText(text) {
     // キーワード検出
     // alertKeywords（オプション画面の「除外キーワード」）を赤ハイライト用に使用
     // popupKeywords（オプション画面の「注目キーワード」）を黄色ハイライト用に使用
-    const excludeKeywords = settings.alertKeywords ? settings.alertKeywords.split('\n').filter(k => k.trim()) : [];
-    const attentionKeywords = settings.popupKeywords ? settings.popupKeywords.split('\n').filter(k => k.trim()) : [];
+    const excludeKeywords = Array.isArray(settings.alertKeywords) ? settings.alertKeywords.filter(k => k.trim()) : (typeof settings.alertKeywords === 'string' && settings.alertKeywords ? settings.alertKeywords.split('\n').filter(k => k.trim()) : []);
+    const attentionKeywords = Array.isArray(settings.popupKeywords) ? settings.popupKeywords.filter(k => k.trim()) : (typeof settings.popupKeywords === 'string' && settings.popupKeywords ? settings.popupKeywords.split('\n').filter(k => k.trim()) : []);
 
     // タイトルと説明文の両方でキーワード検出
     const title = data.title || data.name || '';
@@ -2616,8 +2616,10 @@ function isNoiseText(text) {
   function checkRakutenAlerts(data, settings) {
     const alerts = [];
 
-    if (settings.alertKeywords && settings.alertKeywords.trim() !== '') {
-      const keywords = settings.alertKeywords.split('\n').filter(k => k.trim() !== '');
+    const alertKw = Array.isArray(settings.alertKeywords) ? settings.alertKeywords : (typeof settings.alertKeywords === 'string' ? settings.alertKeywords : '');
+    const alertKwStr = Array.isArray(alertKw) ? alertKw.join('\n') : alertKw;
+    if (alertKwStr && alertKwStr.trim() !== '') {
+      const keywords = alertKwStr.split('\n').filter(k => k.trim() !== '');
       const fullText = (data.name + ' ' + data.description).toLowerCase();
 
       for (const keyword of keywords) {
@@ -2632,8 +2634,10 @@ function isNoiseText(text) {
 
   // 楽天用ポップアップキーワードチェック
   function checkRakutenPopupKeywords(data, settings, colors) {
-    if (settings.popupKeywords && settings.popupKeywords.trim() !== '') {
-      const keywords = settings.popupKeywords.split('\n').filter(k => k.trim() !== '');
+    const popupKw = Array.isArray(settings.popupKeywords) ? settings.popupKeywords : (typeof settings.popupKeywords === 'string' ? settings.popupKeywords : '');
+    const popupKwStr = Array.isArray(popupKw) ? popupKw.join('\n') : popupKw;
+    if (popupKwStr && popupKwStr.trim() !== '') {
+      const keywords = popupKwStr.split('\n').filter(k => k.trim() !== '');
       const fullText = (data.name + ' ' + data.description).toLowerCase();
       const matchedKeywords = [];
 
