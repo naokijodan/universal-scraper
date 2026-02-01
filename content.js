@@ -502,8 +502,8 @@ function isNoiseText(text) {
     }
 
     // 評価件数のチェック（0件も含む）
-    const frimaPatforms = ['mercari', 'mercari_shop', 'yahuoku', 'paypayfurima', 'rakuma'];
-    const isFrimaPlatform = frimaPatforms.includes(data.platform);
+    const frimaPlatforms = ['mercari', 'mercari_shop', 'yahuoku', 'paypayfurima', 'rakuma'];
+    const isFrimaPlatform = frimaPlatforms.includes(data.platform);
 
     if (settings.alertLowReviewCount !== null && settings.alertLowReviewCount !== undefined &&
         data.reviewCount !== null && data.reviewCount !== undefined && data.reviewCount !== '') {
