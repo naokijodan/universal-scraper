@@ -502,6 +502,9 @@ function isNoiseText(text) {
     }
 
     // 評価件数のチェック（0件も含む）
+    const frimaPatforms = ['mercari', 'mercari_shop', 'yahuoku', 'paypayfurima', 'rakuma'];
+    const isFrimaPlatform = frimaPatforms.includes(data.platform);
+
     if (settings.alertLowReviewCount !== null && settings.alertLowReviewCount !== undefined &&
         data.reviewCount !== null && data.reviewCount !== undefined && data.reviewCount !== '') {
       const reviewCount = parseInt(data.reviewCount);
@@ -513,6 +516,14 @@ function isNoiseText(text) {
           message: `${reviewCount}件 (基準: ${settings.alertLowReviewCount}件以下)`
         });
       }
+    } else if (isFrimaPlatform && (data.reviewCount === null || data.reviewCount === undefined || data.reviewCount === '')) {
+      // フリマサイトで評価件数が取得できなかった場合
+      alerts.push({
+        type: 'warning',
+        icon: '⚠️',
+        title: '評価件数が取得できませんでした',
+        message: '出品者の評価件数を取得できませんでした。手動で確認してください'
+      });
     }
 
     // 出品経過日数のチェック（ヤフオクの場合は終了までの残り日数）
@@ -588,10 +599,27 @@ function isNoiseText(text) {
       }
     }
 
-    // 発送日数のチェック
+    // 発送日数のチェック（4〜7日、または8日以上）
     if (settings.alertHandlingDays && data.handlingDays) {
       const handlingDaysText = data.handlingDays.toString();
-      if (handlingDaysText.includes('4') && handlingDaysText.includes('7')) {
+      const rangeMatch = handlingDaysText.match(/(\d+)[〜～~](\d+)/);
+      const singleMatch = handlingDaysText.match(/(\d+)/);
+
+      let maxDays = 0;
+      if (rangeMatch) {
+        maxDays = parseInt(rangeMatch[2]);
+      } else if (singleMatch) {
+        maxDays = parseInt(singleMatch[1]);
+      }
+
+      if (maxDays >= 8) {
+        alerts.push({
+          type: 'error',
+          icon: '🚨',
+          title: '発送日数がとても長い',
+          message: `${handlingDaysText}（8日以上）`
+        });
+      } else if (maxDays >= 4) {
         alerts.push({
           type: 'warning',
           icon: '📦',
@@ -892,7 +920,8 @@ function isNoiseText(text) {
           if (maxDays >= 4 || (settings.alertHandlingDays && maxDays >= settings.alertHandlingDays)) {
             console.log('✅ 発送日数ハイライト対象:', text, 'element:', el.tagName, 'children:', el.children.length);
             const pattern = /(\d+[〜～~]\d+日(で発送)?)/;
-            const highlighted = addTextHighlight(el, pattern, 'warning');
+            const highlightType = maxDays >= 8 ? 'error' : 'warning';
+            const highlighted = addTextHighlight(el, pattern, highlightType);
             if (highlighted) {
               foundShippingDays = true;
               console.log('🎨 発送日数ハイライト成功');
@@ -1659,6 +1688,13 @@ function isNoiseText(text) {
             message: `評価件数: ${reviewCount}件（設定値: ${settings.alertLowReviewCount}件以下）`
           });
         }
+      } else if (!data.reviewCount || data.reviewCount === '') {
+        // 評価件数が取得できなかった場合
+        furimaAlerts.push({
+          type: 'warning',
+          title: '⚠️ 評価件数が取得できませんでした',
+          message: '出品者の評価件数を取得できませんでした。手動で確認してください'
+        });
       }
 
       // 出品経過日数のアラート
@@ -1685,26 +1721,31 @@ function isNoiseText(text) {
         }
       }
 
-      // 発送日数のアラート（4〜7日の場合）
+      // 発送日数のアラート（4日以上）
       if (settings.alertHandlingDays && data.handlingDays) {
         const handlingDaysText = data.handlingDays.toString();
-        // 「4〜7日」のパターンをチェック
-        if (handlingDaysText.includes('4') && handlingDaysText.includes('7')) {
+        const rangeMatch = handlingDaysText.match(/(\d+)[〜～~](\d+)/);
+        const singleMatch = handlingDaysText.match(/(\d+)/);
+
+        let maxDays = 0;
+        if (rangeMatch) {
+          maxDays = parseInt(rangeMatch[2]);
+        } else if (singleMatch) {
+          maxDays = parseInt(singleMatch[1]);
+        }
+
+        if (maxDays >= 8) {
+          furimaAlerts.push({
+            type: 'error',
+            title: '🚨 発送日数がとても長い',
+            message: `発送までの日数: ${handlingDaysText}（8日以上）`
+          });
+        } else if (maxDays >= 4) {
           furimaAlerts.push({
             type: 'warning',
             title: '📦 発送日数が長い',
-            message: `発送までの日数: ${handlingDaysText}（設定: 4〜7日でアラート）`
+            message: `発送までの日数: ${handlingDaysText}`
           });
-        } else if (handlingDaysText.match(/[4567]/)) {
-          // 単一の数字で4〜7日を含む場合
-          const days = parseInt(handlingDaysText.match(/\d+/)?.[0]);
-          if (days >= 4 && days <= 7) {
-            furimaAlerts.push({
-              type: 'warning',
-              title: '📦 発送日数が長い',
-              message: `発送までの日数: ${handlingDaysText}（設定: 4〜7日でアラート）`
-            });
-          }
         }
       }
     }
