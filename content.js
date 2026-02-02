@@ -5316,7 +5316,17 @@ function isNoiseText(text) {
         };
       };
 
-      const rating = await getSellerRating();
+      let rating = await getSellerRating();
+      if (!rating.reviewCount) {
+        console.log('[getSellerRating] 1回目で取得失敗。2秒後にリトライ...');
+        await new Promise(r => setTimeout(r, 2000));
+        rating = await getSellerRating();
+        if (rating.reviewCount) {
+          console.log('[getSellerRating] リトライで取得成功');
+        } else {
+          console.log('[getSellerRating] リトライでも取得失敗');
+        }
+      }
 
       // 画像URL（最大20枚、複数の方法で取得）
       const imageUrlArray = new Array(20).fill('');
