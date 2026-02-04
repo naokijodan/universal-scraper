@@ -5137,6 +5137,7 @@ function isNoiseText(text) {
         let good = null;
         let bad = null;
         let normal = null;
+        let totalFromSellerLink = null; // seller-linkから取得した合計（フォールバック用）
 
         // メルカリショップの場合は、ショップ情報セクションから評価数を取得
         const isShop = window.location.pathname.includes('/shops/product/');
@@ -5192,8 +5193,7 @@ function isNoiseText(text) {
           console.log('[getSellerRating] ショップ情報セクションが見つかりませんでした');
         }
 
-        // 方法0（最優先）: data-testid="seller-link" から取得
-        // 形式: "出品者名\n\n合計評価数\n 良い評価数  悪い評価数\n本人確認済" など
+        // Step 1: seller-linkから合計評価を取得（常に取得可能）
         const sellerLinkEl = document.querySelector('[data-testid="seller-link"]');
         if (sellerLinkEl) {
           const sellerText = sellerLinkEl.innerText || '';
@@ -5203,40 +5203,45 @@ function isNoiseText(text) {
           const allNumbers = sellerText.match(/\d+/g);
           console.log('[getSellerRating] seller-link 数値一覧:', allNumbers);
 
-          if (allNumbers && allNumbers.length >= 3) {
-            // パターン: [合計, 良い, 悪い] または [合計, 良い, 普通, 悪い]
-            const nums = allNumbers.map(n => parseInt(n)).filter(n => !Number.isNaN(n));
-            const total = nums[0];
-            const goodVal = nums[1];
-            const remaining = nums.slice(2);
+          if (allNumbers && allNumbers.length >= 1) {
+            // 最初の数値は常に合計評価（フォールバック用に保存）
+            totalFromSellerLink = parseInt(allNumbers[0]);
+            console.log('[getSellerRating] seller-link 合計評価:', totalFromSellerLink);
 
-            // 合計 = 良い + 悪い (+ 普通) かどうか検証
-            if (remaining.length === 1) {
-              const badVal = remaining[0];
-              if (Math.abs(total - (goodVal + badVal)) <= 1) {
-                good = goodVal;
-                bad = badVal;
-                console.log('[getSellerRating] seller-link 解析成功（良い/悪い）:', { total, good, bad });
-              }
-            } else if (remaining.length >= 2) {
-              const normalVal = remaining[0];
-              const badVal = remaining[1];
-              if (Math.abs(total - (goodVal + normalVal + badVal)) <= 1) {
-                good = goodVal;
-                normal = normalVal;
-                bad = badVal;
-                console.log('[getSellerRating] seller-link 解析成功（良い/普通/悪い）:', { total, good, normal, bad });
-              } else if (Math.abs(total - (goodVal + remaining[0])) <= 1) {
-                good = goodVal;
-                bad = remaining[0];
-                console.log('[getSellerRating] seller-link 解析成功（良い/悪い + 余分）:', { total, good, bad });
+            // 3つ以上の数値がある場合は内訳も取得を試みる
+            if (allNumbers.length >= 3) {
+              const nums = allNumbers.map(n => parseInt(n)).filter(n => !Number.isNaN(n));
+              const total = nums[0];
+              const goodVal = nums[1];
+              const remaining = nums.slice(2);
+
+              // 合計 = 良い + 悪い (+ 普通) かどうか検証
+              if (remaining.length === 1) {
+                const badVal = remaining[0];
+                if (Math.abs(total - (goodVal + badVal)) <= 1) {
+                  good = goodVal;
+                  bad = badVal;
+                  console.log('[getSellerRating] seller-link 解析成功（良い/悪い）:', { total, good, bad });
+                }
+              } else if (remaining.length >= 2) {
+                const normalVal = remaining[0];
+                const badVal = remaining[1];
+                if (Math.abs(total - (goodVal + normalVal + badVal)) <= 1) {
+                  good = goodVal;
+                  normal = normalVal;
+                  bad = badVal;
+                  console.log('[getSellerRating] seller-link 解析成功（良い/普通/悪い）:', { total, good, normal, bad });
+                } else if (Math.abs(total - (goodVal + remaining[0])) <= 1) {
+                  good = goodVal;
+                  bad = remaining[0];
+                  console.log('[getSellerRating] seller-link 解析成功（良い/悪い + 余分）:', { total, good, bad });
+                }
               }
             }
           }
         }
 
-        // 方法1: #furima-assist-seller-ratings から取得（フリマアシスト拡張機能）
-        // seller-linkで取得できなかった場合のフォールバック
+        // Step 2: フリマアシスト要素をポーリングで待機（内訳が未取得の場合）
         if (good === null || bad === null) {
           const getFromAssist = () => {
             const assistRatings = document.querySelector("#furima-assist-seller-ratings");
@@ -5259,45 +5264,40 @@ function isNoiseText(text) {
             return { good: g, bad: b, normal: n };
           };
 
-          // 即座にチェック
-          const assistResult = getFromAssist();
-          if (assistResult) {
-            good = assistResult.good;
-            bad = assistResult.bad;
-            normal = assistResult.normal;
-          } else {
-            // MutationObserverで最大5秒待つ
-            console.log('[getSellerRating] フリマアシスト要素を待機中（最大5秒）...');
-            const waitResult = await new Promise((resolve) => {
-              const timeout = setTimeout(() => {
-                observer.disconnect();
-                console.log('[getSellerRating] タイムアウト: フリマアシスト要素が見つかりませんでした');
-                resolve(null);
-              }, 5000);
+          // ポーリングで最大5秒待つ（500ms × 10回）
+          console.log('[getSellerRating] フリマアシスト要素をポーリング待機中（最大5秒）...');
+          const maxAttempts = 10;
+          const interval = 500;
 
-              const observer = new MutationObserver(() => {
-                const result = getFromAssist();
-                if (result) {
-                  clearTimeout(timeout);
-                  observer.disconnect();
-                  resolve(result);
-                }
-              });
-
-              observer.observe(document.body, { childList: true, subtree: true });
-            });
-
-            if (waitResult) {
-              good = waitResult.good;
-              bad = waitResult.bad;
-              normal = waitResult.normal;
+          for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            const assistResult = getFromAssist();
+            if (assistResult) {
+              good = assistResult.good;
+              bad = assistResult.bad;
+              normal = assistResult.normal;
+              console.log('[getSellerRating] ポーリング成功（試行:', attempt + 1, '回目）');
+              break;
             }
+            if (attempt < maxAttempts - 1) {
+              await new Promise(r => setTimeout(r, interval));
+            }
+          }
+
+          if (good === null && bad === null) {
+            console.log('[getSellerRating] ポーリングタイムアウト: フリマアシスト要素が見つかりませんでした');
           }
         }
 
         // 合計と悪い評価率を計算
         const nums = [good, normal, bad].filter(v => typeof v === 'number' && !Number.isNaN(v));
-        const total = nums.length ? nums.reduce((a, b) => a + b, 0) : 0;
+        let total = nums.length ? nums.reduce((a, b) => a + b, 0) : 0;
+
+        // 内訳が取れなかった場合、seller-linkの合計をフォールバックとして使用
+        if (total === 0 && totalFromSellerLink && !Number.isNaN(totalFromSellerLink)) {
+          total = totalFromSellerLink;
+          console.log('[getSellerRating] フォールバック: seller-linkの合計を使用:', total);
+        }
+
         const badRate = (typeof bad === 'number' && total > 0)
           ? (bad * 100 / total).toFixed(2) + '%'
           : '';
@@ -5307,7 +5307,8 @@ function isNoiseText(text) {
           badRate,
           good,
           bad,
-          normal
+          normal,
+          totalFromSellerLink
         });
 
         return {
