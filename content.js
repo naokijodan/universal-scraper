@@ -5204,9 +5204,26 @@ function isNoiseText(text) {
           console.log('[getSellerRating] seller-link 数値一覧:', allNumbers);
 
           if (allNumbers && allNumbers.length >= 1) {
-            // 最初の数値は常に合計評価（フォールバック用に保存）
-            totalFromSellerLink = parseInt(allNumbers[0]);
-            console.log('[getSellerRating] seller-link 合計評価:', totalFromSellerLink);
+            // 改行で分割し、純粋に数字のみの行を探す（セラー名に含まれる数字を避けるため）
+            const lines = sellerText.split(/\n/).map(line => line.trim()).filter(line => line.length > 0);
+            let foundPureNumberLine = false;
+
+            for (const line of lines) {
+              // 行が純粋に数字のみ（空白を除く）であれば、それが評価数
+              if (/^\d+$/.test(line)) {
+                totalFromSellerLink = parseInt(line);
+                foundPureNumberLine = true;
+                console.log('[getSellerRating] seller-link 純粋数値行から合計評価:', totalFromSellerLink);
+                break;
+              }
+            }
+
+            // 純粋数字行が見つからない場合は最大値を使用（セラー名の数字より評価数の方が通常大きい）
+            if (!foundPureNumberLine) {
+              const nums = allNumbers.map(n => parseInt(n)).filter(n => !Number.isNaN(n));
+              totalFromSellerLink = Math.max(...nums);
+              console.log('[getSellerRating] seller-link 最大値から合計評価（フォールバック）:', totalFromSellerLink);
+            }
 
             // 3つ以上の数値がある場合は内訳も取得を試みる
             if (allNumbers.length >= 3) {
