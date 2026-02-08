@@ -5226,32 +5226,37 @@ function isNoiseText(text) {
             }
 
             // 3つ以上の数値がある場合は内訳も取得を試みる
-            if (allNumbers.length >= 3) {
+            // totalFromSellerLinkを基準に、それ以降の数値から内訳を探す
+            if (allNumbers.length >= 3 && totalFromSellerLink > 0) {
               const nums = allNumbers.map(n => parseInt(n)).filter(n => !Number.isNaN(n));
-              const total = nums[0];
-              const goodVal = nums[1];
-              const remaining = nums.slice(2);
 
-              // 合計 = 良い + 悪い (+ 普通) かどうか検証
-              if (remaining.length === 1) {
-                const badVal = remaining[0];
-                if (Math.abs(total - (goodVal + badVal)) <= 1) {
-                  good = goodVal;
-                  bad = badVal;
-                  console.log('[getSellerRating] seller-link 解析成功（良い/悪い）:', { total, good, bad });
-                }
-              } else if (remaining.length >= 2) {
-                const normalVal = remaining[0];
-                const badVal = remaining[1];
-                if (Math.abs(total - (goodVal + normalVal + badVal)) <= 1) {
-                  good = goodVal;
-                  normal = normalVal;
-                  bad = badVal;
-                  console.log('[getSellerRating] seller-link 解析成功（良い/普通/悪い）:', { total, good, normal, bad });
-                } else if (Math.abs(total - (goodVal + remaining[0])) <= 1) {
-                  good = goodVal;
-                  bad = remaining[0];
-                  console.log('[getSellerRating] seller-link 解析成功（良い/悪い + 余分）:', { total, good, bad });
+              // totalFromSellerLinkの位置を見つけ、その後の数値を内訳候補とする
+              const totalIndex = nums.indexOf(totalFromSellerLink);
+              if (totalIndex !== -1 && nums.length > totalIndex + 2) {
+                const goodVal = nums[totalIndex + 1];
+                const remaining = nums.slice(totalIndex + 2);
+
+                // 合計 = 良い + 悪い (+ 普通) かどうか検証
+                if (remaining.length === 1) {
+                  const badVal = remaining[0];
+                  if (Math.abs(totalFromSellerLink - (goodVal + badVal)) <= 1) {
+                    good = goodVal;
+                    bad = badVal;
+                    console.log('[getSellerRating] seller-link 解析成功（良い/悪い）:', { total: totalFromSellerLink, good, bad });
+                  }
+                } else if (remaining.length >= 2) {
+                  const normalVal = remaining[0];
+                  const badVal = remaining[1];
+                  if (Math.abs(totalFromSellerLink - (goodVal + normalVal + badVal)) <= 1) {
+                    good = goodVal;
+                    normal = normalVal;
+                    bad = badVal;
+                    console.log('[getSellerRating] seller-link 解析成功（良い/普通/悪い）:', { total: totalFromSellerLink, good, normal, bad });
+                  } else if (Math.abs(totalFromSellerLink - (goodVal + remaining[0])) <= 1) {
+                    good = goodVal;
+                    bad = remaining[0];
+                    console.log('[getSellerRating] seller-link 解析成功（良い/悪い + 余分）:', { total: totalFromSellerLink, good, bad });
+                  }
                 }
               }
             }
