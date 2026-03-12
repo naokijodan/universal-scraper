@@ -1,3 +1,6 @@
+// デバッグモード（本番はfalse、開発時はtrue）
+const TORIKOMI_DEBUG = false;
+const _log = TORIKOMI_DEBUG ? console.log.bind(console) : () => {};
 // Universal Product Scraper - Content Script
 // eBay、楽天、Amazon、メルカリ、ヤフオク、ラクマに対応
 
@@ -104,11 +107,11 @@ function isNoiseText(text) {
     // ラクマ: fril.jp, item.fril.jp など全てのサブドメインに対応
     currentSite = 'rakuma';
   } else {
-    console.log('❌ 対象外のサイトまたはページ:', hostname, pathname);
+    _log('❌ 対象外のサイトまたはページ:', hostname, pathname);
     return; // 対象外のサイト
   }
 
-  console.log('✅ サイト判別成功:', currentSite, 'URL:', window.location.href);
+  _log('✅ サイト判別成功:', currentSite, 'URL:', window.location.href);
 
   // 設定を読み込み
   const settings = await chrome.storage.sync.get({
@@ -146,43 +149,43 @@ function isNoiseText(text) {
     alertHandlingDays: false
   });
 
-  console.log('⚙️ 設定読み込み完了:', settings);
+  _log('⚙️ 設定読み込み完了:', settings);
 
   // このサイトが無効化されている場合は終了
   if (currentSite === 'ebay' && !settings.enableEbay) {
-    console.log('⚠️ eBayが無効化されています');
+    _log('⚠️ eBayが無効化されています');
     return;
   }
   if (currentSite === 'rakuten' && !settings.enableRakuten) {
-    console.log('⚠️ 楽天が無効化されています');
+    _log('⚠️ 楽天が無効化されています');
     return;
   }
   if (currentSite === 'amazon' && !settings.enableAmazon) {
-    console.log('⚠️ Amazonが無効化されています');
+    _log('⚠️ Amazonが無効化されています');
     return;
   }
   if (currentSite === 'mercari' && !settings.enableMercari) {
-    console.log('⚠️ メルカリが無効化されています');
+    _log('⚠️ メルカリが無効化されています');
     return;
   }
   if (currentSite === 'mercari_shop' && !settings.enableMercari) {
-    console.log('⚠️ メルカリショップが無効化されています（メルカリ設定を使用）');
+    _log('⚠️ メルカリショップが無効化されています（メルカリ設定を使用）');
     return;
   }
   if (currentSite === 'yahuoku' && !settings.enableYahoo) {
-    console.log('⚠️ ヤフオクが無効化されています');
+    _log('⚠️ ヤフオクが無効化されています');
     return;
   }
   if (currentSite === 'yahooshopping' && !settings.enableYahoo) {
-    console.log('⚠️ Yahoo!ショッピングが無効化されています');
+    _log('⚠️ Yahoo!ショッピングが無効化されています');
     return;
   }
   if (currentSite === 'paypayfurima' && !settings.enablePaypay) {
-    console.log('⚠️ PayPayフリマが無効化されています');
+    _log('⚠️ PayPayフリマが無効化されています');
     return;
   }
   if (currentSite === 'rakuma' && !settings.enableFril) {
-    console.log('⚠️ ラクマが無効化されています');
+    _log('⚠️ ラクマが無効化されています');
     return;
   }
 
@@ -203,14 +206,14 @@ function isNoiseText(text) {
 
   // ページ上の要素をハイライト表示する関数
   function highlightPageElements() {
-    console.log('🎨 ページ要素のハイライト開始');
+    _log('🎨 ページ要素のハイライト開始');
 
     // 除外キーワードと注目キーワードを取得
     const excludeKeywords = Array.isArray(settings.alertKeywords) ? settings.alertKeywords.filter(k => k.trim()) : (typeof settings.alertKeywords === 'string' && settings.alertKeywords ? settings.alertKeywords.split('\n').filter(k => k.trim()) : []);
     const attentionKeywords = Array.isArray(settings.popupKeywords) ? settings.popupKeywords.filter(k => k.trim()) : (typeof settings.popupKeywords === 'string' && settings.popupKeywords ? settings.popupKeywords.split('\n').filter(k => k.trim()) : []);
 
     if (excludeKeywords.length === 0 && attentionKeywords.length === 0) {
-      console.log('⚠️ キーワード設定なし');
+      _log('⚠️ キーワード設定なし');
       return { foundExcludeKeywords: [], foundAttentionKeywords: [] };
     }
 
@@ -337,13 +340,13 @@ function isNoiseText(text) {
     }
 
     // タイトルをハイライト
-    console.log('🔍 キーワード検索:', { excludeKeywords, attentionKeywords });
+    _log('🔍 キーワード検索:', { excludeKeywords, attentionKeywords });
     let titleFound = false;
     titleSelectors.forEach(selector => {
       const element = document.querySelector(selector);
       if (element) {
         const text = element.textContent?.trim() || '';
-        console.log('✅ タイトル要素発見:', selector, 'テキスト:', text.substring(0, 80));
+        _log('✅ タイトル要素発見:', selector, 'テキスト:', text.substring(0, 80));
 
         // テキストが実際に存在する場合のみハイライト
         if (text.length > 5) {
@@ -360,7 +363,7 @@ function isNoiseText(text) {
     if (!titleFound) {
       console.warn('⚠️ タイトルセレクタで要素が見つからなかったため、汎用検索を実行');
       const allH1 = document.querySelectorAll('h1, h2');
-      console.log('🔍 h1/h2要素数:', allH1.length);
+      _log('🔍 h1/h2要素数:', allH1.length);
 
       // 優先度順に検索：1) item/titleクラス名を持つ要素 2) キーワードを含む要素
       const candidates = [];
@@ -368,7 +371,7 @@ function isNoiseText(text) {
       for (let index = 0; index < allH1.length; index++) {
         const h1 = allH1[index];
         const text = h1.textContent?.trim() || '';
-        console.log(`🔍 h${index}: テキスト長=${text.length}, 内容="${text.substring(0, 80)}", class="${h1.className}"`);
+        _log(`🔍 h${index}: テキスト長=${text.length}, 内容="${text.substring(0, 80)}", class="${h1.className}"`);
 
         // 商品タイトルらしい長さ（15文字以上、200文字以下）
         if (text.length >= 15 && text.length < 200) {
@@ -381,7 +384,7 @@ function isNoiseText(text) {
           if (hasKeyword || isItemTitle) {
             const priority = isItemTitle ? 1 : 2; // クラス名があるものを優先
             candidates.push({ element: h1, text, hasKeyword, isItemTitle, priority });
-            console.log(`📌 候補追加: priority=${priority}, text="${text.substring(0, 50)}"`);
+            _log(`📌 候補追加: priority=${priority}, text="${text.substring(0, 50)}"`);
           }
         }
       }
@@ -390,7 +393,7 @@ function isNoiseText(text) {
       if (candidates.length > 0) {
         candidates.sort((a, b) => a.priority - b.priority);
         const best = candidates[0];
-        console.log('✅ hタイトル発見（汎用）:', best.text.substring(0, 80), 'hasKeyword:', best.hasKeyword, 'isItemTitle:', best.isItemTitle);
+        _log('✅ hタイトル発見（汎用）:', best.text.substring(0, 80), 'hasKeyword:', best.hasKeyword, 'isItemTitle:', best.isItemTitle);
         highlightText(best.element, excludeKeywords, '#ffcccc', true);
         highlightText(best.element, attentionKeywords, '#ffeb3b', false);
         titleFound = true;
@@ -408,7 +411,7 @@ function isNoiseText(text) {
           // キーワードが含まれているかチェック
           const hasKeyword = [...excludeKeywords, ...attentionKeywords].some(kw => text.includes(kw));
           if (hasKeyword) {
-            console.log('✅ 商品名らしき要素発見:', text.substring(0, 80));
+            _log('✅ 商品名らしき要素発見:', text.substring(0, 80));
             highlightText(el, excludeKeywords, '#ffcccc', true);
             highlightText(el, attentionKeywords, '#ffeb3b', false);
             titleFound = true;
@@ -422,7 +425,7 @@ function isNoiseText(text) {
     descriptionSelectors.forEach(selector => {
       const element = document.querySelector(selector);
       if (element) {
-        console.log('✅ 説明文要素発見:', selector, element.textContent.substring(0, 50));
+        _log('✅ 説明文要素発見:', selector, element.textContent.substring(0, 50));
         highlightText(element, excludeKeywords, '#ffcccc', true); // 薄い赤（除外）
         highlightText(element, attentionKeywords, '#ffeb3b', false); // 濃い黄色（注目）
         descFound = true;
@@ -435,15 +438,15 @@ function isNoiseText(text) {
       const allPre = document.querySelectorAll('pre, div[class*="description"], div[class*="Description"]');
       allPre.forEach(el => {
         if (el.textContent && el.textContent.length > 50) {
-          console.log('✅ 説明文発見（汎用）:', el.textContent.substring(0, 50));
+          _log('✅ 説明文発見（汎用）:', el.textContent.substring(0, 50));
           highlightText(el, excludeKeywords, '#ffcccc', true);
           highlightText(el, attentionKeywords, '#ffeb3b', false);
         }
       });
     }
 
-    console.log('✅ ハイライト完了');
-    console.log('📝 検出されたキーワード:', {
+    _log('✅ ハイライト完了');
+    _log('📝 検出されたキーワード:', {
       exclude: Array.from(foundExcludeKeywords),
       attention: Array.from(foundAttentionKeywords)
     });
@@ -459,7 +462,7 @@ function isNoiseText(text) {
   function showAlertBadges(data, keywordInfo) {
     if (!data) return;
 
-    console.log('🚨 アラートバッジ表示開始');
+    _log('🚨 アラートバッジ表示開始');
 
     // 既存のアラートコンテナを削除
     const existing = document.getElementById('unified-scraper-alerts');
@@ -569,7 +572,7 @@ function isNoiseText(text) {
     // 送料負担のチェック（無料以外をアラート）
     if (data.shippingPayer) {
       const shippingPayer = data.shippingPayer.toString();
-      console.log('📦 送料負担チェック:', shippingPayer);
+      _log('📦 送料負担チェック:', shippingPayer);
 
       // 出品者負担・送料無料のパターン
       const isFreeShipping =
@@ -589,7 +592,7 @@ function isNoiseText(text) {
         shippingPayer.match(/\d+円/); // 数字+円が含まれる場合
 
       if (!isFreeShipping || isPaidShipping) {
-        console.log('⚠️ 送料負担アラート発動:', shippingPayer);
+        _log('⚠️ 送料負担アラート発動:', shippingPayer);
         alerts.push({
           type: 'warning',
           icon: '💰',
@@ -630,7 +633,7 @@ function isNoiseText(text) {
     }
 
     if (alerts.length === 0) {
-      console.log('✅ アラート条件に該当なし');
+      _log('✅ アラート条件に該当なし');
       return;
     }
 
@@ -795,14 +798,14 @@ function isNoiseText(text) {
     }
 
     document.body.appendChild(alertContainer);
-    console.log(`✅ アラートバッジ ${alerts.length}個表示完了`);
+    _log(`✅ アラートバッジ ${alerts.length}個表示完了`);
   }
 
   // ページ上の要素を直接ハイライトする関数（フリマサイト用）
   function highlightAlertElements(data) {
     if (!data) return;
 
-    console.log('🎨 ページ要素のハイライト開始');
+    _log('🎨 ページ要素のハイライト開始');
 
     // ハイライト用のヘルパー関数（テキスト部分のみをハイライト）
     const addTextHighlight = (element, pattern, type) => {
@@ -852,13 +855,13 @@ function isNoiseText(text) {
 
     // フリマサイト共通のハイライト処理
     if (currentSite === 'mercari' || currentSite === 'mercari_shop' || currentSite === 'yahuoku' || currentSite === 'paypayfurima' || currentSite === 'rakuma') {
-      console.log('🔍 フリマサイトのアラート要素を検索中...', currentSite);
+      _log('🔍 フリマサイトのアラート要素を検索中...', currentSite);
 
       // 悪い評価率のハイライト（評価率の数字だけ）
       if (settings.alertBadRate && data.badRate) {
         const badRate = parseFloat(data.badRate);
         if (!isNaN(badRate) && badRate >= settings.alertBadRate) {
-          console.log('🚨 悪い評価率検出:', badRate);
+          _log('🚨 悪い評価率検出:', badRate);
 
           // 評価率を含む要素を探す
           const allElements = document.querySelectorAll('*');
@@ -879,7 +882,7 @@ function isNoiseText(text) {
           data.reviewCount !== null && data.reviewCount !== undefined && data.reviewCount !== '') {
         const reviewCount = parseInt(data.reviewCount);
         if (!isNaN(reviewCount) && reviewCount <= settings.alertLowReviewCount) {
-          console.log('⚠️ 評価件数少ない:', reviewCount, '基準:', settings.alertLowReviewCount);
+          _log('⚠️ 評価件数少ない:', reviewCount, '基準:', settings.alertLowReviewCount);
 
           // 評価件数を含む要素を探す（より広範囲に）
           const allElements = document.querySelectorAll('*');
@@ -889,7 +892,7 @@ function isNoiseText(text) {
 
             // 「31」だけの場合や「31件」の場合に対応
             if ((text === data.reviewCount.toString() || text === `${data.reviewCount}件`) && !el.dataset.scraperHighlighted) {
-              console.log('✅ 評価件数要素発見:', text, el.tagName);
+              _log('✅ 評価件数要素発見:', text, el.tagName);
               const pattern = text.includes('件') ? /(\d+件)/ : /(\d+)/;
               addTextHighlight(el, pattern, 'warning');
             }
@@ -898,7 +901,7 @@ function isNoiseText(text) {
       }
 
       // 発送日数のハイライト（日数部分だけ）
-      console.log('📦 発送日数チェック開始 - settings.alertHandlingDays:', settings.alertHandlingDays, 'data.handlingDays:', data.handlingDays);
+      _log('📦 発送日数チェック開始 - settings.alertHandlingDays:', settings.alertHandlingDays, 'data.handlingDays:', data.handlingDays);
 
       // 発送日数を含む要素を探す（設定に関わらず4日以上の範囲をハイライト）
       const allElements = document.querySelectorAll('*');
@@ -918,13 +921,13 @@ function isNoiseText(text) {
 
           // 最大日数が4日以上の場合
           if (maxDays >= 4 || (settings.alertHandlingDays && maxDays >= settings.alertHandlingDays)) {
-            console.log('✅ 発送日数ハイライト対象:', text, 'element:', el.tagName, 'children:', el.children.length);
+            _log('✅ 発送日数ハイライト対象:', text, 'element:', el.tagName, 'children:', el.children.length);
             const pattern = /(\d+[〜～~]\d+日(で発送)?)/;
             const highlightType = maxDays >= 8 ? 'error' : 'warning';
             const highlighted = addTextHighlight(el, pattern, highlightType);
             if (highlighted) {
               foundShippingDays = true;
-              console.log('🎨 発送日数ハイライト成功');
+              _log('🎨 発送日数ハイライト成功');
             }
           }
         }
@@ -935,7 +938,7 @@ function isNoiseText(text) {
       }
 
       // 送料負担のハイライト（購入者負担の場合）
-      console.log('💰 送料負担ハイライト開始 - shippingPayer:', data.shippingPayer);
+      _log('💰 送料負担ハイライト開始 - shippingPayer:', data.shippingPayer);
 
       if (data.shippingPayer) {
         const shippingPayer = data.shippingPayer.toString();
@@ -956,7 +959,7 @@ function isNoiseText(text) {
           shippingPayer.match(/\d+円/);
 
         if (!isFreeShipping || isPaidShipping) {
-          console.log('💰 送料負担ページハイライト対象:', shippingPayer);
+          _log('💰 送料負担ページハイライト対象:', shippingPayer);
 
           // 送料・配送料関連の要素を検索
           const allElements = document.querySelectorAll('*');
@@ -977,7 +980,7 @@ function isNoiseText(text) {
               text.includes('送料別');
 
             if (hasShippingKeyword && hasPaidPattern && text.length < 100) {
-              console.log('✅ 送料負担要素発見:', text);
+              _log('✅ 送料負担要素発見:', text);
               // 購入者負担・着払いなどをハイライト
               const pattern = /(購入者負担|落札者負担|着払い|送料別|送料\d+円)/;
               if (pattern.test(text)) {
@@ -997,7 +1000,7 @@ function isNoiseText(text) {
       if (settings.alertDaysFromListing && data.listedElapsedDays) {
         const elapsedDays = parseFloat(data.listedElapsedDays);
         if (!isNaN(elapsedDays) && elapsedDays >= settings.alertDaysFromListing) {
-          console.log('📅 出品経過日数:', elapsedDays);
+          _log('📅 出品経過日数:', elapsedDays);
 
           // 出品日時の日付部分だけをハイライト
           const allElements = document.querySelectorAll('*');
@@ -1009,7 +1012,7 @@ function isNoiseText(text) {
             if (daysMatch && !el.dataset.scraperHighlighted) {
               const days = parseInt(daysMatch[0]);
               if (days >= settings.alertDaysFromListing) {
-                console.log('✅ 出品日要素発見:', text);
+                _log('✅ 出品日要素発見:', text);
                 const pattern = /(\d+日前)/;
                 addTextHighlight(el, pattern, 'info');
               }
@@ -1022,7 +1025,7 @@ function isNoiseText(text) {
       if (settings.alertDaysFromUpdate && data.updatedElapsedDays) {
         const elapsedDays = parseFloat(data.updatedElapsedDays);
         if (!isNaN(elapsedDays) && elapsedDays >= settings.alertDaysFromUpdate) {
-          console.log('🔄 更新経過日数:', elapsedDays);
+          _log('🔄 更新経過日数:', elapsedDays);
 
           // 更新日時の日付部分だけをハイライト
           const allElements = document.querySelectorAll('*');
@@ -1034,7 +1037,7 @@ function isNoiseText(text) {
             if (daysMatch && !el.dataset.scraperHighlighted) {
               const days = parseInt(daysMatch[0]);
               if (days >= settings.alertDaysFromUpdate) {
-                console.log('✅ 更新日要素発見:', text);
+                _log('✅ 更新日要素発見:', text);
                 const pattern = /(\d+日前)/;
                 addTextHighlight(el, pattern, 'info');
               }
@@ -1044,7 +1047,7 @@ function isNoiseText(text) {
       }
     }
 
-    console.log('✅ ページ要素のハイライト完了');
+    _log('✅ ページ要素のハイライト完了');
   }
 
   // ローディング表示を作成
@@ -1107,7 +1110,7 @@ function isNoiseText(text) {
     while (retryCount < maxRetries) {
       const itemSpecSection = document.querySelector('div[class*="ux-layout-section--itemDetails"]');
       if (itemSpecSection) {
-        console.log(`Item specificsセクションを検出 (${retryCount * 500}ms後)`);
+        _log(`Item specificsセクションを検出 (${retryCount * 500}ms後)`);
         break;
       }
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -1130,7 +1133,7 @@ function isNoiseText(text) {
 
   const delayMs = loadDelays[currentSite] || 0;
   if (delayMs > 0) {
-    console.log(`⏱️ ${currentSite}の画像読み込みを待機中... (${delayMs / 1000}秒)`);
+    _log(`⏱️ ${currentSite}の画像読み込みを待機中... (${delayMs / 1000}秒)`);
     await new Promise(resolve => setTimeout(resolve, delayMs));
   }
 
@@ -1187,13 +1190,13 @@ function isNoiseText(text) {
 
   loadingIndicator.remove();
 
-  console.log('✅ データ抽出完了、ボタン作成開始');
+  _log('✅ データ抽出完了、ボタン作成開始');
 
   // ページ要素をハイライト表示（少し遅延させてDOM構築完了を待つ）
   let detectedKeywords = null;
   setTimeout(() => {
     try {
-      console.log('🎨 ハイライト実行開始（遅延後）');
+      _log('🎨 ハイライト実行開始（遅延後）');
       detectedKeywords = highlightPageElements();
 
       // フリマサイトの場合、キーワード検出結果をバッジに反映
@@ -1217,7 +1220,7 @@ function isNoiseText(text) {
       // ページ要素ハイライトも少し遅延
       setTimeout(() => {
         try {
-          console.log('🚨 アラートハイライト実行開始（遅延後）');
+          _log('🚨 アラートハイライト実行開始（遅延後）');
           highlightAlertElements(extractedData);
         } catch (error) {
           console.error('❌ アラートハイライトエラー:', error);
@@ -1236,7 +1239,7 @@ function isNoiseText(text) {
       buttonPosition = saved.buttonPosition;
     }
   } catch (e) {
-    console.log('ボタン位置の読み込みに失敗、デフォルト位置を使用');
+    _log('ボタン位置の読み込みに失敗、デフォルト位置を使用');
   }
 
   // デフォルト位置の設定
@@ -1248,7 +1251,7 @@ function isNoiseText(text) {
     }
   }
 
-  console.log('📍 ボタン位置:', buttonPosition);
+  _log('📍 ボタン位置:', buttonPosition);
 
   // ボタンを作成
   // ボタンコンテナを作成
@@ -1464,9 +1467,9 @@ function isNoiseText(text) {
 
     try {
       await chrome.storage.local.set({ buttonPosition: newPosition });
-      console.log('ボタン位置を保存しました:', newPosition);
+      _log('ボタン位置を保存しました:', newPosition);
     } catch (e) {
-      console.log('ボタン位置の保存に失敗しました');
+      _log('ボタン位置の保存に失敗しました');
     }
   });
 
@@ -1577,7 +1580,7 @@ function isNoiseText(text) {
 
   // インライン配置（楽天用）
   if (currentSite === 'rakuten' && settings.buttonPosition === 'inline') {
-    console.log('🎯 楽天インライン配置モード');
+    _log('🎯 楽天インライン配置モード');
     const priceSelectors = [
       'span[class*="price"]',
       'div[class*="price"]',
@@ -1594,7 +1597,7 @@ function isNoiseText(text) {
     }
 
     if (priceElement) {
-      console.log('✅ 価格要素の隣に配置');
+      _log('✅ 価格要素の隣に配置');
       buttonContainer.style.position = 'relative';
       buttonContainer.style.marginTop = '15px';
       buttonContainer.style.display = 'flex';
@@ -1604,21 +1607,21 @@ function isNoiseText(text) {
       buttonContainer.style.right = '';
       priceElement.parentElement.insertBefore(buttonContainer, priceElement.nextSibling);
     } else {
-      console.log('⚠️ 価格要素が見つからないため、body に追加');
+      _log('⚠️ 価格要素が見つからないため、body に追加');
       document.body.appendChild(buttonContainer);
     }
   } else {
-    console.log('✅ ボタンコンテナを body に追加');
+    _log('✅ ボタンコンテナを body に追加');
     document.body.appendChild(buttonContainer);
   }
 
-  console.log('🎉 ボタン配置完了！');
+  _log('🎉 ボタン配置完了！');
 
   // プレビューモーダル表示関数
   async function showPreviewModal(data, site, colors, settings) {
-    console.log('🎨 モーダル表示開始');
-    console.log('📦 データ:', data);
-    console.log('🖼️ 画像URL:', data.imageUrl);
+    _log('🎨 モーダル表示開始');
+    _log('📦 データ:', data);
+    _log('🖼️ 画像URL:', data.imageUrl);
 
     const existingModal = document.getElementById('unified-scraper-modal');
     if (existingModal) {
@@ -1652,14 +1655,14 @@ function isNoiseText(text) {
     // フリマサイトのアラート判定
     const furimaAlerts = [];
     if (site === 'mercari' || site === 'mercari_shop' || site === 'yahuoku' || site === 'paypayfurima' || site === 'rakuma') {
-      console.log('🔍 アラート判定開始');
-      console.log('設定値:', {
+      _log('🔍 アラート判定開始');
+      _log('設定値:', {
         alertBadRate: settings.alertBadRate,
         alertLowReviewCount: settings.alertLowReviewCount,
         alertDaysFromListing: settings.alertDaysFromListing,
         alertDaysFromUpdate: settings.alertDaysFromUpdate
       });
-      console.log('商品データ:', {
+      _log('商品データ:', {
         badRate: data.badRate,
         reviewCount: data.reviewCount,
         listedElapsedDays: data.listedElapsedDays,
@@ -1750,7 +1753,7 @@ function isNoiseText(text) {
       }
     }
 
-    console.log('🔔 フリマアラート判定結果:', furimaAlerts);
+    _log('🔔 フリマアラート判定結果:', furimaAlerts);
 
     const overlay = document.createElement('div');
     overlay.id = 'unified-scraper-modal';
@@ -1887,7 +1890,7 @@ function isNoiseText(text) {
       `;
     } else if (site === 'mercari' || site === 'mercari_shop' || site === 'yahuoku' || site === 'paypayfurima' || site === 'rakuma') {
       // フリマサイト（38フィールド表示）
-      console.log('🏪 フリマサイトモーダル表示');
+      _log('🏪 フリマサイトモーダル表示');
 
       // 画像ギャラリー（配列または文字列に対応）
       const imageUrls = Array.isArray(data.imageUrl)
@@ -2419,16 +2422,16 @@ function isNoiseText(text) {
   }
 
   async function copyToClipboard(data, site, colors, settings) {
-    console.log('📋 クリップボードコピー開始');
-    console.log('📊 data.imageUrl:', data.imageUrl);
-    console.log('⚙️ settings.enableImageInClipboard:', settings.enableImageInClipboard);
-    console.log('⚙️ settings.imageOutputCount:', settings.imageOutputCount);
+    _log('📋 クリップボードコピー開始');
+    _log('📊 data.imageUrl:', data.imageUrl);
+    _log('⚙️ settings.enableImageInClipboard:', settings.enableImageInClipboard);
+    _log('⚙️ settings.imageOutputCount:', settings.imageOutputCount);
 
     let tsvData;
 
     // フリマサイト（39フィールド: 基本6 + ページURL1 + 画像20 + フリマ12）
     if (site === 'mercari' || site === 'mercari_shop' || site === 'yahuoku' || site === 'paypayfurima' || site === 'rakuma') {
-      console.log('🏪 フリマサイト: クリップボードコピー');
+      _log('🏪 フリマサイト: クリップボードコピー');
 
       const row = [
         data.platform || '',    // 1. プラットフォーム (A列)
@@ -2442,7 +2445,7 @@ function isNoiseText(text) {
       // enableImageInClipboard設定で出力範囲を制御
       if (settings.enableImageInClipboard) {
         // 有効時: A〜AM列（全フィールド出力）
-        console.log('✅ 全フィールド出力モード（A〜AM列）');
+        _log('✅ 全フィールド出力モード（A〜AM列）');
 
         // 7. ページURL (G列)
         row.push(window.location.href);
@@ -2474,18 +2477,18 @@ function isNoiseText(text) {
         row.push(data.shippingMethod || '');     // 38. 配送方法
         row.push(data.shipFrom || '');           // 39. 発送元の地域
 
-        console.log('📊 フリマサイト全フィールド出力:', row.length, 'フィールド（A〜AM列）');
+        _log('📊 フリマサイト全フィールド出力:', row.length, 'フィールド（A〜AM列）');
       } else {
         // 無効時: A〜F列のみ（基本6フィールドのみ）
-        console.log('❌ 基本フィールドのみ出力（A〜F列）');
-        console.log('📊 フリマサイト基本フィールドのみ:', row.length, 'フィールド（A〜F列）');
+        _log('❌ 基本フィールドのみ出力（A〜F列）');
+        _log('📊 フリマサイト基本フィールドのみ:', row.length, 'フィールド（A〜F列）');
       }
 
       tsvData = row.map(field => field.toString().replace(/\t/g, ' ').replace(/\n/g, ' ')).join('\t');
 
     } else if (site === 'amazon') {
       // Amazon（7フィールド + 画像: 基本6 + ページURL1 + 画像）
-      console.log('📦 Amazon: クリップボードコピー');
+      _log('📦 Amazon: クリップボードコピー');
       const row = [
         data.supplier || '',  // 1. プラットフォーム (A列)
         data.asin || '',      // 2. ASIN (B列)
@@ -2498,7 +2501,7 @@ function isNoiseText(text) {
       // enableImageInClipboard設定で出力範囲を制御
       if (settings.enableImageInClipboard) {
         // 有効時: 基本6 + ページURL + 画像
-        console.log('✅ 全フィールド出力モード');
+        _log('✅ 全フィールド出力モード');
 
         // 7. ページURL (G列)
         row.push(window.location.href);
@@ -2508,20 +2511,20 @@ function isNoiseText(text) {
           const imageUrls = data.imageUrl.split(',').map(url => url.trim());
           const maxImages = settings.imageOutputCount === 999 ? imageUrls.length : Math.min(imageUrls.length, typeof settings.imageOutputCount === 'number' ? settings.imageOutputCount : 5);
           const imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
-          console.log('🖼️ IMAGE()関数を追加（タブ区切り）:', imageFormulas.length + '枚');
+          _log('🖼️ IMAGE()関数を追加（タブ区切り）:', imageFormulas.length + '枚');
           row.push(...imageFormulas);
         }
       } else {
         // 無効時: A〜F列のみ（基本6フィールドのみ）
-        console.log('❌ 基本フィールドのみ出力（A〜F列）');
+        _log('❌ 基本フィールドのみ出力（A〜F列）');
       }
 
-      console.log('📊 Amazon出力フィールド数:', row.length);
+      _log('📊 Amazon出力フィールド数:', row.length);
       tsvData = row.map(field => field.toString().replace(/\t/g, ' ').replace(/\n/g, ' ')).join('\t');
 
     } else {
       // eBay, 楽天, Yahoo!ショッピング（7フィールド + 画像: 基本6 + ページURL1 + 画像）
-      console.log('🛒 eBay/楽天/Yahoo!ショッピング: クリップボードコピー');
+      _log('🛒 eBay/楽天/Yahoo!ショッピング: クリップボードコピー');
       const row = [
         data.platform,    // 1. プラットフォーム (A列)
         data.url,         // 2. URL (B列)
@@ -2534,7 +2537,7 @@ function isNoiseText(text) {
       // enableImageInClipboard設定で出力範囲を制御
       if (settings.enableImageInClipboard) {
         // 有効時: 基本6 + ページURL + 画像
-        console.log('✅ 全フィールド出力モード');
+        _log('✅ 全フィールド出力モード');
 
         // 7. ページURL (G列)
         row.push(window.location.href);
@@ -2544,19 +2547,19 @@ function isNoiseText(text) {
           const imageUrls = data.imageUrl.split(',').map(url => url.trim());
           const maxImages = settings.imageOutputCount === 999 ? imageUrls.length : Math.min(imageUrls.length, typeof settings.imageOutputCount === 'number' ? settings.imageOutputCount : 5);
           const imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
-          console.log('🖼️ IMAGE()関数を追加（タブ区切り）:', imageFormulas.length + '枚');
+          _log('🖼️ IMAGE()関数を追加（タブ区切り）:', imageFormulas.length + '枚');
           row.push(...imageFormulas);
         }
       } else {
         // 無効時: A〜F列のみ（基本6フィールドのみ）
-        console.log('❌ 基本フィールドのみ出力（A〜F列）');
+        _log('❌ 基本フィールドのみ出力（A〜F列）');
       }
 
-      console.log('📊 eBay/楽天出力フィールド数:', row.length);
+      _log('📊 eBay/楽天出力フィールド数:', row.length);
       tsvData = row.map(field => field.toString().replace(/\t/g, ' ').replace(/\n/g, ' ')).join('\t');
     }
 
-    console.log('📝 最終的なTSVデータ:', tsvData);
+    _log('📝 最終的なTSVデータ:', tsvData);
     await navigator.clipboard.writeText(tsvData);
 
     const displayName = site === 'amazon' ? data.title : data.name;
@@ -2851,7 +2854,7 @@ function isNoiseText(text) {
       let price = 0;
       let priceText = '';
 
-      console.log('=== 価格抽出開始 ===');
+      _log('=== 価格抽出開始 ===');
 
       const prioritySelectors = [
         'meta[itemprop="price"]',
@@ -2874,7 +2877,7 @@ function isNoiseText(text) {
         const elements = document.querySelectorAll(selector);
 
         if (elements.length > 0) {
-          console.log(`セレクタ "${selector}" で ${elements.length} 個の要素を発見`);
+          _log(`セレクタ "${selector}" で ${elements.length} 個の要素を発見`);
 
           for (const element of elements) {
             if (element.tagName === 'META') {
@@ -2884,15 +2887,15 @@ function isNoiseText(text) {
             }
 
             if (priceText) {
-              console.log(`  -> テキスト: "${priceText}"`);
+              _log(`  -> テキスト: "${priceText}"`);
               const num = extractNumber(priceText);
 
               if (num >= 0.01 && num <= 10000000) {
                 price = num;
-                console.log(`✅ 有効な価格を検出: $${price} (セレクタ: ${selector})`);
+                _log(`✅ 有効な価格を検出: $${price} (セレクタ: ${selector})`);
                 break;
               } else if (num > 0) {
-                console.log(`  -> 価格として無効: ${num} (範囲: 0.01〜10,000,000)`);
+                _log(`  -> 価格として無効: ${num} (範囲: 0.01〜10,000,000)`);
               }
             }
           }
@@ -2902,19 +2905,19 @@ function isNoiseText(text) {
       }
 
       if (price === 0) {
-        console.log('⚠️ 優先セレクタで価格が見つかりませんでした');
-        console.log('HTMLから"US $"を含む全要素を検索します...');
+        _log('⚠️ 優先セレクタで価格が見つかりませんでした');
+        _log('HTMLから"US $"を含む全要素を検索します...');
 
         const allElements = document.querySelectorAll('*');
         for (const el of allElements) {
           const text = el.innerText?.trim();
           if (text && (text.startsWith('US $') || text.startsWith('$')) && text.length < 50) {
-            console.log(`  候補: "${text}" (タグ: ${el.tagName}, クラス: ${el.className})`);
+            _log(`  候補: "${text}" (タグ: ${el.tagName}, クラス: ${el.className})`);
             const num = extractNumber(text);
             if (num >= 0.01 && num <= 10000000) {
               price = num;
               priceText = text;
-              console.log(`✅ フォールバックで価格を検出: $${price}`);
+              _log(`✅ フォールバックで価格を検出: $${price}`);
               break;
             }
           }
@@ -2922,13 +2925,13 @@ function isNoiseText(text) {
       }
 
       if (price === 0) {
-        console.log('価格が見つからないため、フォールバック検索を開始...');
+        _log('価格が見つからないため、フォールバック検索を開始...');
 
         const allPriceElements = document.querySelectorAll(
           'span[class*="price"], div[class*="price"], span[class*="Price"], div[class*="Price"], span.ux-textspans'
         );
 
-        console.log('価格候補要素の数:', allPriceElements.length);
+        _log('価格候補要素の数:', allPriceElements.length);
 
         let candidates = [];
 
@@ -2966,20 +2969,20 @@ function isNoiseText(text) {
           });
         });
 
-        console.log('有効な価格候補の数:', candidates.length);
+        _log('有効な価格候補の数:', candidates.length);
 
         if (candidates.length > 0) {
-          console.log('価格候補トップ5:');
+          _log('価格候補トップ5:');
           candidates.sort((a, b) => b.priority - a.priority);
           candidates.slice(0, 5).forEach((c, i) => {
-            console.log(`  ${i + 1}. $${c.num} (優先度: ${c.priority.toFixed(1)}, フォント: ${c.fontSize}px, テキスト: "${c.text.substring(0, 30)}")`);
+            _log(`  ${i + 1}. $${c.num} (優先度: ${c.priority.toFixed(1)}, フォント: ${c.fontSize}px, テキスト: "${c.text.substring(0, 30)}")`);
           });
 
           const bestCandidate = candidates[0];
           price = bestCandidate.num;
           priceText = bestCandidate.text;
 
-          console.log('✅ 選択された価格:', {
+          _log('✅ 選択された価格:', {
             text: bestCandidate.text,
             num: bestCandidate.num,
             priority: bestCandidate.priority,
@@ -2987,11 +2990,11 @@ function isNoiseText(text) {
             selector: bestCandidate.selector
           });
         } else {
-          console.log('❌ 有効な価格候補が見つかりませんでした');
+          _log('❌ 有効な価格候補が見つかりませんでした');
         }
       }
 
-      console.log('送料は計算に含めません（商品価格のみ）');
+      _log('送料は計算に含めません（商品価格のみ）');
 
       // 商品詳細抽出
       const descriptionSelectors = [
@@ -3053,7 +3056,7 @@ function isNoiseText(text) {
       // Item specifics取得
       let itemSpecifics = '';
 
-      console.log('=== Item specifics 抽出開始 ===');
+      _log('=== Item specifics 抽出開始 ===');
 
       const excludeLabels = [
         'shipping',
@@ -3066,7 +3069,7 @@ function isNoiseText(text) {
         'see details'
       ];
 
-      console.log('Item specificsセクションを検索中...');
+      _log('Item specificsセクションを検索中...');
       const possibleSelectors = [
         'div[class*="ux-layout-section--itemDetails"]',
         'div.ux-layout-section__item[data-testid="ux-layout-section-evo__item--itemDetails"]',
@@ -3079,32 +3082,32 @@ function isNoiseText(text) {
       for (const selector of possibleSelectors) {
         const elem = document.querySelector(selector);
         if (elem) {
-          console.log(`✓ セレクタ "${selector}" でセクションを発見`);
+          _log(`✓ セレクタ "${selector}" でセクションを発見`);
           specificsSections.push(elem);
           break;
         } else {
-          console.log(`✗ セレクタ "${selector}" では見つからず`);
+          _log(`✗ セレクタ "${selector}" では見つからず`);
         }
       }
 
       if (specificsSections.length === 0) {
-        console.log('フォールバック: "Item specifics"テキストで検索...');
+        _log('フォールバック: "Item specifics"テキストで検索...');
         const allSections = document.querySelectorAll('div, section');
         for (const section of allSections) {
           const heading = section.querySelector('h3, h2');
           if (heading && heading.innerText.includes('Item specifics')) {
-            console.log('✓ "Item specifics"見出しでセクションを発見');
+            _log('✓ "Item specifics"見出しでセクションを発見');
             specificsSections.push(section);
             break;
           }
         }
       }
 
-      console.log('Item specificsセクション候補数:', specificsSections.length);
+      _log('Item specificsセクション候補数:', specificsSections.length);
 
       for (const specificsSection of specificsSections) {
         const specRows = specificsSection.querySelectorAll('.ux-labels-values');
-        console.log('見つかった .ux-labels-values の数:', specRows.length);
+        _log('見つかった .ux-labels-values の数:', specRows.length);
 
         specRows.forEach(row => {
           const label = row.querySelector('.ux-labels-values__labels, dt');
@@ -3119,12 +3122,12 @@ function isNoiseText(text) {
             if (labelText && valueText && !shouldExclude) {
               if (valueText.length < 200) {
                 itemSpecifics += `${labelText}: ${valueText} | `;
-                console.log(`  ✓ ${labelText}: ${valueText}`);
+                _log(`  ✓ ${labelText}: ${valueText}`);
               } else {
-                console.log(`  ✗ スキップ（長すぎる）: ${labelText}`);
+                _log(`  ✗ スキップ（長すぎる）: ${labelText}`);
               }
             } else if (shouldExclude) {
-              console.log(`  ✗ スキップ（除外リスト）: ${labelText}`);
+              _log(`  ✗ スキップ（除外リスト）: ${labelText}`);
             }
           }
         });
@@ -3142,15 +3145,15 @@ function isNoiseText(text) {
 
             if (labelText && valueText && !shouldExclude && valueText.length < 200) {
               itemSpecifics += `${labelText}: ${valueText} | `;
-              console.log(`  ✓ ${labelText}: ${valueText}`);
+              _log(`  ✓ ${labelText}: ${valueText}`);
             }
           }
         });
       }
 
-      console.log('Item specifics 抽出結果（文字数）:', itemSpecifics.length);
+      _log('Item specifics 抽出結果（文字数）:', itemSpecifics.length);
       if (itemSpecifics) {
-        console.log('Item specifics プレビュー:', itemSpecifics.substring(0, 200) + '...');
+        _log('Item specifics プレビュー:', itemSpecifics.substring(0, 200) + '...');
       }
 
       // 商品の状態を取得
@@ -3205,7 +3208,7 @@ function isNoiseText(text) {
 
       for (const selector of carouselSelectors) {
         const carouselImages = document.querySelectorAll(selector);
-        console.log(`🔍 eBayセレクタ "${selector}" で ${carouselImages.length}枚発見`);
+        _log(`🔍 eBayセレクタ "${selector}" で ${carouselImages.length}枚発見`);
 
         carouselImages.forEach(img => {
           let url = img.src || img.getAttribute('data-src') || img.getAttribute('data-zoom-src');
@@ -3215,7 +3218,7 @@ function isNoiseText(text) {
               url = url.replace(/s-l\d+/g, 's-l1600');
             }
             if (!imageUrls.includes(url)) {
-              console.log(`🖼️ eBay画像: ${url}`);
+              _log(`🖼️ eBay画像: ${url}`);
               imageUrls.push(url);
             }
           }
@@ -3244,7 +3247,7 @@ function isNoiseText(text) {
               if (url.includes('s-l')) {
                 url = url.replace(/s-l\d+/g, 's-l1600');
               }
-              console.log(`🖼️ eBayメイン画像: ${url}`);
+              _log(`🖼️ eBayメイン画像: ${url}`);
               imageUrls.push(url);
               break;
             }
@@ -3258,29 +3261,29 @@ function isNoiseText(text) {
         if (ogImage) {
           const url = ogImage.getAttribute('content');
           if (url) {
-            console.log(`🖼️ eBay OG画像: ${url}`);
+            _log(`🖼️ eBay OG画像: ${url}`);
             imageUrls.push(url);
           }
         }
       }
 
       const imageUrl = imageUrls.join(',');
-      console.log(`✅ eBay画像URL確定（${imageUrls.length}枚）:`, imageUrl);
+      _log(`✅ eBay画像URL確定（${imageUrls.length}枚）:`, imageUrl);
 
       if (!imageUrl) {
-        console.log('⚠️ eBay画像URLが見つかりませんでした');
+        _log('⚠️ eBay画像URLが見つかりませんでした');
       }
 
-      console.log('=== eBayスクレイパー デバッグ情報 ===');
-      console.log('プラットフォーム:', platform);
-      console.log('商品名:', name);
-      console.log('価格テキスト:', priceText);
-      console.log('価格（数値）:', price);
-      console.log('Seller Notes:', sellerNotes ? sellerNotes.substring(0, 100) + '...' : 'なし');
-      console.log('Item Specifics（長さ）:', itemSpecifics.length);
-      console.log('商品詳細（長さ）:', allDetails.length);
-      console.log('出品者:', seller);
-      console.log('画像URL:', imageUrl);
+      _log('=== eBayスクレイパー デバッグ情報 ===');
+      _log('プラットフォーム:', platform);
+      _log('商品名:', name);
+      _log('価格テキスト:', priceText);
+      _log('価格（数値）:', price);
+      _log('Seller Notes:', sellerNotes ? sellerNotes.substring(0, 100) + '...' : 'なし');
+      _log('Item Specifics（長さ）:', itemSpecifics.length);
+      _log('商品詳細（長さ）:', allDetails.length);
+      _log('出品者:', seller);
+      _log('画像URL:', imageUrl);
 
       if (!name || name.trim() === '') {
         name = document.title.split('|')[0].split(':')[0].split('【')[0].trim();
@@ -3295,7 +3298,7 @@ function isNoiseText(text) {
         };
       }
 
-      console.log('✅ 抽出成功');
+      _log('✅ 抽出成功');
       return {
         platform: platform,
         url: url,
@@ -3356,7 +3359,7 @@ function isNoiseText(text) {
             // ナビゲーション要素を除外
             if (!text.match(/^(楽天|Rakuten|カテゴリ|ホーム|マイページ|カート|検索|ログイン)/i)) {
               name = text;
-              console.log('✅ 方法2でh1から商品名を取得:', name.substring(0, 50));
+              _log('✅ 方法2でh1から商品名を取得:', name.substring(0, 50));
               break;
             }
           }
@@ -3370,7 +3373,7 @@ function isNoiseText(text) {
           const content = ogTitle.getAttribute('content');
           if (content && content.length >= 10 && content.length <= 200) {
             name = content;
-            console.log('✅ 方法3でog:titleから商品名を取得:', name.substring(0, 50));
+            _log('✅ 方法3でog:titleから商品名を取得:', name.substring(0, 50));
           }
         }
       }
@@ -3384,7 +3387,7 @@ function isNoiseText(text) {
           const candidate = parts[0].trim();
           if (candidate.length >= 10 && candidate.length <= 200) {
             name = candidate;
-            console.log('✅ 方法4でdocument.titleから商品名を取得:', name.substring(0, 50));
+            _log('✅ 方法4でdocument.titleから商品名を取得:', name.substring(0, 50));
           }
         }
       }
@@ -3399,7 +3402,7 @@ function isNoiseText(text) {
             const parent = heading.closest('[class*="item"], [class*="product"], [id*="item"], [id*="product"]');
             if (parent) {
               name = text;
-              console.log('✅ 方法5でh2/h3から商品名を取得:', name.substring(0, 50));
+              _log('✅ 方法5でh2/h3から商品名を取得:', name.substring(0, 50));
               break;
             }
           }
@@ -3669,7 +3672,7 @@ function isNoiseText(text) {
             const text = clone.innerText?.trim() || '';
             if (text.length >= 50 && text.length < 2000) {
               description = text;
-              console.log('✅ フォールバックで説明文を取得:', selector);
+              _log('✅ フォールバックで説明文を取得:', selector);
             }
           }
         });
@@ -3691,7 +3694,7 @@ function isNoiseText(text) {
             const text = clone.innerText?.trim() || '';
             if (text.length >= 30) {
               description = text;
-              console.log('✅ 最終フォールバックで商品詳細セクションから取得');
+              _log('✅ 最終フォールバックで商品詳細セクションから取得');
               break;
             }
           }
@@ -3747,7 +3750,7 @@ function isNoiseText(text) {
         });
       });
 
-      console.log('📋 テーブルから取得した仕様情報:', specText.substring(0, 200));
+      _log('📋 テーブルから取得した仕様情報:', specText.substring(0, 200));
 
       // 説明文が短い場合のみ、specTextを追加（重複を避ける）
       if (description.length < 300 && specText) {
@@ -3838,7 +3841,7 @@ function isNoiseText(text) {
         // specTextがあればそれを使用
         if (specText && specText.length >= 30) {
           allDetails = specText;
-          console.log('✅ specTextを詳細情報として使用');
+          _log('✅ specTextを詳細情報として使用');
         } else {
           allDetails = '詳細情報を取得できませんでした（このショップは情報が少ないページ構造です）';
         }
@@ -3898,7 +3901,7 @@ function isNoiseText(text) {
         if (imgElement) {
           const url = imgElement.src || imgElement.getAttribute('data-src');
           if (url && url.startsWith('http') && !imageUrls.includes(url)) {
-            console.log(`🖼️ 楽天メイン画像: ${url}`);
+            _log(`🖼️ 楽天メイン画像: ${url}`);
             imageUrls.push(url);
             break; // メイン画像は1つだけ
           }
@@ -3914,7 +3917,7 @@ function isNoiseText(text) {
           if (url.includes('rakuten') || url.includes('r10s.jp')) {
             // サイズが小さすぎる画像は除外（アイコンなど）
             if (!url.includes('icon') && !url.includes('banner') && !url.includes('logo')) {
-              console.log(`📷 楽天追加画像: ${url}`);
+              _log(`📷 楽天追加画像: ${url}`);
               imageUrls.push(url);
             }
           }
@@ -3927,28 +3930,28 @@ function isNoiseText(text) {
         if (ogImage) {
           const url = ogImage.getAttribute('content');
           if (url) {
-            console.log(`🖼️ 楽天OG画像: ${url}`);
+            _log(`🖼️ 楽天OG画像: ${url}`);
             imageUrls.push(url);
           }
         }
       }
 
       const imageUrl = imageUrls.join(','); // カンマ区切りで結合
-      console.log(`✅ 楽天画像URL確定（${imageUrls.length}枚）:`, imageUrl);
+      _log(`✅ 楽天画像URL確定（${imageUrls.length}枚）:`, imageUrl);
 
       if (!imageUrl) {
-        console.log('⚠️ 楽天画像URLが見つかりませんでした');
+        _log('⚠️ 楽天画像URLが見つかりませんでした');
       }
 
-      console.log('=== 楽天スクレイパー デバッグ情報 ===');
-      console.log('プラットフォーム:', platform);
-      console.log('商品名:', name);
-      console.log('価格テキスト:', priceText);
-      console.log('価格:', price);
-      console.log('送料:', shipping);
-      console.log('商品詳細（長さ）:', allDetails.length);
-      console.log('出品者:', seller);
-      console.log('画像URL:', imageUrl);
+      _log('=== 楽天スクレイパー デバッグ情報 ===');
+      _log('プラットフォーム:', platform);
+      _log('商品名:', name);
+      _log('価格テキスト:', priceText);
+      _log('価格:', price);
+      _log('送料:', shipping);
+      _log('商品詳細（長さ）:', allDetails.length);
+      _log('出品者:', seller);
+      _log('画像URL:', imageUrl);
 
       if (!name || name.trim() === '') {
         name = document.title.split('|')[0].split(':')[0].split('【')[0].trim();
@@ -3963,7 +3966,7 @@ function isNoiseText(text) {
         };
       }
 
-      console.log('✅ 抽出成功');
+      _log('✅ 抽出成功');
       return {
         platform: platform,
         url: url,
@@ -4307,7 +4310,7 @@ function isNoiseText(text) {
 
     // フォールバック: セレクタで十分な情報が取れなかった場合、スコアリング方式で取得
     if (out.length < 3) {
-      console.log('⚠️ セレクタベースで十分な情報が取れませんでした。スコアリング方式を試行...');
+      _log('⚠️ セレクタベースで十分な情報が取れませんでした。スコアリング方式を試行...');
 
       const scoredBlocks = [];
 
@@ -4400,7 +4403,7 @@ function isNoiseText(text) {
         if (!seen.has(block.text)) {
           seen.add(block.text);
           out.push(block.text);
-          console.log(`✅ スコアリングで採用 (score: ${block.score}):`, block.text.substring(0, 50));
+          _log(`✅ スコアリングで採用 (score: ${block.score}):`, block.text.substring(0, 50));
         }
       });
     }
@@ -4507,14 +4510,14 @@ function isNoiseText(text) {
       if (!url || !url.startsWith('http')) return false;
       const imageId = getImageId(url);
       if (seenImageIds.has(imageId)) {
-        console.log(`⚠️ 重複スキップ: ${imageId}`);
+        _log(`⚠️ 重複スキップ: ${imageId}`);
         return false;
       }
       seenImageIds.add(imageId);
       // 高解像度URLに変換してから追加
       const highResUrl = toHighResUrl(url);
       imageUrls.push(highResUrl);
-      console.log(`📸 高解像度変換: ${url.substring(url.lastIndexOf('/') + 1)} → ${highResUrl.substring(highResUrl.lastIndexOf('/') + 1)}`);
+      _log(`📸 高解像度変換: ${url.substring(url.lastIndexOf('/') + 1)} → ${highResUrl.substring(highResUrl.lastIndexOf('/') + 1)}`);
       return true;
     };
 
@@ -4530,12 +4533,12 @@ function isNoiseText(text) {
     for (const selector of mainImageSelectors) {
       const imgElement = document.querySelector(selector);
       if (imgElement) {
-        console.log(`🖼️ Amazon画像要素発見: ${selector}`);
+        _log(`🖼️ Amazon画像要素発見: ${selector}`);
 
         // data-old-hires属性があれば高解像度画像を取得（最優先）
         const hiresUrl = imgElement.getAttribute('data-old-hires');
         if (hiresUrl && addUniqueUrl(hiresUrl)) {
-          console.log(`✅ Amazonメイン画像（data-old-hires）: ${hiresUrl}`);
+          _log(`✅ Amazonメイン画像（data-old-hires）: ${hiresUrl}`);
         }
 
         // data-a-dynamic-imageからは最大解像度の1つだけ取得
@@ -4553,11 +4556,11 @@ function isNoiseText(text) {
               }, urls[0]);
 
               if (addUniqueUrl(maxResUrl)) {
-                console.log(`✅ Amazon画像（dynamic-image最高解像度）: ${maxResUrl}`);
+                _log(`✅ Amazon画像（dynamic-image最高解像度）: ${maxResUrl}`);
               }
             }
           } catch (e) {
-            console.log('⚠️ JSON パースエラー:', e);
+            _log('⚠️ JSON パースエラー:', e);
           }
         }
 
@@ -4568,14 +4571,14 @@ function isNoiseText(text) {
 
     // サムネイル画像も取得（メイン画像と重複しないもののみ）
     const thumbnails = document.querySelectorAll('#altImages img, .imageThumbnail img, ul.a-unordered-list.a-nostyle.a-button-list img');
-    console.log(`🔍 Amazonサムネイル候補: ${thumbnails.length}個`);
+    _log(`🔍 Amazonサムネイル候補: ${thumbnails.length}個`);
 
     thumbnails.forEach((img, index) => {
       const hiresUrl = img.getAttribute('data-old-hires');
       const dynamicImage = img.getAttribute('data-a-dynamic-image');
       const srcUrl = img.src;
 
-      console.log(`🔎 サムネイル${index + 1}:`, {
+      _log(`🔎 サムネイル${index + 1}:`, {
         'data-old-hires': hiresUrl ? 'あり' : 'なし',
         'data-a-dynamic-image': dynamicImage ? 'あり' : 'なし',
         'src': srcUrl ? srcUrl.substring(0, 80) : 'なし'
@@ -4583,7 +4586,7 @@ function isNoiseText(text) {
 
       // data-old-hiresを優先
       if (hiresUrl && addUniqueUrl(hiresUrl)) {
-        console.log(`📷 Amazonサムネイル（hires）: ${hiresUrl}`);
+        _log(`📷 Amazonサムネイル（hires）: ${hiresUrl}`);
       } else if (dynamicImage) {
         try {
           const imageObj = JSON.parse(dynamicImage);
@@ -4597,16 +4600,16 @@ function isNoiseText(text) {
             }, urls[0]);
 
             if (addUniqueUrl(maxResUrl)) {
-              console.log(`📷 Amazonサムネイル（dynamic）: ${maxResUrl}`);
+              _log(`📷 Amazonサムネイル（dynamic）: ${maxResUrl}`);
             }
           }
         } catch (e) {
-          console.log(`⚠️ サムネイル${index + 1} JSONパースエラー:`, e);
+          _log(`⚠️ サムネイル${index + 1} JSONパースエラー:`, e);
         }
       } else if (srcUrl && srcUrl.includes('/images/I/')) {
         // data属性がない場合は、srcから直接取得
         if (addUniqueUrl(srcUrl)) {
-          console.log(`📷 Amazonサムネイル（src）: ${srcUrl}`);
+          _log(`📷 Amazonサムネイル（src）: ${srcUrl}`);
         }
       }
     });
@@ -4617,17 +4620,17 @@ function isNoiseText(text) {
       if (ogImage) {
         const url = ogImage.getAttribute('content');
         if (url) {
-          console.log(`🖼️ Amazon OG画像: ${url}`);
+          _log(`🖼️ Amazon OG画像: ${url}`);
           imageUrls.push(url);
         }
       }
     }
 
     const result = imageUrls.join(',');
-    console.log(`✅ Amazon画像URL確定（${imageUrls.length}枚）:`, result);
+    _log(`✅ Amazon画像URL確定（${imageUrls.length}枚）:`, result);
 
     if (!result) {
-      console.log('⚠️ Amazon画像URLが見つかりませんでした');
+      _log('⚠️ Amazon画像URLが見つかりませんでした');
     }
 
     return result;
@@ -4765,7 +4768,7 @@ function isNoiseText(text) {
 
       // フリマサイト（39フィールド: 基本6 + ページURL1 + 画像20 + フリマ12）
       if (site === 'mercari' || site === 'mercari_shop' || site === 'yahuoku' || site === 'paypayfurima' || site === 'rakuma') {
-        console.log('🏪 フリマサイトエクスポート: 39フィールド');
+        _log('🏪 フリマサイトエクスポート: 39フィールド');
 
         // 基本6フィールド + ページURL
         values = [
@@ -4810,7 +4813,7 @@ function isNoiseText(text) {
         values.push(data.shippingMethod || '');
         values.push(data.shipFrom || '');
 
-        console.log('📊 フリマサイトエクスポートフィールド数:', values.length);
+        _log('📊 フリマサイトエクスポートフィールド数:', values.length);
 
       } else if (site === 'ebay') {
         // eBay（7フィールド + 画像: 基本6 + ページURL1 + 画像）
@@ -4893,8 +4896,8 @@ function isNoiseText(text) {
         return field;
       });
 
-      console.log('📤 エクスポートするデータ:', values);
-      console.log('📊 エクスポートフィールド数:', values.length);
+      _log('📤 エクスポートするデータ:', values);
+      _log('📊 エクスポートフィールド数:', values.length);
 
       // バックグラウンドスクリプトにメッセージを送信
       const response = await chrome.runtime.sendMessage({
@@ -4940,7 +4943,7 @@ function isNoiseText(text) {
   // メルカリ商品データ抽出
   // ==========================================
   async function extractMercariProductData() {
-    console.log('=== メルカリデータ抽出開始 ===');
+    _log('=== メルカリデータ抽出開始 ===');
 
     try {
       // 商品ID（mから始まるコードまたはメルカリショップのID）
@@ -4951,7 +4954,7 @@ function isNoiseText(text) {
         itemIdMatch = pageUrl.match(/\/shops\/product\/([a-zA-Z0-9]+)/);
       }
       const itemId = itemIdMatch ? itemIdMatch[1] : '';
-      console.log('商品ID:', itemId);
+      _log('商品ID:', itemId);
 
       // タイトル
       const title = (document.querySelector('title')?.textContent?.replace(' - メルカリ', '') || '').replace(/\t/g, '  ');
@@ -5006,7 +5009,7 @@ function isNoiseText(text) {
           const shopPath = sellerLink.getAttribute('href');
           const shopMatch = shopPath?.match(/\/shops\/profile\/([^\/\?]+)/);
           seller = shopMatch ? shopMatch[1] : '';
-          console.log('✅ メルカリショップID取得 (profile):', seller);
+          _log('✅ メルカリショップID取得 (profile):', seller);
         }
       }
 
@@ -5017,7 +5020,7 @@ function isNoiseText(text) {
           const shopPath = sellerLink.getAttribute('href');
           const shopMatch = shopPath?.match(/\/shops\/([^\/\?]+)/);
           seller = shopMatch ? shopMatch[1] : '';
-          console.log('✅ メルカリショップID取得 (shops):', seller);
+          _log('✅ メルカリショップID取得 (shops):', seller);
         }
       }
 
@@ -5138,7 +5141,7 @@ function isNoiseText(text) {
       // 出品者の評価情報を取得
       const getSellerRating = async () => {
         try {
-        console.log('[getSellerRating] 評価情報取得開始');
+        _log('[getSellerRating] 評価情報取得開始');
 
         let good = null;
         let bad = null;
@@ -5148,7 +5151,7 @@ function isNoiseText(text) {
         // メルカリショップの場合は、ショップ情報セクションから評価数を取得
         const isShop = window.location.pathname.includes('/shops/product/');
         if (isShop) {
-          console.log('[getSellerRating] メルカリショップモード');
+          _log('[getSellerRating] メルカリショップモード');
 
           // 方法0（最優先）: data-testid="shops-information" または "shops-profile-link" から取得
           // 形式: "ショップ名\n\n評価数\n\nメルカリShops"
@@ -5156,16 +5159,16 @@ function isNoiseText(text) {
                               document.querySelector('[data-testid="shops-profile-link"]');
           if (shopsInfoEl) {
             const shopsText = shopsInfoEl.innerText || '';
-            console.log('[getSellerRating] shops-information テキスト:', shopsText.substring(0, 100));
+            _log('[getSellerRating] shops-information テキスト:', shopsText.substring(0, 100));
 
             // 改行で分割して評価数を取得（2番目の要素が評価数）
             const lines = shopsText.split('\n').filter(line => line.trim() !== '');
-            console.log('[getSellerRating] shops-information 行分割:', lines);
+            _log('[getSellerRating] shops-information 行分割:', lines);
 
             if (lines.length >= 2) {
               const reviewCount = parseInt(lines[1].trim());
               if (!Number.isNaN(reviewCount) && reviewCount > 0) {
-                console.log('[getSellerRating] ショップ評価数取得成功:', reviewCount);
+                _log('[getSellerRating] ショップ評価数取得成功:', reviewCount);
                 return { reviewCount: String(reviewCount), badRate: '' };
               }
             }
@@ -5178,7 +5181,7 @@ function isNoiseText(text) {
           const excellentShopMatch = bodyText.match(/(\d{1,5})\s*優良ショップ/);
           if (excellentShopMatch) {
             const total = parseInt(excellentShopMatch[1]);
-            console.log('[getSellerRating] ショップ星評価取得（優良ショップ前）:', total);
+            _log('[getSellerRating] ショップ星評価取得（優良ショップ前）:', total);
             return { reviewCount: String(total), badRate: '' };
           }
 
@@ -5186,28 +5189,28 @@ function isNoiseText(text) {
           const shopSectionMatch = bodyText.match(/ショップ情報[\s\S]{0,500}メルカリShops/);
           if (shopSectionMatch) {
             const sectionText = shopSectionMatch[0];
-            console.log('[getSellerRating] ショップ情報セクション:', sectionText.substring(0, 100));
+            _log('[getSellerRating] ショップ情報セクション:', sectionText.substring(0, 100));
 
             const shopsMatch = sectionText.match(/(\d{1,6})\s*メルカリShops/);
             if (shopsMatch) {
               const total = parseInt(shopsMatch[1]);
-              console.log('[getSellerRating] ショップ星評価取得（メルカリShops前）:', total);
+              _log('[getSellerRating] ショップ星評価取得（メルカリShops前）:', total);
               return { reviewCount: String(total), badRate: '' };
             }
           }
 
-          console.log('[getSellerRating] ショップ情報セクションが見つかりませんでした');
+          _log('[getSellerRating] ショップ情報セクションが見つかりませんでした');
         }
 
         // Step 1: seller-linkから合計評価を取得（常に取得可能）
         const sellerLinkEl = document.querySelector('[data-testid="seller-link"]');
         if (sellerLinkEl) {
           const sellerText = sellerLinkEl.innerText || '';
-          console.log('[getSellerRating] seller-link テキスト:', sellerText.substring(0, 100));
+          _log('[getSellerRating] seller-link テキスト:', sellerText.substring(0, 100));
 
           // 数値を全て抽出（改行や空白で区切られた数値）
           const allNumbers = sellerText.match(/\d+/g);
-          console.log('[getSellerRating] seller-link 数値一覧:', allNumbers);
+          _log('[getSellerRating] seller-link 数値一覧:', allNumbers);
 
           // 改行で分割し、純粋に数字のみの行を探す（セラー名に含まれる数字を避けるため）
           // 3者協議結果: Math.max()フォールバックは誤検出リスクが高いため削除
@@ -5220,7 +5223,7 @@ function isNoiseText(text) {
             if (/^\d+$/.test(normalized) && normalized.length > 0) {
               totalFromSellerLink = parseInt(normalized);
               foundPureNumberLine = true;
-              console.log('[getSellerRating] seller-link 純粋数値行から合計評価:', totalFromSellerLink);
+              _log('[getSellerRating] seller-link 純粋数値行から合計評価:', totalFromSellerLink);
               break;
             }
           }
@@ -5247,7 +5250,7 @@ function isNoiseText(text) {
                 if (Math.abs(totalFromSellerLink - (goodVal + badVal)) <= 1) {
                   good = goodVal;
                   bad = badVal;
-                  console.log('[getSellerRating] seller-link 解析成功（良い/悪い）:', { total: totalFromSellerLink, good, bad });
+                  _log('[getSellerRating] seller-link 解析成功（良い/悪い）:', { total: totalFromSellerLink, good, bad });
                 }
               } else if (remaining.length >= 2) {
                 const normalVal = remaining[0];
@@ -5256,11 +5259,11 @@ function isNoiseText(text) {
                   good = goodVal;
                   normal = normalVal;
                   bad = badVal;
-                  console.log('[getSellerRating] seller-link 解析成功（良い/普通/悪い）:', { total: totalFromSellerLink, good, normal, bad });
+                  _log('[getSellerRating] seller-link 解析成功（良い/普通/悪い）:', { total: totalFromSellerLink, good, normal, bad });
                 } else if (Math.abs(totalFromSellerLink - (goodVal + remaining[0])) <= 1) {
                   good = goodVal;
                   bad = remaining[0];
-                  console.log('[getSellerRating] seller-link 解析成功（良い/悪い + 余分）:', { total: totalFromSellerLink, good, bad });
+                  _log('[getSellerRating] seller-link 解析成功（良い/悪い + 余分）:', { total: totalFromSellerLink, good, bad });
                 }
               }
             }
@@ -5286,12 +5289,12 @@ function isNoiseText(text) {
 
             if (g === null && b === null) return null;
 
-            console.log('[getSellerRating] フリマアシスト経由:', {good: g, bad: b, normal: n});
+            _log('[getSellerRating] フリマアシスト経由:', {good: g, bad: b, normal: n});
             return { good: g, bad: b, normal: n };
           };
 
           // ポーリングで最大5秒待つ（500ms × 10回）
-          console.log('[getSellerRating] フリマアシスト要素をポーリング待機中（最大5秒）...');
+          _log('[getSellerRating] フリマアシスト要素をポーリング待機中（最大5秒）...');
           const maxAttempts = 4;
           const interval = 500;
 
@@ -5301,7 +5304,7 @@ function isNoiseText(text) {
               good = assistResult.good;
               bad = assistResult.bad;
               normal = assistResult.normal;
-              console.log('[getSellerRating] ポーリング成功（試行:', attempt + 1, '回目）');
+              _log('[getSellerRating] ポーリング成功（試行:', attempt + 1, '回目）');
               break;
             }
             if (attempt < maxAttempts - 1) {
@@ -5310,7 +5313,7 @@ function isNoiseText(text) {
           }
 
           if (good === null && bad === null) {
-            console.log('[getSellerRating] ポーリングタイムアウト: フリマアシスト要素が見つかりませんでした');
+            _log('[getSellerRating] ポーリングタイムアウト: フリマアシスト要素が見つかりませんでした');
           }
         }
 
@@ -5321,14 +5324,14 @@ function isNoiseText(text) {
         // 内訳が取れなかった場合、seller-linkの合計をフォールバックとして使用
         if (total === 0 && totalFromSellerLink && !Number.isNaN(totalFromSellerLink)) {
           total = totalFromSellerLink;
-          console.log('[getSellerRating] フォールバック: seller-linkの合計を使用:', total);
+          _log('[getSellerRating] フォールバック: seller-linkの合計を使用:', total);
         }
 
         const badRate = (typeof bad === 'number' && total > 0)
           ? (bad * 100 / total).toFixed(2) + '%'
           : '';
 
-        console.log('[getSellerRating] 最終結果:', {
+        _log('[getSellerRating] 最終結果:', {
           reviewCount: total ? String(total) : '',
           badRate,
           good,
@@ -5349,13 +5352,13 @@ function isNoiseText(text) {
 
       let rating = await getSellerRating();
       if (!rating.reviewCount && !window.location.pathname.includes('/shops/product/')) {
-        console.log('[getSellerRating] 1回目で取得失敗。2秒後にリトライ...');
+        _log('[getSellerRating] 1回目で取得失敗。2秒後にリトライ...');
         await new Promise(r => setTimeout(r, 2000));
         rating = await getSellerRating();
         if (rating.reviewCount) {
-          console.log('[getSellerRating] リトライで取得成功');
+          _log('[getSellerRating] リトライで取得成功');
         } else {
-          console.log('[getSellerRating] リトライでも取得失敗');
+          _log('[getSellerRating] リトライでも取得失敗');
         }
       }
 
@@ -5393,7 +5396,7 @@ function isNoiseText(text) {
 
         if (carousel) {
           const images = carousel.querySelectorAll('img');
-          console.log('📸 カルーセルから画像検索:', images.length, '個');
+          _log('📸 カルーセルから画像検索:', images.length, '個');
           images.forEach((img, idx) => {
             if (idx < 20) {
               let url = '';
@@ -5417,7 +5420,7 @@ function isNoiseText(text) {
       // 方法3: 全picture要素から取得
       if (foundCount === 0) {
         const pictures = document.querySelectorAll('picture img, picture source');
-        console.log('📸 picture要素から画像検索:', pictures.length, '個');
+        _log('📸 picture要素から画像検索:', pictures.length, '個');
         pictures.forEach((el, idx) => {
           if (idx < 20) {
             let url = '';
@@ -5450,7 +5453,7 @@ function isNoiseText(text) {
         const ogImage = document.querySelector('meta[property="og:image"]');
         if (ogImage) {
           const url = ogImage.getAttribute('content');
-          console.log('📸 og:imageから取得:', url);
+          _log('📸 og:imageから取得:', url);
           if (url && url.startsWith('http')) {
             imageUrlArray[0] = url;
             foundCount++;
@@ -5458,23 +5461,23 @@ function isNoiseText(text) {
         }
       }
 
-      console.log('=== メルカリ抽出結果 ===');
-      console.log('プラットフォーム: mercari');
-      console.log('商品ID:', itemId);
-      console.log('タイトル:', title);
-      console.log('価格:', price);
-      console.log('説明:', description.substring(0, 100));
-      console.log('出品者:', seller);
-      console.log('画像URL数:', foundCount);
-      console.log('商品の状態:', condition);
-      console.log('配送料の負担:', shippingPayer);
-      console.log('配送方法:', shippingMethod);
-      console.log('発送元:', shipFrom);
-      console.log('発送日数:', handlingDays);
-      console.log('出品日時:', dates.listedFmt);
-      console.log('更新日時:', dates.updatedFmt);
-      console.log('評価件数:', rating.reviewCount);
-      console.log('悪い評価率:', rating.badRate);
+      _log('=== メルカリ抽出結果 ===');
+      _log('プラットフォーム: mercari');
+      _log('商品ID:', itemId);
+      _log('タイトル:', title);
+      _log('価格:', price);
+      _log('説明:', description.substring(0, 100));
+      _log('出品者:', seller);
+      _log('画像URL数:', foundCount);
+      _log('商品の状態:', condition);
+      _log('配送料の負担:', shippingPayer);
+      _log('配送方法:', shippingMethod);
+      _log('発送元:', shipFrom);
+      _log('発送日数:', handlingDays);
+      _log('出品日時:', dates.listedFmt);
+      _log('更新日時:', dates.updatedFmt);
+      _log('評価件数:', rating.reviewCount);
+      _log('悪い評価率:', rating.badRate);
 
       return {
         platform: 'mercari',
@@ -5508,7 +5511,7 @@ function isNoiseText(text) {
   // ヤフオク商品データ抽出
   // ==========================================
   function extractYahooProductData() {
-    console.log('=== ヤフオクデータ抽出開始 ===');
+    _log('=== ヤフオクデータ抽出開始 ===');
 
     try {
       // __NEXT_DATA__ からJSON データを取得
@@ -5521,7 +5524,7 @@ function isNoiseText(text) {
       const jsonData = JSON.parse(dataScript.textContent);
       const itemJson = jsonData.props.pageProps.initialState.item.detail.item;
 
-      console.log('📦 itemJson取得成功:', itemJson.auctionId);
+      _log('📦 itemJson取得成功:', itemJson.auctionId);
 
       // 商品URL
       const url = window.location.href;
@@ -5541,7 +5544,7 @@ function isNoiseText(text) {
       if (shippingElement) {
         const shippingText = shippingElement.innerText || '';
         shipping = parseInt(shippingText.replace(/[^0-9]/g, '')) || 0;
-        console.log('📦 送料:', shipping);
+        _log('📦 送料:', shipping);
       }
 
       price = price + shipping;
@@ -5591,24 +5594,24 @@ function isNoiseText(text) {
       // 方法1: itemJson.shippingFeeから取得
       if (itemJson.shippingFee?.shippingPayer) {
         shippingPayer = itemJson.shippingFee.shippingPayer;
-        console.log('✅ 配送料の負担（方法1 - shippingFee）:', shippingPayer);
+        _log('✅ 配送料の負担（方法1 - shippingFee）:', shippingPayer);
       }
 
       // 方法2: 送料の有無から判定（送料0円なら出品者負担、それ以外なら落札者負担）
       if (!shippingPayer && shipping !== undefined) {
         if (shipping === 0) {
           shippingPayer = '出品者負担';
-          console.log('✅ 配送料の負担（方法2 - 送料0円）:', shippingPayer);
+          _log('✅ 配送料の負担（方法2 - 送料0円）:', shippingPayer);
         } else if (shipping > 0) {
           shippingPayer = '落札者負担';
-          console.log('✅ 配送料の負担（方法2 - 送料あり）:', shippingPayer, '（送料:', shipping, '円）');
+          _log('✅ 配送料の負担（方法2 - 送料あり）:', shippingPayer, '（送料:', shipping, '円）');
         }
       }
 
       // 方法3: itemJson.isFreeshippingから判定
       if (!shippingPayer && itemJson.isFreeshipping !== undefined) {
         shippingPayer = itemJson.isFreeshipping ? '出品者負担' : '落札者負担';
-        console.log('✅ 配送料の負担（方法3 - isFreeshipping）:', shippingPayer);
+        _log('✅ 配送料の負担（方法3 - isFreeshipping）:', shippingPayer);
       }
 
       // 方法4: DOM要素から取得
@@ -5624,12 +5627,12 @@ function isNoiseText(text) {
           } else {
             shippingPayer = text;
           }
-          console.log('✅ 配送料の負担（方法4 - DOM要素）:', shippingPayer);
+          _log('✅ 配送料の負担（方法4 - DOM要素）:', shippingPayer);
         }
       }
 
       if (!shippingPayer) {
-        console.log('⚠️ 配送料の負担を取得できませんでした');
+        _log('⚠️ 配送料の負担を取得できませんでした');
       }
 
       // 配送方法
@@ -5647,21 +5650,21 @@ function isNoiseText(text) {
       let listedElapsedDays = ''; // ヤフオクでは「終了までの残り日数」として使用
       let updatedElapsedDays = ''; // ヤフオクでは使用しない
 
-      console.log('📅 ヤフオク - endTime取得:', itemJson.endTime);
+      _log('📅 ヤフオク - endTime取得:', itemJson.endTime);
 
       // 終了日時から残り日数を計算
       if (itemJson.endTime) {
         let timestamp = parseInt(itemJson.endTime);
-        console.log('📅 endTime変換前:', timestamp);
+        _log('📅 endTime変換前:', timestamp);
 
         // タイムスタンプが秒単位かミリ秒単位かを判定（秒単位なら1000倍）
         if (timestamp < 10000000000) {
           timestamp = timestamp * 1000;
-          console.log('📅 終了日時を秒→ミリ秒に変換:', timestamp);
+          _log('📅 終了日時を秒→ミリ秒に変換:', timestamp);
         }
 
         const endDate = new Date(timestamp);
-        console.log('📅 endDate:', endDate, 'isValid:', !isNaN(endDate.getTime()));
+        _log('📅 endDate:', endDate, 'isValid:', !isNaN(endDate.getTime()));
 
         if (!isNaN(endDate.getTime())) {
           listedFmt = endDate.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
@@ -5670,13 +5673,13 @@ function isNoiseText(text) {
           const remainingDays = (endDate - new Date()) / (1000 * 60 * 60 * 24);
           listedElapsedDays = String(remainingDays.toFixed(2));
 
-          console.log('📅 オークション終了日:', listedFmt, '残り日数:', listedElapsedDays);
+          _log('📅 オークション終了日:', listedFmt, '残り日数:', listedElapsedDays);
         }
       }
 
       // 出品者の評価情報を取得
       const getSellerRating = () => {
-        console.log('[Yahoo getSellerRating] 評価情報取得開始');
+        _log('[Yahoo getSellerRating] 評価情報取得開始');
 
         let good = null;
         let bad = null;
@@ -5695,7 +5698,7 @@ function isNoiseText(text) {
             good = Number.isNaN(good) ? null : good;
             bad = Number.isNaN(bad) ? null : bad;
             normal = Number.isNaN(normal) ? null : normal;
-            console.log('[Yahoo getSellerRating] #furima-assist-seller-ratings経由:', {good, bad, normal});
+            _log('[Yahoo getSellerRating] #furima-assist-seller-ratings経由:', {good, bad, normal});
           }
         }
 
@@ -5705,7 +5708,7 @@ function isNoiseText(text) {
           if (rating.good != null) good = rating.good;
           if (rating.bad != null) bad = rating.bad;
           if (rating.normal != null) normal = rating.normal;
-          console.log('[Yahoo getSellerRating] itemJson.seller.rating経由:', {good, bad, normal});
+          _log('[Yahoo getSellerRating] itemJson.seller.rating経由:', {good, bad, normal});
         }
 
         // 方法3: Rating関連のspan要素から取得
@@ -5720,14 +5723,14 @@ function isNoiseText(text) {
             return true;
           });
 
-          console.log('[Yahoo getSellerRating] span要素検索:', spans.length, '個');
+          _log('[Yahoo getSellerRating] span要素検索:', spans.length, '個');
 
           if (spans && spans.length) {
             const nums = [...spans]
               .map(x => parseInt((x.textContent || '').replace(/[^\d]/g, '')))
               .filter(n => !Number.isNaN(n) && n > 0 && n < 100000);
 
-            console.log('[Yahoo getSellerRating] span内の数値:', nums);
+            _log('[Yahoo getSellerRating] span内の数値:', nums);
 
             if (nums.length >= 2) {
               good = nums[0];
@@ -5744,7 +5747,7 @@ function isNoiseText(text) {
           const normalMatch = bodyText.match(/普通[^\d]*([0-9,]+)/);
           const badMatch = bodyText.match(/悪い[^\d]*([0-9,]+)/);
 
-          console.log('[Yahoo getSellerRating] テキスト検索:', {
+          _log('[Yahoo getSellerRating] テキスト検索:', {
             良い: goodMatch?.[1],
             普通: normalMatch?.[1],
             悪い: badMatch?.[1]
@@ -5757,7 +5760,7 @@ function isNoiseText(text) {
           const totalMatch = bodyText.match(/評価[^\d]*([0-9,]+)/);
           if ((good === null || bad === null) && totalMatch) {
             const total = parseInt(totalMatch[1].replace(/,/g, ''));
-            console.log('[Yahoo getSellerRating] 評価合計のみ取得:', total);
+            _log('[Yahoo getSellerRating] 評価合計のみ取得:', total);
             return { reviewCount: String(total), badRate: '' };
           }
         }
@@ -5769,7 +5772,7 @@ function isNoiseText(text) {
           ? (bad * 100 / total).toFixed(2) + '%'
           : '';
 
-        console.log('[Yahoo getSellerRating] 最終結果:', {
+        _log('[Yahoo getSellerRating] 最終結果:', {
           reviewCount: total ? String(total) : '',
           badRate,
           good,
@@ -5785,22 +5788,22 @@ function isNoiseText(text) {
 
       const rating = getSellerRating();
 
-      console.log('=== ヤフオク抽出結果 ===');
-      console.log('プラットフォーム: yahoo');
-      console.log('商品ID:', itemId);
-      console.log('タイトル:', title);
-      console.log('価格:', price, '（本体:', itemJson.taxinPrice || itemJson.price, '+ 送料:', shipping, '）');
-      console.log('出品者:', seller, '/', sellerName);
-      console.log('画像URL数:', imageUrlArray.filter(url => url).length);
-      console.log('商品の状態:', condition);
-      console.log('配送料の負担:', shippingPayer);
-      console.log('配送方法:', shippingMethod);
-      console.log('発送元:', shipFrom);
-      console.log('発送日数:', handlingDays);
-      console.log('出品日時:', listedFmt);
-      console.log('終了日時:', updatedFmt);
-      console.log('評価件数:', rating.reviewCount);
-      console.log('悪い評価率:', rating.badRate);
+      _log('=== ヤフオク抽出結果 ===');
+      _log('プラットフォーム: yahoo');
+      _log('商品ID:', itemId);
+      _log('タイトル:', title);
+      _log('価格:', price, '（本体:', itemJson.taxinPrice || itemJson.price, '+ 送料:', shipping, '）');
+      _log('出品者:', seller, '/', sellerName);
+      _log('画像URL数:', imageUrlArray.filter(url => url).length);
+      _log('商品の状態:', condition);
+      _log('配送料の負担:', shippingPayer);
+      _log('配送方法:', shippingMethod);
+      _log('発送元:', shipFrom);
+      _log('発送日数:', handlingDays);
+      _log('出品日時:', listedFmt);
+      _log('終了日時:', updatedFmt);
+      _log('評価件数:', rating.reviewCount);
+      _log('悪い評価率:', rating.badRate);
 
       return {
         platform: 'yahuoku',
@@ -5834,7 +5837,7 @@ function isNoiseText(text) {
   // PayPayフリマ商品データ抽出
   // ==========================================
   function extractPayPayProductData() {
-    console.log('=== PayPayフリマデータ抽出開始 ===');
+    _log('=== PayPayフリマデータ抽出開始 ===');
 
     try {
       // 商品URL
@@ -5852,7 +5855,7 @@ function isNoiseText(text) {
           const tmpJson = JSON.parse(ldjsonTag.textContent);
           // 配列なら最初の要素、そうでなければそのまま
           dataJson = Array.isArray(tmpJson) ? tmpJson[0] : tmpJson;
-          console.log('📦 ld+json取得成功');
+          _log('📦 ld+json取得成功');
         } catch (e) {
           console.warn('⚠️ ld+jsonのパースに失敗しました', e);
         }
@@ -5877,7 +5880,7 @@ function isNoiseText(text) {
 
       // テーブルから詳細情報を取得
       const rows = document.querySelectorAll("table.ItemTable__Component tr");
-      console.log('📊 テーブル行数:', rows.length);
+      _log('📊 テーブル行数:', rows.length);
 
       // テーブル情報を収集
       let infoFormatted = "";
@@ -5910,7 +5913,7 @@ function isNoiseText(text) {
         }
         value = value.replace(/  +/g, '');
 
-        console.log('📋 テーブル行:', { key, value });
+        _log('📋 テーブル行:', { key, value });
 
         if (key && value) {
           if (!ignoreKeys.includes(key)) {
@@ -5920,29 +5923,29 @@ function isNoiseText(text) {
           // フィールドに割り当て（複数のパターンに対応、優先度の高い順に判定）
           if (key === "商品の状態" || key?.includes("状態")) {
             condition = value;
-            console.log('✅ 商品の状態を設定:', value);
+            _log('✅ 商品の状態を設定:', value);
           }
 
           // 配送料の負担（「配送の方法」より先に判定）
           if (key === "配送料の負担" || key === "送料の負担" || (key?.includes("送料") && key?.includes("負担"))) {
             shippingPayer = value;
-            console.log('✅ 配送料の負担を設定:', value);
+            _log('✅ 配送料の負担を設定:', value);
           }
 
           // 配送方法（配送料の負担と重複しないように判定）
           if ((key === "配送の方法" || key === "配送方法") && !shippingMethod) {
             shippingMethod = value;
-            console.log('✅ 配送方法を設定:', value);
+            _log('✅ 配送方法を設定:', value);
           }
 
           if (key === "発送元の地域" || key === "発送元" || key?.includes("発送元")) {
             shipFrom = value;
-            console.log('✅ 発送元を設定:', value);
+            _log('✅ 発送元を設定:', value);
           }
 
           if (key === "発送までの日数" || (key?.includes("発送") && key?.includes("日数"))) {
             handlingDays = value;
-            console.log('✅ 発送までの日数を設定:', value);
+            _log('✅ 発送までの日数を設定:', value);
           }
 
           // 出品日時（"2025/10/01 10:13:50 9時間前 > 9時間前" のような形式）
@@ -5954,7 +5957,7 @@ function isNoiseText(text) {
               if (!isNaN(d)) {
                 listedFmt = dateStr;
                 listedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
-                console.log('📅 出品日時設定:', listedFmt, listedElapsedDays);
+                _log('📅 出品日時設定:', listedFmt, listedElapsedDays);
               }
             }
           }
@@ -5968,7 +5971,7 @@ function isNoiseText(text) {
               if (!isNaN(d)) {
                 updatedFmt = dateStr;
                 updatedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
-                console.log('📅 更新日時設定:', updatedFmt, updatedElapsedDays);
+                _log('📅 更新日時設定:', updatedFmt, updatedElapsedDays);
               }
             }
           }
@@ -6017,7 +6020,7 @@ function isNoiseText(text) {
 
       // 出品者の評価情報を取得
       const getSellerRating = () => {
-        console.log('[PayPay getSellerRating] 評価情報取得開始');
+        _log('[PayPay getSellerRating] 評価情報取得開始');
 
         let good = null;
         let bad = null;
@@ -6036,7 +6039,7 @@ function isNoiseText(text) {
             good = Number.isNaN(good) ? null : good;
             bad = Number.isNaN(bad) ? null : bad;
             normal = Number.isNaN(normal) ? null : normal;
-            console.log('[PayPay getSellerRating] #furima-assist-seller-ratings経由:', {good, bad, normal});
+            _log('[PayPay getSellerRating] #furima-assist-seller-ratings経由:', {good, bad, normal});
           }
         }
 
@@ -6055,14 +6058,14 @@ function isNoiseText(text) {
             return true;
           });
 
-          console.log('[PayPay getSellerRating] span要素検索:', spans.length, '個（出品者セクション除外後）');
+          _log('[PayPay getSellerRating] span要素検索:', spans.length, '個（出品者セクション除外後）');
 
           if (spans && spans.length) {
             const nums = [...spans]
               .map(x => parseInt((x.textContent || '').replace(/[^\d]/g, '')))
               .filter(n => !Number.isNaN(n) && n > 0 && n < 100000); // 異常値除外
 
-            console.log('[PayPay getSellerRating] span内の数値:', nums);
+            _log('[PayPay getSellerRating] span内の数値:', nums);
 
             if (nums.length >= 2) {
               good = nums[0];
@@ -6079,7 +6082,7 @@ function isNoiseText(text) {
           const normalMatch = bodyText.match(/普通[^\d]*([0-9,]+)/);
           const badMatch = bodyText.match(/悪い[^\d]*([0-9,]+)/);
 
-          console.log('[PayPay getSellerRating] テキスト検索:', {
+          _log('[PayPay getSellerRating] テキスト検索:', {
             良い: goodMatch?.[1],
             普通: normalMatch?.[1],
             悪い: badMatch?.[1]
@@ -6093,7 +6096,7 @@ function isNoiseText(text) {
           const totalMatch = bodyText.match(/評価[^\d]*([0-9,]+)/);
           if ((good === null || bad === null) && totalMatch) {
             const total = parseInt(totalMatch[1].replace(/,/g, ''));
-            console.log('[PayPay getSellerRating] 評価合計のみ取得:', total);
+            _log('[PayPay getSellerRating] 評価合計のみ取得:', total);
             return { reviewCount: String(total), badRate: '' };
           }
         }
@@ -6105,7 +6108,7 @@ function isNoiseText(text) {
           ? (bad * 100 / total).toFixed(2) + '%'
           : '';
 
-        console.log('[PayPay getSellerRating] 最終結果:', {
+        _log('[PayPay getSellerRating] 最終結果:', {
           reviewCount: total ? String(total) : '',
           badRate,
           good,
@@ -6121,20 +6124,20 @@ function isNoiseText(text) {
 
       const rating = getSellerRating();
 
-      console.log('=== PayPayフリマ抽出結果 ===');
-      console.log('プラットフォーム: paypay');
-      console.log('商品ID:', itemId);
-      console.log('タイトル:', title);
-      console.log('価格:', price);
-      console.log('出品者:', seller, '/', sellerName);
-      console.log('画像URL数:', imageUrlArray.filter(url => url).length);
-      console.log('商品の状態:', condition);
-      console.log('配送料の負担:', shippingPayer);
-      console.log('配送方法:', shippingMethod);
-      console.log('発送元:', shipFrom);
-      console.log('発送日数:', handlingDays);
-      console.log('評価件数:', rating.reviewCount);
-      console.log('悪い評価率:', rating.badRate);
+      _log('=== PayPayフリマ抽出結果 ===');
+      _log('プラットフォーム: paypay');
+      _log('商品ID:', itemId);
+      _log('タイトル:', title);
+      _log('価格:', price);
+      _log('出品者:', seller, '/', sellerName);
+      _log('画像URL数:', imageUrlArray.filter(url => url).length);
+      _log('商品の状態:', condition);
+      _log('配送料の負担:', shippingPayer);
+      _log('配送方法:', shippingMethod);
+      _log('発送元:', shipFrom);
+      _log('発送日数:', handlingDays);
+      _log('評価件数:', rating.reviewCount);
+      _log('悪い評価率:', rating.badRate);
 
       return {
         platform: 'paypayfurima',
@@ -6168,7 +6171,7 @@ function isNoiseText(text) {
   // ラクマ商品データ抽出
   // ==========================================
   function extractFrilProductData() {
-    console.log('=== ラクマデータ抽出開始 ===');
+    _log('=== ラクマデータ抽出開始 ===');
 
     try {
       // 商品ID（URLの最後の部分、複数の形式に対応）
@@ -6180,8 +6183,8 @@ function isNoiseText(text) {
         if (match) itemId = match[1];
       }
 
-      console.log('📦 商品ID:', itemId);
-      console.log('📦 現在のURL:', location.href);
+      _log('📦 商品ID:', itemId);
+      _log('📦 現在のURL:', location.href);
 
       // ld+jsonから基本データを取得
       let itemJson = {};
@@ -6190,7 +6193,7 @@ function isNoiseText(text) {
       if (ldjson) {
         try {
           itemJson = JSON.parse(ldjson.textContent);
-          console.log('📦 ld+json取得成功:', itemJson);
+          _log('📦 ld+json取得成功:', itemJson);
         } catch (e) {
           console.warn('⚠️ ld+jsonのパースに失敗しました', e);
         }
@@ -6202,7 +6205,7 @@ function isNoiseText(text) {
         // DOMから取得（フォールバック）
         const titleElem = document.querySelector('h1.item-name, h1[class*="item"], h1[class*="title"], h1');
         title = (titleElem?.textContent || '').trim().replace(/\t/g, '  ');
-        console.log('📦 タイトル（DOM）:', title);
+        _log('📦 タイトル（DOM）:', title);
       }
 
       // 価格（ld+jsonまたはDOMから取得）
@@ -6212,7 +6215,7 @@ function isNoiseText(text) {
         const priceElem = document.querySelector('.item-price, [class*="price"]');
         if (priceElem) {
           price = priceElem.textContent.replace(/[^\d]/g, '');
-          console.log('📦 価格（DOM）:', price);
+          _log('📦 価格（DOM）:', price);
         }
       }
 
@@ -6239,7 +6242,7 @@ function isNoiseText(text) {
         if (!isNaN(d)) {
           listedFmt = d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
           listedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
-          console.log('📅 出品日時設定（ld+json）:', listedFmt, listedElapsedDays);
+          _log('📅 出品日時設定（ld+json）:', listedFmt, listedElapsedDays);
         }
       }
 
@@ -6248,13 +6251,13 @@ function isNoiseText(text) {
         if (!isNaN(d)) {
           updatedFmt = d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
           updatedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
-          console.log('📅 更新日時設定（ld+json）:', updatedFmt, updatedElapsedDays);
+          _log('📅 更新日時設定（ld+json）:', updatedFmt, updatedElapsedDays);
         }
       }
 
       // DOMから直接日時を取得（方法2 - ld+jsonで取れなかった場合）
       if (!listedFmt || !updatedFmt) {
-        console.log('🔍 DOMから日時を探索開始...');
+        _log('🔍 DOMから日時を探索開始...');
 
         // 方法2-1: data-*属性から取得
         const createdAtElem = document.querySelector('[data-created-at], [data-listing-date]');
@@ -6265,7 +6268,7 @@ function isNoiseText(text) {
             if (!isNaN(d)) {
               listedFmt = d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
               listedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
-              console.log('📅 出品日時設定（data-*）:', listedFmt);
+              _log('📅 出品日時設定（data-*）:', listedFmt);
             }
           }
         }
@@ -6282,7 +6285,7 @@ function isNoiseText(text) {
             if (!isNaN(d)) {
               listedFmt = d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
               listedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
-              console.log('📅 出品日時設定（テキストパターン）:', listedFmt);
+              _log('📅 出品日時設定（テキストパターン）:', listedFmt);
             }
           }
 
@@ -6294,7 +6297,7 @@ function isNoiseText(text) {
             if (!isNaN(d)) {
               updatedFmt = d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
               updatedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
-              console.log('📅 更新日時設定（テキストパターン）:', updatedFmt);
+              _log('📅 更新日時設定（テキストパターン）:', updatedFmt);
             }
           }
         }
@@ -6303,7 +6306,7 @@ function isNoiseText(text) {
       // 商品の詳細情報をテーブルから取得
       const infoRows = document.querySelectorAll('.item__details tr');
       let allInfoFormatted = '';
-      console.log('📊 詳細テーブル行数:', infoRows.length);
+      _log('📊 詳細テーブル行数:', infoRows.length);
 
       // 詳細フィールド用の変数
       let condition = '';
@@ -6315,12 +6318,12 @@ function isNoiseText(text) {
       infoRows.forEach(row => {
         const key = row.querySelector('th')?.textContent?.trim();
         const value = row.querySelector('td')?.textContent?.trim().replace(/  +/g, '');
-        console.log('📋 詳細行:', { key, value });
+        _log('📋 詳細行:', { key, value });
 
         if (key && value) {
           allInfoFormatted += `${key}: ${value}; `;
 
-          console.log('🔍 キー比較:', {
+          _log('🔍 キー比較:', {
             key,
             includes出品: key?.includes('出品'),
             includes更新: key?.includes('更新'),
@@ -6330,23 +6333,23 @@ function isNoiseText(text) {
           // フィールドに割り当て
           if (key === '商品の状態' || key?.includes('状態')) {
             condition = value;
-            console.log('✅ 商品の状態を設定:', value);
+            _log('✅ 商品の状態を設定:', value);
           }
           if (key === '配送料の負担' || key === '送料の負担' || key?.includes('送料')) {
             shippingPayer = value;
-            console.log('✅ 配送料の負担を設定:', value);
+            _log('✅ 配送料の負担を設定:', value);
           }
           if (key === '配送方法' || key === '配送の方法') {
             shippingMethod = value;
-            console.log('✅ 配送方法を設定:', value);
+            _log('✅ 配送方法を設定:', value);
           }
           if (key === '発送元の地域' || key === '発送元') {
             shipFrom = value;
-            console.log('✅ 発送元を設定:', value);
+            _log('✅ 発送元を設定:', value);
           }
           if (key === '発送日の目安' || key?.includes('発送') && key?.includes('日')) {
             handlingDays = value;
-            console.log('✅ 発送日数を設定:', value);
+            _log('✅ 発送日数を設定:', value);
           }
 
           // 出品日時（方法3 - テーブルから取得、まだ設定されていない場合のみ）
@@ -6359,7 +6362,7 @@ function isNoiseText(text) {
               if (!isNaN(d)) {
                 listedFmt = d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
                 listedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
-                console.log('📅 出品日時設定（テーブル）:', listedFmt, listedElapsedDays);
+                _log('📅 出品日時設定（テーブル）:', listedFmt, listedElapsedDays);
               }
             } else {
               // 相対時間のみの場合はパース試行
@@ -6367,7 +6370,7 @@ function isNoiseText(text) {
               if (!isNaN(d)) {
                 listedFmt = d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
                 listedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
-                console.log('📅 出品日時設定（テーブル・直接パース）:', listedFmt, listedElapsedDays);
+                _log('📅 出品日時設定（テーブル・直接パース）:', listedFmt, listedElapsedDays);
               }
             }
           }
@@ -6382,7 +6385,7 @@ function isNoiseText(text) {
               if (!isNaN(d)) {
                 updatedFmt = d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
                 updatedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
-                console.log('📅 更新日時設定（テーブル）:', updatedFmt, updatedElapsedDays);
+                _log('📅 更新日時設定（テーブル）:', updatedFmt, updatedElapsedDays);
               }
             } else {
               // 相対時間のみの場合はパース試行
@@ -6390,7 +6393,7 @@ function isNoiseText(text) {
               if (!isNaN(d)) {
                 updatedFmt = d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
                 updatedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
-                console.log('📅 更新日時設定（テーブル・直接パース）:', updatedFmt, updatedElapsedDays);
+                _log('📅 更新日時設定（テーブル・直接パース）:', updatedFmt, updatedElapsedDays);
               }
             }
           }
@@ -6419,7 +6422,7 @@ function isNoiseText(text) {
       const photoFrame = document.querySelector('#photoFrame');
       if (photoFrame) {
         const images = photoFrame.querySelectorAll('img');
-        console.log('📸 #photoFrameから画像検索:', images.length, '個');
+        _log('📸 #photoFrameから画像検索:', images.length, '個');
         images.forEach((img, idx) => {
           if (idx < 20) {
             const url = img.getAttribute('src') || img.src || '';
@@ -6436,7 +6439,7 @@ function isNoiseText(text) {
         const ogImage = document.querySelector('meta[property="og:image"]');
         if (ogImage) {
           const url = ogImage.getAttribute('content');
-          console.log('📸 og:imageから取得:', url);
+          _log('📸 og:imageから取得:', url);
           if (url && url.startsWith('http')) {
             imageUrlArray[0] = url;
             foundCount++;
@@ -6446,7 +6449,7 @@ function isNoiseText(text) {
 
       // 出品者の評価情報を取得
       const getSellerRating = () => {
-        console.log('[Rakuma getSellerRating] 評価情報取得開始');
+        _log('[Rakuma getSellerRating] 評価情報取得開始');
 
         let good = null;
         let bad = null;
@@ -6465,7 +6468,7 @@ function isNoiseText(text) {
             good = Number.isNaN(good) ? null : good;
             bad = Number.isNaN(bad) ? null : bad;
             normal = Number.isNaN(normal) ? null : normal;
-            console.log('[Rakuma getSellerRating] #furima-assist-seller-ratings経由:', {good, bad, normal});
+            _log('[Rakuma getSellerRating] #furima-assist-seller-ratings経由:', {good, bad, normal});
           }
         }
 
@@ -6487,7 +6490,7 @@ function isNoiseText(text) {
             const badText = rain.nextSibling.textContent.trim();
             bad = parseInt(badText);
           }
-          console.log('[Rakuma getSellerRating] .flea-assist-ratings経由:', {good, bad, normal});
+          _log('[Rakuma getSellerRating] .flea-assist-ratings経由:', {good, bad, normal});
         }
 
         // 方法3: テキスト検索
@@ -6497,7 +6500,7 @@ function isNoiseText(text) {
           const normalMatch = bodyText.match(/普通[^\d]*([0-9,]+)/);
           const badMatch = bodyText.match(/悪い[^\d]*([0-9,]+)/);
 
-          console.log('[Rakuma getSellerRating] テキスト検索:', {
+          _log('[Rakuma getSellerRating] テキスト検索:', {
             良い: goodMatch?.[1],
             普通: normalMatch?.[1],
             悪い: badMatch?.[1]
@@ -6510,7 +6513,7 @@ function isNoiseText(text) {
           const totalMatch = bodyText.match(/評価[^\d]*([0-9,]+)/);
           if ((good === null || bad === null) && totalMatch) {
             const total = parseInt(totalMatch[1].replace(/,/g, ''));
-            console.log('[Rakuma getSellerRating] 評価合計のみ取得:', total);
+            _log('[Rakuma getSellerRating] 評価合計のみ取得:', total);
             return { reviewCount: String(total), badRate: '' };
           }
         }
@@ -6522,7 +6525,7 @@ function isNoiseText(text) {
           ? (bad * 100 / total).toFixed(2) + '%'
           : '';
 
-        console.log('[Rakuma getSellerRating] 最終結果:', {
+        _log('[Rakuma getSellerRating] 最終結果:', {
           reviewCount: total ? String(total) : '',
           badRate,
           good,
@@ -6544,22 +6547,22 @@ function isNoiseText(text) {
         return { error: 'ラクマの商品IDを取得できませんでした' };
       }
 
-      console.log('=== ラクマ抽出結果 ===');
-      console.log('プラットフォーム: rakuma');
-      console.log('商品ID:', itemId);
-      console.log('タイトル:', title);
-      console.log('価格:', price);
-      console.log('出品者:', seller, '/', sellerName);
-      console.log('画像URL数:', foundCount);
-      console.log('商品の状態:', condition);
-      console.log('配送料の負担:', shippingPayer);
-      console.log('配送方法:', shippingMethod);
-      console.log('発送元:', shipFrom);
-      console.log('発送日数:', handlingDays);
-      console.log('出品日時:', listedFmt);
-      console.log('更新日時:', updatedFmt);
-      console.log('評価件数:', rating.reviewCount);
-      console.log('悪い評価率:', rating.badRate);
+      _log('=== ラクマ抽出結果 ===');
+      _log('プラットフォーム: rakuma');
+      _log('商品ID:', itemId);
+      _log('タイトル:', title);
+      _log('価格:', price);
+      _log('出品者:', seller, '/', sellerName);
+      _log('画像URL数:', foundCount);
+      _log('商品の状態:', condition);
+      _log('配送料の負担:', shippingPayer);
+      _log('配送方法:', shippingMethod);
+      _log('発送元:', shipFrom);
+      _log('発送日数:', handlingDays);
+      _log('出品日時:', listedFmt);
+      _log('更新日時:', updatedFmt);
+      _log('評価件数:', rating.reviewCount);
+      _log('悪い評価率:', rating.badRate);
 
       return {
         platform: 'rakuma',
@@ -6593,7 +6596,7 @@ function isNoiseText(text) {
   // Yahoo!ショッピング商品データ抽出
   // ==========================================
   function extractYahooShoppingProductData() {
-    console.log('=== Yahoo!ショッピングデータ抽出開始 ===');
+    _log('=== Yahoo!ショッピングデータ抽出開始 ===');
 
     try {
       const url = window.location.href;
@@ -6621,7 +6624,7 @@ function isNoiseText(text) {
             // ナビゲーション要素を除外
             if (!text.match(/^(Yahoo|ヤフー|ショッピング|カテゴリ|ホーム|カート|検索|ログイン)/i)) {
               name = text;
-              console.log('✅ 商品名を取得:', name.substring(0, 50));
+              _log('✅ 商品名を取得:', name.substring(0, 50));
               break;
             }
           }
@@ -6635,7 +6638,7 @@ function isNoiseText(text) {
           const content = ogTitle.getAttribute('content');
           if (content && content.length >= 10 && content.length <= 200) {
             name = content;
-            console.log('✅ og:titleから商品名を取得:', name.substring(0, 50));
+            _log('✅ og:titleから商品名を取得:', name.substring(0, 50));
           }
         }
       }
@@ -6648,7 +6651,7 @@ function isNoiseText(text) {
           const candidate = parts[0].trim();
           if (candidate.length >= 10 && candidate.length <= 200) {
             name = candidate;
-            console.log('✅ document.titleから商品名を取得:', name.substring(0, 50));
+            _log('✅ document.titleから商品名を取得:', name.substring(0, 50));
           }
         }
       }
@@ -6691,7 +6694,7 @@ function isNoiseText(text) {
             const num = extractNumber(priceText);
             if (num >= 1 && num <= 10000000) {
               price = num;
-              console.log('✅ 価格を取得:', price, '円');
+              _log('✅ 価格を取得:', price, '円');
               break;
             }
           }
@@ -6704,7 +6707,7 @@ function isNoiseText(text) {
 
       if (pageText.includes('送料無料') || pageText.includes('送料込み') || pageText.includes('送料込')) {
         shipping = 0;
-        console.log('✅ 送料: 無料');
+        _log('✅ 送料: 無料');
       } else if (pageText.includes('送料') && !pageText.includes('送料無料')) {
         const shippingSelectors = [
           'span[class*="shipping"]',
@@ -6723,7 +6726,7 @@ function isNoiseText(text) {
               const num = extractNumber(text);
               if (num > 0 && num <= 5000) {
                 shipping = num;
-                console.log('✅ 送料:', shipping, '円');
+                _log('✅ 送料:', shipping, '円');
                 break;
               }
             }
@@ -6735,29 +6738,29 @@ function isNoiseText(text) {
 
       // 商品説明を取得（Yahoo!ショッピング用 - 商品情報テーブルを優先）
       let description = '';
-      console.log('🔍 Yahoo!ショッピング商品説明の取得を開始...');
+      _log('🔍 Yahoo!ショッピング商品説明の取得を開始...');
 
       // 方法1: 「商品情報」セクションのテーブルから取得（最優先）
-      console.log('📊 方法1: テーブル要素を探索中...');
+      _log('📊 方法1: テーブル要素を探索中...');
       const infoTables = document.querySelectorAll('table');
-      console.log(`見つかったテーブル数: ${infoTables.length}`);
+      _log(`見つかったテーブル数: ${infoTables.length}`);
       let productInfoText = '';
 
       for (let i = 0; i < infoTables.length; i++) {
         const table = infoTables[i];
         const text = table.innerText?.trim() || '';
 
-        console.log(`テーブル ${i + 1}:`, text.substring(0, 150));
+        _log(`テーブル ${i + 1}:`, text.substring(0, 150));
 
         // 商品情報テーブルの特徴：「ブランド」を含む、または「原作」「シリーズ」「製品仕様」などを含む
         if (text.includes('ブランド') || text.includes('原作') || text.includes('シリーズ') ||
             text.includes('製品仕様') || text.includes('原型製作') || text.includes('コピーライト')) {
 
-          console.log(`✅ 商品情報テーブル候補を発見（テーブル ${i + 1}）:`, text.substring(0, 100));
+          _log(`✅ 商品情報テーブル候補を発見（テーブル ${i + 1}）:`, text.substring(0, 100));
 
           // テーブルの各行を抽出
           const rows = table.querySelectorAll('tr');
-          console.log(`  行数: ${rows.length}`);
+          _log(`  行数: ${rows.length}`);
           let infoLines = [];
 
           rows.forEach((row, rowIndex) => {
@@ -6765,7 +6768,7 @@ function isNoiseText(text) {
             const ths = row.querySelectorAll('th');
             const tds = row.querySelectorAll('td');
 
-            console.log(`  行 ${rowIndex + 1}: th=${ths.length}, td=${tds.length}`);
+            _log(`  行 ${rowIndex + 1}: th=${ths.length}, td=${tds.length}`);
 
             if (ths.length > 0 && tds.length > 0) {
               // th と td がある場合
@@ -6775,7 +6778,7 @@ function isNoiseText(text) {
               if (label && value) {
                 const cleanValue = value.replace(/\t/g, ' ').replace(/\n+/g, ' ').trim();
                 infoLines.push(`${label}：${cleanValue}`);
-                console.log(`    抽出: ${label}：${cleanValue.substring(0, 50)}`);
+                _log(`    抽出: ${label}：${cleanValue.substring(0, 50)}`);
               }
             } else if (tds.length >= 2) {
               // td が2つ以上ある場合
@@ -6785,22 +6788,22 @@ function isNoiseText(text) {
               if (label && value) {
                 const cleanValue = value.replace(/\t/g, ' ').replace(/\n+/g, ' ').trim();
                 infoLines.push(`${label}：${cleanValue}`);
-                console.log(`    抽出: ${label}：${cleanValue.substring(0, 50)}`);
+                _log(`    抽出: ${label}：${cleanValue.substring(0, 50)}`);
               }
             } else if (tds.length === 1) {
               // td が1つだけの場合（解説など）
               const content = tds[0].innerText?.trim() || '';
               if (content && content.length > 10 && !content.includes('商品情報')) {
                 infoLines.push(content);
-                console.log(`    単一セル: ${content.substring(0, 50)}`);
+                _log(`    単一セル: ${content.substring(0, 50)}`);
               }
             }
           });
 
           if (infoLines.length > 0) {
             productInfoText = infoLines.join('\n');
-            console.log(`✅ 商品情報を${infoLines.length}行取得しました`);
-            console.log('取得内容:', productInfoText.substring(0, 300));
+            _log(`✅ 商品情報を${infoLines.length}行取得しました`);
+            _log('取得内容:', productInfoText.substring(0, 300));
             break;
           }
         }
@@ -6808,14 +6811,14 @@ function isNoiseText(text) {
 
       if (productInfoText && productInfoText.length >= 20) {
         description = productInfoText;
-        console.log('✅ 商品情報テーブルから説明文を取得（最終確認）:', description.substring(0, 200));
+        _log('✅ 商品情報テーブルから説明文を取得（最終確認）:', description.substring(0, 200));
       } else {
-        console.log('⚠️ 方法1では商品情報を取得できませんでした');
+        _log('⚠️ 方法1では商品情報を取得できませんでした');
       }
 
       // 方法2: ページ上部の「商品情報」テキストブロックを取得
       if (!description || description.length < 50) {
-        console.log('⚠️ テーブルから取得できませんでした。テキストブロックを探します...');
+        _log('⚠️ テーブルから取得できませんでした。テキストブロックを探します...');
 
         // 「商品情報」というヘッダーの後に続くコンテンツを探す
         const allElements = document.querySelectorAll('*');
@@ -6828,7 +6831,7 @@ function isNoiseText(text) {
           // 「商品情報」というテキストを含む要素を見つける
           if (!foundProductInfo && text === '商品情報') {
             foundProductInfo = true;
-            console.log('✅ 「商品情報」ヘッダーを発見');
+            _log('✅ 「商品情報」ヘッダーを発見');
             continue;
           }
 
@@ -6856,13 +6859,13 @@ function isNoiseText(text) {
 
         if (collectedText.length > 0) {
           description = collectedText.join('\n');
-          console.log(`✅ テキストブロックから${collectedText.length}個の要素を取得:`, description.substring(0, 200));
+          _log(`✅ テキストブロックから${collectedText.length}個の要素を取得:`, description.substring(0, 200));
         }
       }
 
       // 方法3: 一般的なセレクタから取得
       if (!description || description.length < 50) {
-        console.log('⚠️ 商品情報セクションが見つかりませんでした。一般的なセレクタを試します...');
+        _log('⚠️ 商品情報セクションが見つかりませんでした。一般的なセレクタを試します...');
 
         const generalSelectors = [
           '#detailBox',
@@ -6899,7 +6902,7 @@ function isNoiseText(text) {
             // ショップの宣伝を除外
             if (!text.includes('格安通販店') && text.length >= 100 && text.length < 5000) {
               description = text;
-              console.log(`✅ セレクタ ${selector} から取得:`, text.substring(0, 200));
+              _log(`✅ セレクタ ${selector} から取得:`, text.substring(0, 200));
               break;
             }
           }
@@ -6908,7 +6911,7 @@ function isNoiseText(text) {
 
       // 方法4: 最終フォールバック - ページ全体から商品スペックを抽出
       if (!description || description.length < 50) {
-        console.log('⚠️ 最終フォールバック：ページ全体から商品情報を探します...');
+        _log('⚠️ 最終フォールバック：ページ全体から商品情報を探します...');
 
         const bodyText = document.body.innerText || '';
         const lines = bodyText.split('\n');
@@ -6927,7 +6930,7 @@ function isNoiseText(text) {
 
         if (relevantLines.length > 0) {
           description = relevantLines.join('\n');
-          console.log(`✅ ページ全体から${relevantLines.length}行の商品情報を抽出`);
+          _log(`✅ ページ全体から${relevantLines.length}行の商品情報を抽出`);
         }
       }
 
@@ -6935,7 +6938,7 @@ function isNoiseText(text) {
         console.error('❌ 商品説明を取得できませんでした');
         description = '商品説明を取得できませんでした';
       } else {
-        console.log(`✅ 最終的な商品説明（${description.length}文字）:`, description.substring(0, 300));
+        _log(`✅ 最終的な商品説明（${description.length}文字）:`, description.substring(0, 300));
       }
 
       // 販売者情報を取得
@@ -6958,7 +6961,7 @@ function isNoiseText(text) {
         if (element) {
           seller = element.innerText?.trim() || '';
           if (seller && seller.length > 0 && seller.length < 100) {
-            console.log('✅ 販売者:', seller);
+            _log('✅ 販売者:', seller);
             break;
           }
         }
@@ -6969,7 +6972,7 @@ function isNoiseText(text) {
         const urlMatch = url.match(/store\.shopping\.yahoo\.co\.jp\/([^\/]+)/);
         if (urlMatch) {
           seller = urlMatch[1];
-          console.log('✅ URLから販売者を抽出:', seller);
+          _log('✅ URLから販売者を抽出:', seller);
         } else {
           seller = '出品者情報なし';
         }
@@ -6997,7 +7000,7 @@ function isNoiseText(text) {
         if (url && url.startsWith('http') && !imageUrls.includes(url)) {
           // 小さすぎる画像は除外（アイコンなど）
           if (!url.includes('icon') && !url.includes('banner') && !url.includes('logo') && !url.includes('btn')) {
-            console.log(`📷 Yahoo!ショッピング画像: ${url}`);
+            _log(`📷 Yahoo!ショッピング画像: ${url}`);
             imageUrls.push(url);
             if (imageUrls.length >= 20) return;
           }
@@ -7010,22 +7013,22 @@ function isNoiseText(text) {
         if (ogImage) {
           const url = ogImage.getAttribute('content');
           if (url) {
-            console.log(`🖼️ Yahoo!ショッピングOG画像: ${url}`);
+            _log(`🖼️ Yahoo!ショッピングOG画像: ${url}`);
             imageUrls.push(url);
           }
         }
       }
 
       const imageUrl = imageUrls.join(',');
-      console.log(`✅ Yahoo!ショッピング画像URL確定（${imageUrls.length}枚）:`, imageUrl.substring(0, 100));
+      _log(`✅ Yahoo!ショッピング画像URL確定（${imageUrls.length}枚）:`, imageUrl.substring(0, 100));
 
-      console.log('=== Yahoo!ショッピング抽出結果 ===');
-      console.log('プラットフォーム: yahooshopping');
-      console.log('商品名:', name);
-      console.log('価格:', price, '円（本体 + 送料:', shipping, '円）');
-      console.log('商品詳細（長さ）:', description.length);
-      console.log('出品者:', seller);
-      console.log('画像URL数:', imageUrls.length);
+      _log('=== Yahoo!ショッピング抽出結果 ===');
+      _log('プラットフォーム: yahooshopping');
+      _log('商品名:', name);
+      _log('価格:', price, '円（本体 + 送料:', shipping, '円）');
+      _log('商品詳細（長さ）:', description.length);
+      _log('出品者:', seller);
+      _log('画像URL数:', imageUrls.length);
 
       if (!name || name.trim() === '') {
         return { error: '商品名が取得できませんでした。' };
@@ -7037,7 +7040,7 @@ function isNoiseText(text) {
         };
       }
 
-      console.log('✅ 抽出成功');
+      _log('✅ 抽出成功');
       return {
         platform: 'yahoo_shopping',
         url: url,
@@ -7057,13 +7060,13 @@ function isNoiseText(text) {
   // ==========================================
   // 外部リンクボタン機能（商品ページのみ）
   // ==========================================
-  console.log('🔗 外部リンク機能を初期化');
+  _log('🔗 外部リンク機能を初期化');
 
   if (typeof initExternalLinksForProduct === 'function') {
     initExternalLinksForProduct(currentSite);
-    console.log('✅ 外部リンク機能を開始:', currentSite);
+    _log('✅ 外部リンク機能を開始:', currentSite);
   } else {
-    console.log('⚠️ 外部リンク機能が読み込まれていません');
+    _log('⚠️ 外部リンク機能が読み込まれていません');
   }
 
 })();
