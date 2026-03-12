@@ -1,6 +1,33 @@
 // デバッグモード（本番はfalse、開発時はtrue）
 const TORIKOMI_DEBUG = false;
 const _log = TORIKOMI_DEBUG ? console.log.bind(console) : () => {};
+// ========================================
+// 共通ユーティリティ関数
+// ========================================
+
+// 日付をJST形式でフォーマット（YYYY-MM-DD HH:MM:SS JST）
+const _formatJST = (d) => {
+  if (!(d instanceof Date) || isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat('ja-JP', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    timeZone: 'Asia/Tokyo'
+  }).format(d).replace(/\//g, '-') + ' JST';
+};
+
+// 経過日数を計算（過去の日付→現在、小数第2位）
+const _elapsedDays = (from) => {
+  if (!(from instanceof Date) || isNaN(from.getTime())) return '';
+  return ((new Date() - from) / (1000 * 60 * 60 * 24)).toFixed(2);
+};
+
+
+// 画像URLリストを分割してトリム
+const _splitImageUrls = (urlStr) => {
+  if (typeof urlStr !== 'string' || !urlStr) return [];
+  return urlStr.split(',').map(url => url.trim()).filter(url => url);
+};
+
 // Universal Product Scraper - Content Script
 // eBay、楽天、Amazon、メルカリ、ヤフオク、ラクマに対応
 
@@ -1788,7 +1815,7 @@ function isNoiseText(text) {
 
     if (site === 'amazon') {
       // 画像ギャラリー
-      const imageUrls = data.imageUrl ? data.imageUrl.split(',').map(url => url.trim()) : [];
+      const imageUrls = data.imageUrl ? _splitImageUrls(data.imageUrl) : [];
 
       modalContent = `
         <h2 style="margin: 0 0 20px 0; color: #333; font-size: 20px; border-bottom: 2px solid ${colors.primary}; padding-bottom: 10px;">
@@ -1896,7 +1923,7 @@ function isNoiseText(text) {
       const imageUrls = Array.isArray(data.imageUrl)
         ? data.imageUrl.filter(url => url)
         : data.imageUrl
-          ? data.imageUrl.split(',').map(url => url.trim())
+          ? _splitImageUrls(data.imageUrl)
           : [];
 
       const imageCount = imageUrls.length;
@@ -2084,7 +2111,7 @@ function isNoiseText(text) {
       const imageUrls = Array.isArray(data.imageUrl)
         ? data.imageUrl.filter(url => url)
         : data.imageUrl
-          ? data.imageUrl.split(',').map(url => url.trim())
+          ? _splitImageUrls(data.imageUrl)
           : [];
 
       modalContent = `
@@ -2219,7 +2246,7 @@ function isNoiseText(text) {
     const imageUrls = Array.isArray(data.imageUrl)
       ? data.imageUrl.filter(url => url)
       : data.imageUrl
-        ? data.imageUrl.split(',').map(url => url.trim())
+        ? _splitImageUrls(data.imageUrl)
         : [];
     if (imageUrls.length > 1) {
       let currentImageIndex = 0;
@@ -2452,7 +2479,7 @@ function isNoiseText(text) {
 
         // 8-27. 画像20フィールド (H〜AA列)
         const imageUrls = Array.isArray(data.imageUrl) ? data.imageUrl :
-                          typeof data.imageUrl === 'string' ? data.imageUrl.split(',').map(url => url.trim()) : [];
+                          typeof data.imageUrl === 'string' ? _splitImageUrls(data.imageUrl) : [];
 
         for (let i = 0; i < 20; i++) {
           const url = imageUrls[i] || '';
@@ -2508,7 +2535,7 @@ function isNoiseText(text) {
 
         // 8以降: 画像
         if (data.imageUrl) {
-          const imageUrls = data.imageUrl.split(',').map(url => url.trim());
+          const imageUrls = _splitImageUrls(data.imageUrl);
           const maxImages = settings.imageOutputCount === 999 ? imageUrls.length : Math.min(imageUrls.length, typeof settings.imageOutputCount === 'number' ? settings.imageOutputCount : 5);
           const imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
           _log('🖼️ IMAGE()関数を追加（タブ区切り）:', imageFormulas.length + '枚');
@@ -2544,7 +2571,7 @@ function isNoiseText(text) {
 
         // 8以降: 画像
         if (data.imageUrl) {
-          const imageUrls = data.imageUrl.split(',').map(url => url.trim());
+          const imageUrls = _splitImageUrls(data.imageUrl);
           const maxImages = settings.imageOutputCount === 999 ? imageUrls.length : Math.min(imageUrls.length, typeof settings.imageOutputCount === 'number' ? settings.imageOutputCount : 5);
           const imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
           _log('🖼️ IMAGE()関数を追加（タブ区切り）:', imageFormulas.length + '枚');
@@ -4783,7 +4810,7 @@ function isNoiseText(text) {
 
         // 画像20フィールド（imageOutputCount設定に従う）
         const imageUrls = Array.isArray(data.imageUrl) ? data.imageUrl :
-                          typeof data.imageUrl === 'string' ? data.imageUrl.split(',').map(url => url.trim()) : [];
+                          typeof data.imageUrl === 'string' ? _splitImageUrls(data.imageUrl) : [];
 
         // imageOutputCountが0の場合は全て空、999の場合は全画像、それ以外は指定枚数まで
         const maxImages = imageOutputCount === 0 ? 0 :
@@ -4819,7 +4846,7 @@ function isNoiseText(text) {
         // eBay（7フィールド + 画像: 基本6 + ページURL1 + 画像）
         let imageFormulas = [];
         if (data.imageUrl && imageOutputCount > 0) {
-          const imageUrls = data.imageUrl.split(',').map(url => url.trim());
+          const imageUrls = _splitImageUrls(data.imageUrl);
           const maxImages = imageOutputCount === 999 ? imageUrls.length : Math.min(imageUrls.length, imageOutputCount);
           imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
         }
@@ -4839,7 +4866,7 @@ function isNoiseText(text) {
         // 楽天, Yahoo!ショッピング（7フィールド + 画像: 基本6 + ページURL1 + 画像）
         let imageFormulas = [];
         if (data.imageUrl && imageOutputCount > 0) {
-          const imageUrls = data.imageUrl.split(',').map(url => url.trim());
+          const imageUrls = _splitImageUrls(data.imageUrl);
           const maxImages = imageOutputCount === 999 ? imageUrls.length : Math.min(imageUrls.length, imageOutputCount);
           imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
         }
@@ -4859,7 +4886,7 @@ function isNoiseText(text) {
         // Amazon（7フィールド + 画像: 基本6 + ページURL1 + 画像）
         let imageFormulas = [];
         if (data.imageUrl && imageOutputCount > 0) {
-          const imageUrls = data.imageUrl.split(',').map(url => url.trim());
+          const imageUrls = _splitImageUrls(data.imageUrl);
           const maxImages = imageOutputCount === 999 ? imageUrls.length : Math.min(imageUrls.length, imageOutputCount);
           imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
         }
@@ -5113,26 +5140,11 @@ function isNoiseText(text) {
         const ld = parseDate(listedAt);
         const ud = parseDate(updatedAt);
 
-        const formatJST = (d) => {
-          if (!d || isNaN(d)) return '';
-          return d.toLocaleString('ja-JP', {
-            timeZone: 'Asia/Tokyo',
-            year: 'numeric', month: '2-digit', day: '2-digit',
-            hour: '2-digit', minute: '2-digit', second: '2-digit',
-            hour12: false
-          }).replace(/\//g, '-') + ' JST';
-        };
-
-        const daysDiff = (from) => {
-          if (!(from instanceof Date) || isNaN(from)) return '';
-          return (((new Date()) - from) / (1000 * 60 * 60 * 24)).toFixed(2);
-        };
-
         return {
-          listedFmt: formatJST(ld),
-          updatedFmt: formatJST(ud),
-          listedElapsedDays: daysDiff(ld),
-          updatedElapsedDays: daysDiff(ud)
+          listedFmt: _formatJST(ld),
+          updatedFmt: _formatJST(ud),
+          listedElapsedDays: _elapsedDays(ld),
+          updatedElapsedDays: _elapsedDays(ud)
         };
       };
 
@@ -5667,7 +5679,7 @@ function isNoiseText(text) {
         _log('📅 endDate:', endDate, 'isValid:', !isNaN(endDate.getTime()));
 
         if (!isNaN(endDate.getTime())) {
-          listedFmt = endDate.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
+          listedFmt = _formatJST(endDate);
 
           // 終了までの残り日数を計算（マイナスの場合は終了済み）
           const remainingDays = (endDate - new Date()) / (1000 * 60 * 60 * 24);
@@ -5956,7 +5968,7 @@ function isNoiseText(text) {
               const d = new Date(dateStr.replace(/\//g, '-'));
               if (!isNaN(d)) {
                 listedFmt = dateStr;
-                listedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
+                listedElapsedDays = _elapsedDays(d);
                 _log('📅 出品日時設定:', listedFmt, listedElapsedDays);
               }
             }
@@ -5970,7 +5982,7 @@ function isNoiseText(text) {
               const d = new Date(dateStr.replace(/\//g, '-'));
               if (!isNaN(d)) {
                 updatedFmt = dateStr;
-                updatedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
+                updatedElapsedDays = _elapsedDays(d);
                 _log('📅 更新日時設定:', updatedFmt, updatedElapsedDays);
               }
             }
@@ -6240,8 +6252,8 @@ function isNoiseText(text) {
       if (itemJson.datePublished) {
         const d = new Date(itemJson.datePublished);
         if (!isNaN(d)) {
-          listedFmt = d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
-          listedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
+          listedFmt = _formatJST(d);
+          listedElapsedDays = _elapsedDays(d);
           _log('📅 出品日時設定（ld+json）:', listedFmt, listedElapsedDays);
         }
       }
@@ -6249,8 +6261,8 @@ function isNoiseText(text) {
       if (itemJson.dateModified) {
         const d = new Date(itemJson.dateModified);
         if (!isNaN(d)) {
-          updatedFmt = d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
-          updatedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
+          updatedFmt = _formatJST(d);
+          updatedElapsedDays = _elapsedDays(d);
           _log('📅 更新日時設定（ld+json）:', updatedFmt, updatedElapsedDays);
         }
       }
@@ -6266,8 +6278,8 @@ function isNoiseText(text) {
           if (dateStr) {
             const d = new Date(dateStr);
             if (!isNaN(d)) {
-              listedFmt = d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
-              listedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
+              listedFmt = _formatJST(d);
+              listedElapsedDays = _elapsedDays(d);
               _log('📅 出品日時設定（data-*）:', listedFmt);
             }
           }
@@ -6283,8 +6295,8 @@ function isNoiseText(text) {
             const dateStr = listedMatch[1].replace(/\//g, '-');
             const d = new Date(dateStr);
             if (!isNaN(d)) {
-              listedFmt = d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
-              listedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
+              listedFmt = _formatJST(d);
+              listedElapsedDays = _elapsedDays(d);
               _log('📅 出品日時設定（テキストパターン）:', listedFmt);
             }
           }
@@ -6295,8 +6307,8 @@ function isNoiseText(text) {
             const dateStr = updatedMatch[1].replace(/\//g, '-');
             const d = new Date(dateStr);
             if (!isNaN(d)) {
-              updatedFmt = d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
-              updatedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
+              updatedFmt = _formatJST(d);
+              updatedElapsedDays = _elapsedDays(d);
               _log('📅 更新日時設定（テキストパターン）:', updatedFmt);
             }
           }
@@ -6360,16 +6372,16 @@ function isNoiseText(text) {
               const dateStr = dateMatch[1].replace(/\//g, '-');
               const d = new Date(dateStr);
               if (!isNaN(d)) {
-                listedFmt = d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
-                listedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
+                listedFmt = _formatJST(d);
+                listedElapsedDays = _elapsedDays(d);
                 _log('📅 出品日時設定（テーブル）:', listedFmt, listedElapsedDays);
               }
             } else {
               // 相対時間のみの場合はパース試行
               const d = new Date(value);
               if (!isNaN(d)) {
-                listedFmt = d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
-                listedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
+                listedFmt = _formatJST(d);
+                listedElapsedDays = _elapsedDays(d);
                 _log('📅 出品日時設定（テーブル・直接パース）:', listedFmt, listedElapsedDays);
               }
             }
@@ -6383,16 +6395,16 @@ function isNoiseText(text) {
               const dateStr = dateMatch[1].replace(/\//g, '-');
               const d = new Date(dateStr);
               if (!isNaN(d)) {
-                updatedFmt = d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
-                updatedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
+                updatedFmt = _formatJST(d);
+                updatedElapsedDays = _elapsedDays(d);
                 _log('📅 更新日時設定（テーブル）:', updatedFmt, updatedElapsedDays);
               }
             } else {
               // 相対時間のみの場合はパース試行
               const d = new Date(value);
               if (!isNaN(d)) {
-                updatedFmt = d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
-                updatedElapsedDays = String(((new Date() - d) / (1000 * 60 * 60 * 24)).toFixed(2));
+                updatedFmt = _formatJST(d);
+                updatedElapsedDays = _elapsedDays(d);
                 _log('📅 更新日時設定（テーブル・直接パース）:', updatedFmt, updatedElapsedDays);
               }
             }
