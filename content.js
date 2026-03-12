@@ -4959,7 +4959,7 @@ function isNoiseText(text) {
       // 価格
       let price = document.querySelector('meta[name="product:price:amount"]')?.content || '';
       if (!price) {
-        const priceEl = document.querySelector('[data-testid="product-price"]');
+        const priceEl = document.querySelector('[data-testid="price"]') || document.querySelector('[data-testid="product-price"]');
         if (priceEl) {
           price = priceEl.textContent.replace(/[^\d]/g, '');
         }
@@ -4971,7 +4971,7 @@ function isNoiseText(text) {
       if (ldjson) {
         try {
           const allJson = JSON.parse(ldjson.textContent);
-          const json = allJson['@graph']?.[2];
+          const json = allJson['@graph']?.find(item => item['@type'] === 'Product') || allJson['@graph']?.[2];
           if (json && json.description) {
             // あらゆる種類の改行・タブを半角スペースに置換
             description = json.description
@@ -5112,7 +5112,12 @@ function isNoiseText(text) {
 
         const formatJST = (d) => {
           if (!d || isNaN(d)) return '';
-          return d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' JST');
+          return d.toLocaleString('ja-JP', {
+            timeZone: 'Asia/Tokyo',
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hour12: false
+          }).replace(/\//g, '-') + ' JST';
         };
 
         const daysDiff = (from) => {
@@ -5132,6 +5137,7 @@ function isNoiseText(text) {
 
       // 出品者の評価情報を取得
       const getSellerRating = async () => {
+        try {
         console.log('[getSellerRating] 評価情報取得開始');
 
         let good = null;
@@ -5286,7 +5292,7 @@ function isNoiseText(text) {
 
           // ポーリングで最大5秒待つ（500ms × 10回）
           console.log('[getSellerRating] フリマアシスト要素をポーリング待機中（最大5秒）...');
-          const maxAttempts = 10;
+          const maxAttempts = 4;
           const interval = 500;
 
           for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -5335,10 +5341,14 @@ function isNoiseText(text) {
           reviewCount: total ? String(total) : '',
           badRate
         };
+      } catch (e) {
+        console.error('[getSellerRating] エラー:', e);
+        return { reviewCount: '', badRate: '' };
+      }
       };
 
       let rating = await getSellerRating();
-      if (!rating.reviewCount) {
+      if (!rating.reviewCount && !window.location.pathname.includes('/shops/product/')) {
         console.log('[getSellerRating] 1回目で取得失敗。2秒後にリトライ...');
         await new Promise(r => setTimeout(r, 2000));
         rating = await getSellerRating();
@@ -5355,7 +5365,7 @@ function isNoiseText(text) {
 
       // 方法1: data-testid="image-0" ~ "image-19" から取得
       for (let i = 0; i < 20; i++) {
-        const imgEl = document.querySelector(`img[data-testid="image-${i}"]`);
+        const imgEl = document.querySelector(`[data-testid="image-${i}"] img`) || document.querySelector(`img[data-testid="image-${i}"]`);
         if (imgEl) {
           let url = '';
           const srcset = imgEl.getAttribute('srcset');
