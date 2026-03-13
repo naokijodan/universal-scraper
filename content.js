@@ -1182,7 +1182,8 @@ function isNoiseText(text) {
 
   // ページ読み込み待機
   let waitTime = currentSite === 'ebay' ? (settings.waitTime * 1000) :
-                 currentSite === 'rakuten' ? (settings.checkDelay * 1000) : 2000;
+                 currentSite === 'rakuten' ? (settings.checkDelay * 1000) :
+                 (currentSite === 'mercari' || currentSite === 'mercari_shop') ? 4000 : 2000;
 
   if (currentSite === 'ebay') {
     // カウントダウン表示
