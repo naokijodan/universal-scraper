@@ -1592,12 +1592,37 @@ function isNoiseText(text) {
     copyButton.style.backgroundColor = '#FF9800';
   });
 
+  // プラットフォーム名の判定用（小文字で統一）
+  const PLATFORM_NAMES = ['mercari', 'メルカリ', 'yahoo', 'ヤフオク', 'paypay', 'paypayフリマ', 'rakuma', 'ラクマ', 'rakuten', '楽天', 'amazon', 'アマゾン', 'yahooショッピング'];
+
   // 1. 内容確認ボタンクリック
   previewButton.addEventListener('click', (e) => {
     const moveDistance = Math.sqrt(
       Math.pow(e.clientX - dragStartX, 2) + Math.pow(e.clientY - dragStartY, 2)
     );
     if (moveDistance < 5) {
+      // データ未取得警告（内容確認時）
+      const missingFieldsPreview = [];
+      if (!extractedData.name || extractedData.name === '商品名を取得できませんでした' || PLATFORM_NAMES.includes(extractedData.name.toLowerCase().trim())) {
+        missingFieldsPreview.push('商品名');
+      }
+      if (!extractedData.price || extractedData.price === 0) {
+        missingFieldsPreview.push('価格');
+      }
+      if (!extractedData.imageUrl || extractedData.imageUrl === '') {
+        missingFieldsPreview.push('画像');
+      }
+      if (!extractedData.description || extractedData.description === '') {
+        missingFieldsPreview.push('説明文');
+      }
+      if (missingFieldsPreview.length > 0) {
+        showNotification(
+          '⚠️ 未取得データあり',
+          missingFieldsPreview.join('・') + ' が取得できていません。ページをリロードすると取得できる場合があります。',
+          'warning',
+          colors
+        );
+      }
       showPreviewModal(extractedData, currentSite, colors, settings);
     }
   });
@@ -1608,7 +1633,7 @@ function isNoiseText(text) {
 
     // データ未取得警告（コピー時）
     const missingFieldsCopy = [];
-    if (!extractedData.name || extractedData.name === '商品名を取得できませんでした') missingFieldsCopy.push('商品名');
+    if (!extractedData.name || extractedData.name === '商品名を取得できませんでした' || PLATFORM_NAMES.includes(extractedData.name.toLowerCase().trim())) missingFieldsCopy.push('商品名');
     if (!extractedData.price || extractedData.price === 0) missingFieldsCopy.push('価格');
     if (!extractedData.imageUrl || extractedData.imageUrl === '') missingFieldsCopy.push('画像');
     if (missingFieldsCopy.length > 0) {
@@ -1654,7 +1679,7 @@ function isNoiseText(text) {
     // データ未取得チェック
     const originalText = exportButton.innerHTML;
     const missingFields = [];
-    if (!extractedData.name || extractedData.name === '商品名を取得できませんでした') {
+    if (!extractedData.name || extractedData.name === '商品名を取得できませんでした' || PLATFORM_NAMES.includes(extractedData.name.toLowerCase().trim())) {
       missingFields.push('商品名');
     }
     if (!extractedData.price || extractedData.price === 0) {
