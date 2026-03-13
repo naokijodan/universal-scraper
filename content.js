@@ -5406,9 +5406,9 @@ function isNoiseText(text) {
           const hasFurimaAssist = document.querySelector('[id*="furima-assist"]');
 
           if (hasFurimaAssist) {
-            // ポーリングで待機（500ms × 6回 = 最大3秒）
+            // ポーリングで待機（500ms × 8回 = 最大4秒）
             _log('[getSellerRating] フリマアシスト検出済み、seller-ratings要素を待機中...');
-            const maxAttempts = 6;
+            const maxAttempts = 8;
             const interval = 500;
 
             for (let attempt = 0; attempt < maxAttempts; attempt++) {
