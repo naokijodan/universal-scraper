@@ -28,6 +28,78 @@ const _splitImageUrls = (urlStr) => {
   return urlStr.split(',').map(url => url.trim()).filter(url => url);
 };
 
+// 共通ヘルパー: フリマアシスト要素からの評価取得
+const _parseAssistRatings = () => {
+  const assistRatings = document.querySelector("#furima-assist-seller-ratings");
+  if (!assistRatings) return null;
+
+  const spans = assistRatings.querySelectorAll("span");
+  if (spans.length < 2) return null;
+
+  let g = parseInt((spans[0]?.textContent || "").replace(/[^\d]/g, ''));
+  let b = parseInt((spans[1]?.textContent || "").replace(/[^\d]/g, ''));
+  let n = spans[2] ? parseInt((spans[2]?.textContent || "").replace(/[^\d]/g, '')) : null;
+
+  g = Number.isNaN(g) ? null : g;
+  b = Number.isNaN(b) ? null : b;
+  n = (n !== null && Number.isNaN(n)) ? null : n;
+
+  if (g === null && b === null) return null;
+  return { good: g, bad: b, normal: n };
+};
+
+// 共通ヘルパー: テキストパターンからの評価検索
+const _searchRatingText = () => {
+  const bodyText = (document.body?.innerText || '').replace(/\s+/g, ' ');
+  const goodMatch = bodyText.match(/良い[^\d]*([0-9,]+)/);
+  const normalMatch = bodyText.match(/普通[^\d]*([0-9,]+)/);
+  const badMatch = bodyText.match(/悪い[^\d]*([0-9,]+)/);
+
+  let good = goodMatch ? parseInt(goodMatch[1].replace(/,/g, '')) : null;
+  let normal = normalMatch ? parseInt(normalMatch[1].replace(/,/g, '')) : null;
+  let bad = badMatch ? parseInt(badMatch[1].replace(/,/g, '')) : null;
+
+  good = (good !== null && Number.isNaN(good)) ? null : good;
+  normal = (normal !== null && Number.isNaN(normal)) ? null : normal;
+  bad = (bad !== null && Number.isNaN(bad)) ? null : bad;
+
+  // 「評価」だけで合計が取れた場合
+  if (good === null && bad === null) {
+    const totalMatch = bodyText.match(/評価[^\d]*([0-9,]+)/);
+    if (totalMatch) {
+      const total = parseInt(totalMatch[1].replace(/,/g, ''));
+      if (!Number.isNaN(total) && total > 0) {
+        return { totalOnly: total };
+      }
+    }
+  }
+
+  if (good === null && bad === null) return null;
+  return { good, bad, normal };
+};
+
+// 共通ヘルパー: 合計・悪い評価率の計算
+const _calcRatingResult = (good, bad, normal, totalFallback, platform) => {
+  const nums = [good, normal, bad].filter(v => typeof v === 'number' && !Number.isNaN(v));
+  let total = nums.length ? nums.reduce((a, b) => a + b, 0) : 0;
+
+  if (total === 0 && totalFallback && !Number.isNaN(totalFallback)) {
+    total = totalFallback;
+    _log(`[${platform} getSellerRating] フォールバック合計使用:`, total);
+  }
+
+  const badRate = (typeof bad === 'number' && total > 0)
+    ? (bad * 100 / total).toFixed(2) + '%'
+    : '';
+
+  _log(`[${platform} getSellerRating] 最終結果:`, {
+    reviewCount: total ? String(total) : '',
+    badRate, good, bad, normal
+  });
+
+  return { reviewCount: total ? String(total) : '', badRate };
+};
+
 // Universal Product Scraper - Content Script
 // eBay、楽天、Amazon、メルカリ、ヤフオク、ラクマに対応
 
@@ -5334,34 +5406,13 @@ function isNoiseText(text) {
           const hasFurimaAssist = document.querySelector('[id*="furima-assist"]');
 
           if (hasFurimaAssist) {
-            const getFromAssist = () => {
-              const assistRatings = document.querySelector("#furima-assist-seller-ratings");
-              if (!assistRatings) return null;
-
-              const spans = assistRatings.querySelectorAll("span");
-              if (spans.length < 2) return null;
-
-              let g = parseInt((spans[0]?.textContent || "").replace(/[^\d]/g, ''));
-              let b = parseInt((spans[1]?.textContent || "").replace(/[^\d]/g, ''));
-              let n = spans[2] ? parseInt((spans[2]?.textContent || "").replace(/[^\d]/g, '')) : null;
-
-              g = Number.isNaN(g) ? null : g;
-              b = Number.isNaN(b) ? null : b;
-              n = (n !== null && Number.isNaN(n)) ? null : n;
-
-              if (g === null && b === null) return null;
-
-              _log('[getSellerRating] フリマアシスト経由:', {good: g, bad: b, normal: n});
-              return { good: g, bad: b, normal: n };
-            };
-
             // ポーリングで待機（500ms × 6回 = 最大3秒）
             _log('[getSellerRating] フリマアシスト検出済み、seller-ratings要素を待機中...');
             const maxAttempts = 6;
             const interval = 500;
 
             for (let attempt = 0; attempt < maxAttempts; attempt++) {
-              const assistResult = getFromAssist();
+              const assistResult = _parseAssistRatings();
               if (assistResult) {
                 good = assistResult.good;
                 bad = assistResult.bad;
@@ -5382,33 +5433,7 @@ function isNoiseText(text) {
           }
         }
 
-        // 合計と悪い評価率を計算
-        const nums = [good, normal, bad].filter(v => typeof v === 'number' && !Number.isNaN(v));
-        let total = nums.length ? nums.reduce((a, b) => a + b, 0) : 0;
-
-        // 内訳が取れなかった場合、seller-linkの合計をフォールバックとして使用
-        if (total === 0 && totalFromSellerLink && !Number.isNaN(totalFromSellerLink)) {
-          total = totalFromSellerLink;
-          _log('[getSellerRating] フォールバック: seller-linkの合計を使用:', total);
-        }
-
-        const badRate = (typeof bad === 'number' && total > 0)
-          ? (bad * 100 / total).toFixed(2) + '%'
-          : '';
-
-        _log('[getSellerRating] 最終結果:', {
-          reviewCount: total ? String(total) : '',
-          badRate,
-          good,
-          bad,
-          normal,
-          totalFromSellerLink
-        });
-
-        return {
-          reviewCount: total ? String(total) : '',
-          badRate
-        };
+        return _calcRatingResult(good, bad, normal, totalFromSellerLink, 'Mercari');
       } catch (e) {
         console.error('[getSellerRating] エラー:', e);
         return { reviewCount: '', badRate: '' };
@@ -5745,26 +5770,13 @@ function isNoiseText(text) {
       // 出品者の評価情報を取得
       const getSellerRating = () => {
         _log('[Yahoo getSellerRating] 評価情報取得開始');
+        let good = null, bad = null, normal = null;
 
-        let good = null;
-        let bad = null;
-        let normal = null;
-
-        // 方法1: #furima-assist-seller-ratings から取得
-        const assistRatings = document.querySelector("#furima-assist-seller-ratings");
-        if (assistRatings) {
-          const spans = assistRatings.querySelectorAll("span");
-          if (spans.length >= 2) {
-            good = parseInt((spans[0]?.textContent || "").replace(/[^\d]/g, ''));
-            bad = parseInt((spans[1]?.textContent || "").replace(/[^\d]/g, ''));
-            if (spans[2]) {
-              normal = parseInt((spans[2]?.textContent || "").replace(/[^\d]/g, ''));
-            }
-            good = Number.isNaN(good) ? null : good;
-            bad = Number.isNaN(bad) ? null : bad;
-            normal = Number.isNaN(normal) ? null : normal;
-            _log('[Yahoo getSellerRating] #furima-assist-seller-ratings経由:', {good, bad, normal});
-          }
+        // 方法1: フリマアシストから取得
+        const assistResult = _parseAssistRatings();
+        if (assistResult) {
+          ({ good, bad, normal } = assistResult);
+          _log('[Yahoo getSellerRating] #furima-assist-seller-ratings経由:', {good, bad, normal});
         }
 
         // 方法2: itemJsonから評価情報を取得
@@ -5780,23 +5792,14 @@ function isNoiseText(text) {
         if (good === null || bad === null) {
           const sellerSection = document.querySelector('[class*="Seller"]');
           const allSpans = document.querySelectorAll('[class*="Rating"] span, [class*="評価"] span');
-
-          const spans = [...allSpans].filter(span => {
-            if (sellerSection && sellerSection.contains(span)) {
-              return false;
-            }
-            return true;
-          });
+          const spans = [...allSpans].filter(span => !(sellerSection && sellerSection.contains(span)));
 
           _log('[Yahoo getSellerRating] span要素検索:', spans.length, '個');
-
-          if (spans && spans.length) {
-            const nums = [...spans]
+          if (spans.length) {
+            const nums = spans
               .map(x => parseInt((x.textContent || '').replace(/[^\d]/g, '')))
               .filter(n => !Number.isNaN(n) && n > 0 && n < 100000);
-
             _log('[Yahoo getSellerRating] span内の数値:', nums);
-
             if (nums.length >= 2) {
               good = nums[0];
               bad = nums[1];
@@ -5807,48 +5810,18 @@ function isNoiseText(text) {
 
         // 方法4: テキスト検索
         if (good === null || bad === null) {
-          const bodyText = (document.body?.innerText || '').replace(/\s+/g, ' ');
-          const goodMatch = bodyText.match(/良い[^\d]*([0-9,]+)/);
-          const normalMatch = bodyText.match(/普通[^\d]*([0-9,]+)/);
-          const badMatch = bodyText.match(/悪い[^\d]*([0-9,]+)/);
-
-          _log('[Yahoo getSellerRating] テキスト検索:', {
-            良い: goodMatch?.[1],
-            普通: normalMatch?.[1],
-            悪い: badMatch?.[1]
-          });
-
-          if (goodMatch) good = parseInt(goodMatch[1].replace(/,/g, ''));
-          if (normalMatch) normal = parseInt(normalMatch[1].replace(/,/g, ''));
-          if (badMatch) bad = parseInt(badMatch[1].replace(/,/g, ''));
-
-          const totalMatch = bodyText.match(/評価[^\d]*([0-9,]+)/);
-          if ((good === null || bad === null) && totalMatch) {
-            const total = parseInt(totalMatch[1].replace(/,/g, ''));
-            _log('[Yahoo getSellerRating] 評価合計のみ取得:', total);
-            return { reviewCount: String(total), badRate: '' };
+          const textResult = _searchRatingText();
+          if (textResult) {
+            if (textResult.totalOnly) {
+              _log('[Yahoo getSellerRating] 評価合計のみ取得:', textResult.totalOnly);
+              return { reviewCount: String(textResult.totalOnly), badRate: '' };
+            }
+            ({ good, bad, normal } = { good: textResult.good ?? good, bad: textResult.bad ?? bad, normal: textResult.normal ?? normal });
+            _log('[Yahoo getSellerRating] テキスト検索:', { good, bad, normal });
           }
         }
 
-        // 合計と悪い評価率を計算
-        const nums = [good, normal, bad].filter(v => typeof v === 'number' && !Number.isNaN(v));
-        const total = nums.length ? nums.reduce((a, b) => a + b, 0) : 0;
-        const badRate = (typeof bad === 'number' && total > 0)
-          ? (bad * 100 / total).toFixed(2) + '%'
-          : '';
-
-        _log('[Yahoo getSellerRating] 最終結果:', {
-          reviewCount: total ? String(total) : '',
-          badRate,
-          good,
-          bad,
-          normal
-        });
-
-        return {
-          reviewCount: total ? String(total) : '',
-          badRate
-        };
+        return _calcRatingResult(good, bad, normal, 0, 'Yahoo');
       };
 
       const rating = getSellerRating();
@@ -6086,52 +6059,28 @@ function isNoiseText(text) {
       // 出品者の評価情報を取得
       const getSellerRating = () => {
         _log('[PayPay getSellerRating] 評価情報取得開始');
+        let good = null, bad = null, normal = null;
 
-        let good = null;
-        let bad = null;
-        let normal = null;
-
-        // 方法1: #furima-assist-seller-ratings から取得（元の拡張機能が挿入する要素）
-        const assistRatings = document.querySelector("#furima-assist-seller-ratings");
-        if (assistRatings) {
-          const spans = assistRatings.querySelectorAll("span");
-          if (spans.length >= 2) {
-            good = parseInt((spans[0]?.textContent || "").replace(/[^\d]/g, ''));
-            bad = parseInt((spans[1]?.textContent || "").replace(/[^\d]/g, ''));
-            if (spans[2]) {
-              normal = parseInt((spans[2]?.textContent || "").replace(/[^\d]/g, ''));
-            }
-            good = Number.isNaN(good) ? null : good;
-            bad = Number.isNaN(bad) ? null : bad;
-            normal = Number.isNaN(normal) ? null : normal;
-            _log('[PayPay getSellerRating] #furima-assist-seller-ratings経由:', {good, bad, normal});
-          }
+        // 方法1: フリマアシストから取得
+        const assistResult = _parseAssistRatings();
+        if (assistResult) {
+          ({ good, bad, normal } = assistResult);
+          _log('[PayPay getSellerRating] #furima-assist-seller-ratings経由:', {good, bad, normal});
         }
 
         // 方法2: Rating関連のspan要素から取得
         if (good === null || bad === null) {
           const sellerSection = document.querySelector('[class*="UserInfo"]') ||
                                 document.querySelector('[class*="Seller"]');
-
           const allSpans = document.querySelectorAll('[class*="Rating"] span, [class*="評価"] span, [class*="rating"] span');
-
-          // 出品者セクション内のspanを除外（誤検出防止）
-          const spans = [...allSpans].filter(span => {
-            if (sellerSection && sellerSection.contains(span)) {
-              return false;
-            }
-            return true;
-          });
+          const spans = [...allSpans].filter(span => !(sellerSection && sellerSection.contains(span)));
 
           _log('[PayPay getSellerRating] span要素検索:', spans.length, '個（出品者セクション除外後）');
-
-          if (spans && spans.length) {
-            const nums = [...spans]
+          if (spans.length) {
+            const nums = spans
               .map(x => parseInt((x.textContent || '').replace(/[^\d]/g, '')))
-              .filter(n => !Number.isNaN(n) && n > 0 && n < 100000); // 異常値除外
-
+              .filter(n => !Number.isNaN(n) && n > 0 && n < 100000);
             _log('[PayPay getSellerRating] span内の数値:', nums);
-
             if (nums.length >= 2) {
               good = nums[0];
               bad = nums[1];
@@ -6140,51 +6089,20 @@ function isNoiseText(text) {
           }
         }
 
-        // 方法3: テキスト検索（「良い」「普通」「悪い」パターン）
+        // 方法3: テキスト検索
         if (good === null || bad === null) {
-          const bodyText = (document.body?.innerText || '').replace(/\s+/g, ' ');
-          const goodMatch = bodyText.match(/良い[^\d]*([0-9,]+)/);
-          const normalMatch = bodyText.match(/普通[^\d]*([0-9,]+)/);
-          const badMatch = bodyText.match(/悪い[^\d]*([0-9,]+)/);
-
-          _log('[PayPay getSellerRating] テキスト検索:', {
-            良い: goodMatch?.[1],
-            普通: normalMatch?.[1],
-            悪い: badMatch?.[1]
-          });
-
-          if (goodMatch) good = parseInt(goodMatch[1].replace(/,/g, ''));
-          if (normalMatch) normal = parseInt(normalMatch[1].replace(/,/g, ''));
-          if (badMatch) bad = parseInt(badMatch[1].replace(/,/g, ''));
-
-          // 「評価」だけで合計が取れた場合
-          const totalMatch = bodyText.match(/評価[^\d]*([0-9,]+)/);
-          if ((good === null || bad === null) && totalMatch) {
-            const total = parseInt(totalMatch[1].replace(/,/g, ''));
-            _log('[PayPay getSellerRating] 評価合計のみ取得:', total);
-            return { reviewCount: String(total), badRate: '' };
+          const textResult = _searchRatingText();
+          if (textResult) {
+            if (textResult.totalOnly) {
+              _log('[PayPay getSellerRating] 評価合計のみ取得:', textResult.totalOnly);
+              return { reviewCount: String(textResult.totalOnly), badRate: '' };
+            }
+            ({ good, bad, normal } = { good: textResult.good ?? good, bad: textResult.bad ?? bad, normal: textResult.normal ?? normal });
+            _log('[PayPay getSellerRating] テキスト検索:', { good, bad, normal });
           }
         }
 
-        // 合計と悪い評価率を計算
-        const nums = [good, normal, bad].filter(v => typeof v === 'number' && !Number.isNaN(v));
-        const total = nums.length ? nums.reduce((a, b) => a + b, 0) : 0;
-        const badRate = (typeof bad === 'number' && total > 0)
-          ? (bad * 100 / total).toFixed(2) + '%'
-          : '';
-
-        _log('[PayPay getSellerRating] 最終結果:', {
-          reviewCount: total ? String(total) : '',
-          badRate,
-          good,
-          bad,
-          normal
-        });
-
-        return {
-          reviewCount: total ? String(total) : '',
-          badRate
-        };
+        return _calcRatingResult(good, bad, normal, 0, 'PayPay');
       };
 
       const rating = getSellerRating();
@@ -6515,26 +6433,13 @@ function isNoiseText(text) {
       // 出品者の評価情報を取得
       const getSellerRating = () => {
         _log('[Rakuma getSellerRating] 評価情報取得開始');
+        let good = null, bad = null, normal = null;
 
-        let good = null;
-        let bad = null;
-        let normal = null;
-
-        // 方法1: #furima-assist-seller-ratings から取得
-        const assistRatings = document.querySelector("#furima-assist-seller-ratings");
-        if (assistRatings) {
-          const spans = assistRatings.querySelectorAll("span");
-          if (spans.length >= 2) {
-            good = parseInt((spans[0]?.textContent || "").replace(/[^\d]/g, ''));
-            bad = parseInt((spans[1]?.textContent || "").replace(/[^\d]/g, ''));
-            if (spans[2]) {
-              normal = parseInt((spans[2]?.textContent || "").replace(/[^\d]/g, ''));
-            }
-            good = Number.isNaN(good) ? null : good;
-            bad = Number.isNaN(bad) ? null : bad;
-            normal = Number.isNaN(normal) ? null : normal;
-            _log('[Rakuma getSellerRating] #furima-assist-seller-ratings経由:', {good, bad, normal});
-          }
+        // 方法1: フリマアシストから取得
+        const assistResult = _parseAssistRatings();
+        if (assistResult) {
+          ({ good, bad, normal } = assistResult);
+          _log('[Rakuma getSellerRating] #furima-assist-seller-ratings経由:', {good, bad, normal});
         }
 
         // 方法2: .flea-assist-ratingsから取得
@@ -6544,64 +6449,31 @@ function isNoiseText(text) {
           const rain = document.querySelector('.flea-assist-ratings .icon_review_rain');
 
           if (sun && sun.nextSibling && sun.nextSibling.nodeType === 3) {
-            const goodText = sun.nextSibling.textContent.trim();
-            good = parseInt(goodText);
+            good = parseInt(sun.nextSibling.textContent.trim());
           }
           if (cloud && cloud.nextSibling && cloud.nextSibling.nodeType === 3) {
-            const normalText = cloud.nextSibling.textContent.trim();
-            normal = parseInt(normalText);
+            normal = parseInt(cloud.nextSibling.textContent.trim());
           }
           if (rain && rain.nextSibling && rain.nextSibling.nodeType === 3) {
-            const badText = rain.nextSibling.textContent.trim();
-            bad = parseInt(badText);
+            bad = parseInt(rain.nextSibling.textContent.trim());
           }
           _log('[Rakuma getSellerRating] .flea-assist-ratings経由:', {good, bad, normal});
         }
 
         // 方法3: テキスト検索
         if (good === null || bad === null) {
-          const bodyText = (document.body?.innerText || '').replace(/\s+/g, ' ');
-          const goodMatch = bodyText.match(/良い[^\d]*([0-9,]+)/);
-          const normalMatch = bodyText.match(/普通[^\d]*([0-9,]+)/);
-          const badMatch = bodyText.match(/悪い[^\d]*([0-9,]+)/);
-
-          _log('[Rakuma getSellerRating] テキスト検索:', {
-            良い: goodMatch?.[1],
-            普通: normalMatch?.[1],
-            悪い: badMatch?.[1]
-          });
-
-          if (goodMatch) good = parseInt(goodMatch[1].replace(/,/g, ''));
-          if (normalMatch) normal = parseInt(normalMatch[1].replace(/,/g, ''));
-          if (badMatch) bad = parseInt(badMatch[1].replace(/,/g, ''));
-
-          const totalMatch = bodyText.match(/評価[^\d]*([0-9,]+)/);
-          if ((good === null || bad === null) && totalMatch) {
-            const total = parseInt(totalMatch[1].replace(/,/g, ''));
-            _log('[Rakuma getSellerRating] 評価合計のみ取得:', total);
-            return { reviewCount: String(total), badRate: '' };
+          const textResult = _searchRatingText();
+          if (textResult) {
+            if (textResult.totalOnly) {
+              _log('[Rakuma getSellerRating] 評価合計のみ取得:', textResult.totalOnly);
+              return { reviewCount: String(textResult.totalOnly), badRate: '' };
+            }
+            ({ good, bad, normal } = { good: textResult.good ?? good, bad: textResult.bad ?? bad, normal: textResult.normal ?? normal });
+            _log('[Rakuma getSellerRating] テキスト検索:', { good, bad, normal });
           }
         }
 
-        // 合計と悪い評価率を計算
-        const nums = [good, normal, bad].filter(v => typeof v === 'number' && !Number.isNaN(v));
-        const total = nums.length ? nums.reduce((a, b) => a + b, 0) : 0;
-        const badRate = (typeof bad === 'number' && total > 0)
-          ? (bad * 100 / total).toFixed(2) + '%'
-          : '';
-
-        _log('[Rakuma getSellerRating] 最終結果:', {
-          reviewCount: total ? String(total) : '',
-          badRate,
-          good,
-          bad,
-          normal
-        });
-
-        return {
-          reviewCount: total ? String(total) : '',
-          badRate
-        };
+        return _calcRatingResult(good, bad, normal, 0, 'Rakuma');
       };
 
       const rating = getSellerRating();
