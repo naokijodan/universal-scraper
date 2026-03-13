@@ -1265,15 +1265,15 @@ function isNoiseText(text) {
       extractedData = extractYahooShoppingProductData();
     }
     
-    // メルカリ系: タイトルが取れていなければ4秒後に1回だけリトライ
+    // メルカリ系: タイトルが取れていなければ2秒後に1回だけリトライ
     if ((currentSite === 'mercari' || currentSite === 'mercari_shop') && extractedData && !extractedData.error) {
       const name = (extractedData.name || '').toLowerCase().trim();
       const PLATFORM_NAMES_CHECK = ['mercari', 'メルカリ'];
       const nameInvalid = !name || name === '商品名を取得できませんでした' || PLATFORM_NAMES_CHECK.includes(name);
 
       if (nameInvalid || !extractedData.price || extractedData.price === 0) {
-        _log('⚠️ メルカリ抽出データ不完全（タイトルまたは価格なし）、4秒後にリトライ...');
-        await new Promise(resolve => setTimeout(resolve, 4000));
+        _log('⚠️ メルカリ抽出データ不完全（タイトルまたは価格なし）、2秒後にリトライ...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         const retryData = await extractMercariProductData();
         if (retryData && !retryData.error) {
