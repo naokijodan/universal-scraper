@@ -1534,6 +1534,15 @@ function isNoiseText(text) {
   copyButton.addEventListener('click', async (e) => {
     e.stopPropagation(); // イベント伝播を停止
 
+    // データ未取得警告（コピー時）
+    const missingFieldsCopy = [];
+    if (!extractedData.name || extractedData.name === '商品名を取得できませんでした') missingFieldsCopy.push('商品名');
+    if (!extractedData.price || extractedData.price === 0) missingFieldsCopy.push('価格');
+    if (!extractedData.imageUrl || extractedData.imageUrl === '') missingFieldsCopy.push('画像');
+    if (missingFieldsCopy.length > 0) {
+      showNotification('⚠️ 未取得データあり', missingFieldsCopy.join('・') + ' が取得できていません', 'warning', colors);
+    }
+
     try {
       // 既存のcopyToClipboard関数を使用
       await copyToClipboard(extractedData, currentSite, colors, settings);
@@ -1570,9 +1579,46 @@ function isNoiseText(text) {
   exportButton.addEventListener('click', async (e) => {
     e.preventDefault();
 
+    // データ未取得チェック
+    const originalText = exportButton.innerHTML;
+    const missingFields = [];
+    if (!extractedData.name || extractedData.name === '商品名を取得できませんでした') {
+      missingFields.push('商品名');
+    }
+    if (!extractedData.price || extractedData.price === 0) {
+      missingFields.push('価格');
+    }
+    if (!extractedData.imageUrl || extractedData.imageUrl === '') {
+      missingFields.push('画像');
+    }
+    if (!extractedData.description || extractedData.description === '') {
+      missingFields.push('説明文');
+    }
+    if (!extractedData.reviewCount || extractedData.reviewCount === '') {
+      missingFields.push('評価件数');
+    }
+    if (!extractedData.listedFmt || extractedData.listedFmt === '') {
+      missingFields.push('出品日時');
+    }
+
+    if (missingFields.length > 0) {
+      const proceed = confirm(
+        `⚠️ 以下のデータが取得できていません:\n\n` +
+        missingFields.map(f => `・${f}`).join('\n') +
+        `\n\nページをリロードすると取得できる場合があります。\n` +
+        `このままエクスポートしますか？`
+      );
+      if (!proceed) {
+        exportButton.disabled = false;
+        exportButton.innerHTML = originalText;
+        exportButton.style.cursor = 'pointer';
+        exportButton.style.backgroundColor = '#2196F3';
+        return;
+      }
+    }
+
     // ボタンを無効化して処理中表示
     exportButton.disabled = true;
-    const originalText = exportButton.innerHTML;
     exportButton.innerHTML = `
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="10" cy="10" r="8" stroke="white" stroke-width="2" fill="none" opacity="0.25"/>
@@ -5282,50 +5328,57 @@ function isNoiseText(text) {
           }
         }
 
-        // Step 2: フリマアシスト要素をポーリングで待機（内訳が未取得の場合）
+        // Step 2: フリマアシスト連携（内訳が未取得の場合のみ）
         if (good === null || bad === null) {
-          const getFromAssist = () => {
-            const assistRatings = document.querySelector("#furima-assist-seller-ratings");
-            if (!assistRatings) return null;
+          // フリマアシスト拡張がインストールされているかチェック
+          const hasFurimaAssist = document.querySelector('[id*="furima-assist"]');
 
-            const spans = assistRatings.querySelectorAll("span");
-            if (spans.length < 2) return null;
+          if (hasFurimaAssist) {
+            const getFromAssist = () => {
+              const assistRatings = document.querySelector("#furima-assist-seller-ratings");
+              if (!assistRatings) return null;
 
-            let g = parseInt((spans[0]?.textContent || "").replace(/[^\d]/g, ''));
-            let b = parseInt((spans[1]?.textContent || "").replace(/[^\d]/g, ''));
-            let n = spans[2] ? parseInt((spans[2]?.textContent || "").replace(/[^\d]/g, '')) : null;
+              const spans = assistRatings.querySelectorAll("span");
+              if (spans.length < 2) return null;
 
-            g = Number.isNaN(g) ? null : g;
-            b = Number.isNaN(b) ? null : b;
-            n = (n !== null && Number.isNaN(n)) ? null : n;
+              let g = parseInt((spans[0]?.textContent || "").replace(/[^\d]/g, ''));
+              let b = parseInt((spans[1]?.textContent || "").replace(/[^\d]/g, ''));
+              let n = spans[2] ? parseInt((spans[2]?.textContent || "").replace(/[^\d]/g, '')) : null;
 
-            if (g === null && b === null) return null;
+              g = Number.isNaN(g) ? null : g;
+              b = Number.isNaN(b) ? null : b;
+              n = (n !== null && Number.isNaN(n)) ? null : n;
 
-            _log('[getSellerRating] フリマアシスト経由:', {good: g, bad: b, normal: n});
-            return { good: g, bad: b, normal: n };
-          };
+              if (g === null && b === null) return null;
 
-          // ポーリングで最大5秒待つ（500ms × 10回）
-          _log('[getSellerRating] フリマアシスト要素をポーリング待機中（最大5秒）...');
-          const maxAttempts = 4;
-          const interval = 500;
+              _log('[getSellerRating] フリマアシスト経由:', {good: g, bad: b, normal: n});
+              return { good: g, bad: b, normal: n };
+            };
 
-          for (let attempt = 0; attempt < maxAttempts; attempt++) {
-            const assistResult = getFromAssist();
-            if (assistResult) {
-              good = assistResult.good;
-              bad = assistResult.bad;
-              normal = assistResult.normal;
-              _log('[getSellerRating] ポーリング成功（試行:', attempt + 1, '回目）');
-              break;
+            // ポーリングで待機（500ms × 6回 = 最大3秒）
+            _log('[getSellerRating] フリマアシスト検出済み、seller-ratings要素を待機中...');
+            const maxAttempts = 6;
+            const interval = 500;
+
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+              const assistResult = getFromAssist();
+              if (assistResult) {
+                good = assistResult.good;
+                bad = assistResult.bad;
+                normal = assistResult.normal;
+                _log('[getSellerRating] フリマアシスト取得成功（試行:', attempt + 1, '回目）');
+                break;
+              }
+              if (attempt < maxAttempts - 1) {
+                await new Promise(r => setTimeout(r, interval));
+              }
             }
-            if (attempt < maxAttempts - 1) {
-              await new Promise(r => setTimeout(r, interval));
-            }
-          }
 
-          if (good === null && bad === null) {
-            _log('[getSellerRating] ポーリングタイムアウト: フリマアシスト要素が見つかりませんでした');
+            if (good === null && bad === null) {
+              _log('[getSellerRating] フリマアシストにseller-ratings要素なし（内訳取得不可）');
+            }
+          } else {
+            _log('[getSellerRating] フリマアシスト未検出、ポーリングスキップ');
           }
         }
 
