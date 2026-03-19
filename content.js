@@ -1181,60 +1181,105 @@ function isNoiseText(text) {
   document.body.appendChild(loadingIndicator);
 
   // ページ読み込み待機
-  let waitTime = currentSite === 'ebay' ? (settings.waitTime * 1000) :
-                 currentSite === 'rakuten' ? (settings.checkDelay * 1000) :
-                 (currentSite === 'mercari' || currentSite === 'mercari_shop') ? 4000 : 2000;
+  if (currentSite === 'mercari' || currentSite === 'mercari_shop') {
+    // メルカリ: MutationObserverで主要DOM要素が揃った瞬間に抽出開始
+    _log('⏱️ メルカリDOM監視を開始...');
+    const _isMercariReady = () => {
+      const titleEl = document.querySelector('h1[class*="heading"]') || document.querySelector('[data-testid="name"]');
+      const hasTitle = titleEl && titleEl.textContent?.trim();
+      const priceEl = document.querySelector('meta[name="product:price:amount"]') || document.querySelector('[data-testid="price"]');
+      const hasPrice = priceEl && (priceEl.content?.trim() || priceEl.textContent?.trim());
+      const hasLdjson = document.querySelector('script[type="application/ld+json"]');
+      const hasDates = document.querySelector('span[data-testid="更新日時"]') || document.querySelector('span[data-testid="出品日時"]');
+      const hasSeller = document.querySelector('a[href^="/user/profile/"]') || document.querySelector('a[href^="/shops/profile/"]');
+      return hasTitle && hasPrice && hasLdjson && hasDates && hasSeller;
+    };
 
-  if (currentSite === 'ebay') {
-    // カウントダウン表示
-    let countdown = Math.ceil(waitTime / 1000);
-    loadingIndicator.innerHTML = `商品情報を取得中... (${countdown}秒)`;
+    // 既に揃っているかチェック
+    if (!_isMercariReady()) {
+      await new Promise((resolve) => {
+        const observer = new MutationObserver(() => {
+          if (_isMercariReady()) {
+            clearTimeout(timeout);
+            observer.disconnect();
+            _log('✅ メルカリDOM準備完了');
+            resolve();
+          }
+        });
 
-    const countdownInterval = setInterval(() => {
-      countdown--;
-      if (countdown > 0) {
-        loadingIndicator.innerHTML = `商品情報を取得中... (${countdown}秒)`;
-      } else {
-        loadingIndicator.innerHTML = '商品情報を取得中... (もう少し)';
-        clearInterval(countdownInterval);
-      }
-    }, 1000);
-  }
+        const timeout = setTimeout(() => {
+          observer.disconnect();
+          _log('⚠️ メルカリDOM監視タイムアウト（15秒）');
+          resolve();
+        }, 15000);
 
-  await new Promise(resolve => setTimeout(resolve, waitTime));
-
-  // eBay用の追加待機
-  if (currentSite === 'ebay') {
-    let retryCount = 0;
-    const maxRetries = 10;
-    while (retryCount < maxRetries) {
-      const itemSpecSection = document.querySelector('div[class*="ux-layout-section--itemDetails"]');
-      if (itemSpecSection) {
-        _log(`Item specificsセクションを検出 (${retryCount * 500}ms後)`);
-        break;
-      }
-      await new Promise(resolve => setTimeout(resolve, 500));
-      retryCount++;
+        const targetNode = document.body || document.documentElement;
+        observer.observe(targetNode, { childList: true, subtree: true });
+      });
+    } else {
+      _log('✅ メルカリDOM即時準備完了');
     }
-  }
 
-  // サイト別の読み込み待機時間を適用（秒→ミリ秒に変換）
-  const loadDelays = {
-    'amazon': (settings.amazonLoadDelay || 0) * 1000,
-    'ebay': (settings.ebayLoadDelay || 0) * 1000,
-    'rakuten': (settings.rakutenLoadDelay || 0) * 1000,
-    'mercari': (settings.mercariLoadDelay || 0) * 1000,
-    'mercari_shop': (settings.mercariLoadDelay || 0) * 1000,
-    'yahuoku': (settings.yahooLoadDelay || 0) * 1000,
-    'yahooshopping': (settings.yahooLoadDelay || 0) * 1000,
-    'paypayfurima': (settings.paypayLoadDelay || 0) * 1000,
-    'rakuma': (settings.frilLoadDelay || 0) * 1000
-  };
+    // 画像読み込み用の追加待機（ユーザー設定）
+    const mercariDelay = (settings.mercariLoadDelay || 0) * 1000;
+    if (mercariDelay > 0) {
+      _log(`⏱️ メルカリ画像読み込み待機中... (${mercariDelay / 1000}秒)`);
+      await new Promise(resolve => setTimeout(resolve, mercariDelay));
+    }
+  } else {
+    // メルカリ以外: 従来の固定待機
+    let waitTime = currentSite === 'ebay' ? (settings.waitTime * 1000) :
+                   currentSite === 'rakuten' ? (settings.checkDelay * 1000) : 2000;
 
-  const delayMs = loadDelays[currentSite] || 0;
-  if (delayMs > 0) {
-    _log(`⏱️ ${currentSite}の画像読み込みを待機中... (${delayMs / 1000}秒)`);
-    await new Promise(resolve => setTimeout(resolve, delayMs));
+    if (currentSite === 'ebay') {
+      // カウントダウン表示
+      let countdown = Math.ceil(waitTime / 1000);
+      loadingIndicator.innerHTML = `商品情報を取得中... (${countdown}秒)`;
+
+      const countdownInterval = setInterval(() => {
+        countdown--;
+        if (countdown > 0) {
+          loadingIndicator.innerHTML = `商品情報を取得中... (${countdown}秒)`;
+        } else {
+          loadingIndicator.innerHTML = '商品情報を取得中... (もう少し)';
+          clearInterval(countdownInterval);
+        }
+      }, 1000);
+    }
+
+    await new Promise(resolve => setTimeout(resolve, waitTime));
+
+    // eBay用の追加待機
+    if (currentSite === 'ebay') {
+      let retryCount = 0;
+      const maxRetries = 10;
+      while (retryCount < maxRetries) {
+        const itemSpecSection = document.querySelector('div[class*="ux-layout-section--itemDetails"]');
+        if (itemSpecSection) {
+          _log(`Item specificsセクションを検出 (${retryCount * 500}ms後)`);
+          break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 500));
+        retryCount++;
+      }
+    }
+
+    // サイト別の読み込み待機時間を適用（秒→ミリ秒に変換）
+    const loadDelays = {
+      'amazon': (settings.amazonLoadDelay || 0) * 1000,
+      'ebay': (settings.ebayLoadDelay || 0) * 1000,
+      'rakuten': (settings.rakutenLoadDelay || 0) * 1000,
+      'yahuoku': (settings.yahooLoadDelay || 0) * 1000,
+      'yahooshopping': (settings.yahooLoadDelay || 0) * 1000,
+      'paypayfurima': (settings.paypayLoadDelay || 0) * 1000,
+      'rakuma': (settings.frilLoadDelay || 0) * 1000
+    };
+
+    const delayMs = loadDelays[currentSite] || 0;
+    if (delayMs > 0) {
+      _log(`⏱️ ${currentSite}の画像読み込みを待機中... (${delayMs / 1000}秒)`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
   }
 
   // 商品情報を抽出
@@ -1265,35 +1310,6 @@ function isNoiseText(text) {
       extractedData = extractYahooShoppingProductData();
     }
     
-    // メルカリ系: タイトルが取れていなければ2秒後に1回だけリトライ
-    if ((currentSite === 'mercari' || currentSite === 'mercari_shop') && extractedData && !extractedData.error) {
-      const name = (extractedData.name || '').toLowerCase().trim();
-      const PLATFORM_NAMES_CHECK = ['mercari', 'メルカリ'];
-      const nameInvalid = !name || name === '商品名を取得できませんでした' || PLATFORM_NAMES_CHECK.includes(name);
-
-      if (nameInvalid || !extractedData.price || extractedData.price === 0) {
-        _log('⚠️ メルカリ抽出データ不完全（タイトルまたは価格なし）、2秒後にリトライ...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        const retryData = await extractMercariProductData();
-        if (retryData && !retryData.error) {
-          // リトライ結果の方が良ければ置き換え
-          const retryName = (retryData.name || '').toLowerCase().trim();
-          const retryNameValid = retryName && retryName !== '商品名を取得できませんでした' && !PLATFORM_NAMES_CHECK.includes(retryName);
-
-          if (retryNameValid) {
-            extractedData = retryData;
-            if (currentSite === 'mercari_shop') {
-              extractedData.platform = 'mercari_shop';
-            }
-            _log('✅ リトライで抽出成功');
-          } else {
-            _log('⚠️ リトライでもタイトル取得失敗');
-          }
-        }
-      }
-    }
-
     if (extractedData && extractedData.error) {
       loadingIndicator.remove();
       showNotification('エラー', extractedData.error, 'error', colors);
@@ -5153,8 +5169,47 @@ function isNoiseText(text) {
       const itemId = itemIdMatch ? itemIdMatch[1] : '';
       _log('商品ID:', itemId);
 
-      // タイトル
-      const title = (document.querySelector('title')?.textContent?.replace(' - メルカリ', '') || '').replace(/\t/g, '  ');
+      // ld+json を一度だけパースしてキャッシュ（タイトル・説明文で共有）
+      let _ldProduct = null;
+      try {
+        const ldjsonEl = document.querySelector('script[type="application/ld+json"]');
+        if (ldjsonEl) {
+          const allJson = JSON.parse(ldjsonEl.textContent);
+          _ldProduct = allJson['@graph']?.find(item => item['@type'] === 'Product') || allJson['@graph']?.[2] || null;
+        }
+      } catch (e) { /* パース失敗時はnullのまま */ }
+
+      // メルカリ系サフィックス除去（共通）
+      const _cleanMercariSuffix = (str) =>
+        str.replace(/\s*(?:by メルカリ|\| メルカリ|- メルカリ)$/, '').trim();
+
+      // タイトル（複数のフォールバックで取得）
+      const _getTitle = () => {
+        // 1. h1[class*="heading"]（しらべる君でも成功実績あり、最も確実）
+        const h1Heading = document.querySelector('h1[class*="heading"]');
+        if (h1Heading?.textContent?.trim()) return h1Heading.textContent.trim();
+        // 2. data-testid="name"
+        const nameEl = document.querySelector('[data-testid="name"]');
+        if (nameEl?.textContent?.trim()) return nameEl.textContent.trim();
+        // 3. og:title
+        const ogTitle = document.querySelector('meta[property="og:title"]')?.content;
+        if (ogTitle) {
+          const cleaned = _cleanMercariSuffix(ogTitle);
+          if (cleaned && cleaned !== 'メルカリ') return cleaned;
+        }
+        // 4. ld+json の Product.name（キャッシュ済み）
+        if (_ldProduct?.name?.trim()) return _ldProduct.name.trim();
+        // 5. メインコンテンツ内のh1
+        const h1 = document.querySelector('main h1, article h1, [role="main"] h1')
+                 || document.querySelector('h1');
+        if (h1?.textContent?.trim()) return h1.textContent.trim();
+        // 6. titleタグ（従来の方法、最終手段）
+        const titleTag = document.querySelector('title')?.textContent || '';
+        const cleanedTitle = _cleanMercariSuffix(titleTag);
+        if (cleanedTitle && cleanedTitle !== 'メルカリ') return cleanedTitle;
+        return '';
+      };
+      const title = _getTitle().replace(/\t/g, '  ').trim();
 
       // 価格
       let price = document.querySelector('meta[name="product:price:amount"]')?.content || '';
@@ -5165,28 +5220,18 @@ function isNoiseText(text) {
         }
       }
 
-      // 説明文
+      // 説明文（ld+json キャッシュを使用）
       let description = '';
-      const ldjson = document.querySelector('script[type="application/ld+json"]');
-      if (ldjson) {
-        try {
-          const allJson = JSON.parse(ldjson.textContent);
-          const json = allJson['@graph']?.find(item => item['@type'] === 'Product') || allJson['@graph']?.[2];
-          if (json && json.description) {
-            // あらゆる種類の改行・タブを半角スペースに置換
-            description = json.description
-              .replace(/\r\n/g, ' ')     // Windows改行
-              .replace(/\r/g, ' ')        // Mac改行
-              .replace(/\n/g, ' ')        // Unix改行
-              .replace(/\u2028/g, ' ')    // ラインセパレータ
-              .replace(/\u2029/g, ' ')    // パラグラフセパレータ
-              .replace(/\t/g, ' ')        // タブ
-              .replace(/\s+/g, ' ')       // 連続する空白を1つに
-              .trim();                    // 前後の空白を削除
-          }
-        } catch (e) {
-          console.warn('⚠️ 商品説明パース失敗', e);
-        }
+      if (_ldProduct?.description) {
+        description = _ldProduct.description
+          .replace(/\r\n/g, ' ')     // Windows改行
+          .replace(/\r/g, ' ')        // Mac改行
+          .replace(/\n/g, ' ')        // Unix改行
+          .replace(/\u2028/g, ' ')    // ラインセパレータ
+          .replace(/\u2029/g, ' ')    // パラグラフセパレータ
+          .replace(/\t/g, ' ')        // タブ
+          .replace(/\s+/g, ' ')       // 連続する空白を1つに
+          .trim();                    // 前後の空白を削除
       }
 
       // 出品者ID（通常のメルカリとメルカリショップ両方に対応）
