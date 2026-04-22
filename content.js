@@ -28,6 +28,23 @@ const _splitImageUrls = (urlStr) => {
   return urlStr.split(',').map(url => url.trim()).filter(url => url);
 };
 
+// FIELD_DEFINITIONS.images.count=20 に合わせた画像出力上限
+const HARD_IMAGE_CAP = 20;
+const IMAGE_OUTPUT_ALL = 999;
+
+const _normalizeImageOutputCount = (value) => {
+  const parsedCount = Number(value);
+  if (!Number.isFinite(parsedCount)) return IMAGE_OUTPUT_ALL;
+  if (parsedCount <= 0) return 0;
+  return parsedCount === IMAGE_OUTPUT_ALL ? IMAGE_OUTPUT_ALL : Math.min(parsedCount, HARD_IMAGE_CAP);
+};
+
+const _getMaxImageCount = (imageUrls, value) => {
+  const effectiveCount = _normalizeImageOutputCount(value);
+  const requestedCount = effectiveCount === IMAGE_OUTPUT_ALL ? HARD_IMAGE_CAP : effectiveCount;
+  return Math.min(imageUrls.length, requestedCount, HARD_IMAGE_CAP);
+};
+
 // 共通ヘルパー: フリマアシスト要素からの評価取得
 const _parseAssistRatings = () => {
   const assistRatings = document.querySelector("#furima-assist-seller-ratings");
@@ -205,6 +222,8 @@ function isNoiseText(text) {
   } else if (hostname.includes('fril.jp')) {
     // ラクマ: fril.jp, item.fril.jp など全てのサブドメインに対応
     currentSite = 'rakuma';
+  } else if (hostname.includes('netmall.hardoff.co.jp') && /^\/product\/\d+\/?$/.test(pathname)) {
+    currentSite = 'hardoff';
   } else {
     _log('❌ 対象外のサイトまたはページ:', hostname, pathname);
     return; // 対象外のサイト
@@ -221,6 +240,7 @@ function isNoiseText(text) {
     enableYahoo: true,
     enablePaypay: true,
     enableFril: true,
+    enableHardoff: true,
     amazonLoadDelay: 3,
     ebayLoadDelay: 0,
     rakutenLoadDelay: 0,
@@ -228,6 +248,7 @@ function isNoiseText(text) {
     yahooLoadDelay: 0,
     paypayLoadDelay: 0,
     frilLoadDelay: 0,
+    hardoffLoadDelay: 3,
     alertKeywords: [],
     popupKeywords: [],
     excludeKeywords: [],
@@ -236,7 +257,7 @@ function isNoiseText(text) {
     skipBadRate: null,
     skipDaysFromListing: null,
     buttonPosition: 'top-right',
-    imageOutputCount: 20,
+    imageOutputCount: 999,
     enableImageInClipboard: true,
     spreadsheets: [],
     lastUsedSheetId: null,
@@ -287,6 +308,10 @@ function isNoiseText(text) {
     _log('⚠️ ラクマが無効化されています');
     return;
   }
+  if (currentSite === 'hardoff' && !settings.enableHardoff) {
+    _log('⚠️ ハードオフが無効化されています');
+    return;
+  }
 
   // サイト別の色設定
   const siteColors = {
@@ -298,7 +323,8 @@ function isNoiseText(text) {
     yahuoku: { primary: '#FF0033', hover: '#E6002E' },
     paypayfurima: { primary: '#FF6B00', hover: '#E65C00' },
     rakuma: { primary: '#E91E63', hover: '#C2185B' },
-    yahooshopping: { primary: '#FF0033', hover: '#E6002E' }
+    yahooshopping: { primary: '#FF0033', hover: '#E6002E' },
+    hardoff: { primary: '#FFCC00', hover: '#e6b800' }
   };
 
   const colors = siteColors[currentSite];
@@ -1272,7 +1298,8 @@ function isNoiseText(text) {
       'yahuoku': (settings.yahooLoadDelay || 0) * 1000,
       'yahooshopping': (settings.yahooLoadDelay || 0) * 1000,
       'paypayfurima': (settings.paypayLoadDelay || 0) * 1000,
-      'rakuma': (settings.frilLoadDelay || 0) * 1000
+      'rakuma': (settings.frilLoadDelay || 0) * 1000,
+      'hardoff': (settings.hardoffLoadDelay || 0) * 1000
     };
 
     const delayMs = loadDelays[currentSite] || 0;
@@ -1308,6 +1335,8 @@ function isNoiseText(text) {
       extractedData = extractFrilProductData();
     } else if (currentSite === 'yahooshopping') {
       extractedData = extractYahooShoppingProductData();
+    } else if (currentSite === 'hardoff') {
+      extractedData = extractHardoffProductData();
     }
     
     if (extractedData && extractedData.error) {
@@ -1645,6 +1674,7 @@ function isNoiseText(text) {
   const _getMissingFields = (data, includeDetail) => {
     const missing = [];
     const name = (data.name || '').toLowerCase().trim();
+    const isHardoff = data.platform === 'hardoff';
     if (!name || name === '商品名を取得できませんでした' || PLATFORM_NAMES.includes(name)) {
       missing.push('商品名');
     }
@@ -1658,10 +1688,10 @@ function isNoiseText(text) {
       if (!data.description || data.description === '') {
         missing.push('説明文');
       }
-      if (!data.reviewCount || data.reviewCount === '') {
+      if (!isHardoff && (!data.reviewCount || data.reviewCount === '')) {
         missing.push('評価件数');
       }
-      if (!data.listedFmt || data.listedFmt === '') {
+      if (!isHardoff && (!data.listedFmt || data.listedFmt === '')) {
         missing.push('出品日時');
       }
     }
@@ -2291,7 +2321,7 @@ function isNoiseText(text) {
       // eBay, 楽天, Yahoo!ショッピング
       const priceLabel = (site === 'rakuten' || site === 'yahooshopping') ? '価格（送料込み）' : '価格';
       const priceType = (site === 'rakuten' || site === 'yahooshopping') ? 'number' : 'number';
-      const priceStep = site === 'rakuten' ? '' : 'step="0.01"';
+      const priceStep = (site === 'rakuten' || site === 'hardoff') ? '' : 'step="0.01"';
 
       // 画像ギャラリー（配列または文字列に対応）
       const imageUrls = Array.isArray(data.imageUrl)
@@ -2386,7 +2416,7 @@ function isNoiseText(text) {
           <textarea id="preview-description" rows="8"
             style="width: 100%; padding: 10px; border: 2px solid #ff9800; border-radius: 4px; font-size: 14px; resize: vertical;">${data.description}</textarea>
           <div style="font-size: 12px; color: #666; margin-top: 5px;">
-            ${(site === 'rakuten' || site === 'yahooshopping') ? '不要な検索タグや重複した情報があれば削除してください。' : '不要な情報や重複した内容があれば削除してください。'}
+            ${(site === 'rakuten' || site === 'yahooshopping' || site === 'hardoff') ? '不要な検索タグや重複した情報があれば削除してください。' : '不要な情報や重複した内容があれば削除してください。'}
           </div>
         </div>
 
@@ -2502,7 +2532,7 @@ function isNoiseText(text) {
         editedData = {
           platform: document.getElementById('preview-platform').value,
           url: document.getElementById('preview-url').value,
-          price: site === 'rakuten' ? parseInt(document.getElementById('preview-price').value) || 0 : parseFloat(document.getElementById('preview-price').value) || 0,
+          price: (site === 'rakuten' || site === 'hardoff') ? parseInt(document.getElementById('preview-price').value) || 0 : parseFloat(document.getElementById('preview-price').value) || 0,
           name: document.getElementById('preview-name').value,
           description: document.getElementById('preview-description').value,
           seller: document.getElementById('preview-seller').value,
@@ -2567,7 +2597,7 @@ function isNoiseText(text) {
           editedData = {
             platform: document.getElementById('preview-platform').value,
             url: document.getElementById('preview-url').value,
-            price: site === 'rakuten' ? parseInt(document.getElementById('preview-price').value) || 0 : parseFloat(document.getElementById('preview-price').value) || 0,
+            price: (site === 'rakuten' || site === 'hardoff') ? parseInt(document.getElementById('preview-price').value) || 0 : parseFloat(document.getElementById('preview-price').value) || 0,
             name: document.getElementById('preview-name').value,
             description: document.getElementById('preview-description').value,
             seller: document.getElementById('preview-seller').value,
@@ -2722,7 +2752,7 @@ function isNoiseText(text) {
         // 8以降: 画像
         if (data.imageUrl) {
           const imageUrls = _splitImageUrls(data.imageUrl);
-          const maxImages = settings.imageOutputCount === 999 ? imageUrls.length : Math.min(imageUrls.length, typeof settings.imageOutputCount === 'number' ? settings.imageOutputCount : 5);
+          const maxImages = _getMaxImageCount(imageUrls, settings.imageOutputCount);
           const imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
           _log('🖼️ IMAGE()関数を追加（タブ区切り）:', imageFormulas.length + '枚');
           row.push(...imageFormulas);
@@ -2758,7 +2788,7 @@ function isNoiseText(text) {
         // 8以降: 画像
         if (data.imageUrl) {
           const imageUrls = _splitImageUrls(data.imageUrl);
-          const maxImages = settings.imageOutputCount === 999 ? imageUrls.length : Math.min(imageUrls.length, typeof settings.imageOutputCount === 'number' ? settings.imageOutputCount : 5);
+          const maxImages = _getMaxImageCount(imageUrls, settings.imageOutputCount);
           const imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
           _log('🖼️ IMAGE()関数を追加（タブ区切り）:', imageFormulas.length + '枚');
           row.push(...imageFormulas);
@@ -2776,7 +2806,7 @@ function isNoiseText(text) {
     await navigator.clipboard.writeText(tsvData);
 
     const displayName = site === 'amazon' ? data.title : data.name;
-    const displayPrice = site === 'rakuten' ? `${data.price}円` : site === 'amazon' ? data.price : `$${data.price}`;
+    const displayPrice = (site === 'rakuten' || site === 'hardoff') ? `${data.price}円` : site === 'amazon' ? data.price : `$${data.price}`;
     const extraInfo = site === 'amazon' ? `\nASIN: ${data.asin}` : '';
 
     showNotification(
@@ -4934,7 +4964,7 @@ function isNoiseText(text) {
       const syncSettings = await chrome.storage.sync.get(['spreadsheets', 'imageOutputCount']);
       const localSettings = await chrome.storage.local.get(['lastUsedSheetId']);
       const spreadsheets = syncSettings.spreadsheets || [];
-      const imageOutputCount = typeof syncSettings.imageOutputCount === 'number' ? syncSettings.imageOutputCount : 5;
+      const imageOutputCount = _normalizeImageOutputCount(syncSettings.imageOutputCount);
 
       // スプレッドシートが未登録の場合
       if (spreadsheets.length === 0) {
@@ -4998,12 +5028,10 @@ function isNoiseText(text) {
         const imageUrls = Array.isArray(data.imageUrl) ? data.imageUrl :
                           typeof data.imageUrl === 'string' ? _splitImageUrls(data.imageUrl) : [];
 
-        // imageOutputCountが0の場合は全て空、999の場合は全画像、それ以外は指定枚数まで
-        const maxImages = imageOutputCount === 0 ? 0 :
-                          imageOutputCount === 999 ? 20 :
-                          Math.min(imageOutputCount, 20);
+        // imageOutputCount設定を20枚上限で統一
+        const maxImages = _getMaxImageCount(imageUrls, imageOutputCount);
 
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < HARD_IMAGE_CAP; i++) {
           const url = (i < maxImages) ? (imageUrls[i] || '') : '';
           if (url) {
             values.push(`=IMAGE("${url}")`);
@@ -5033,7 +5061,7 @@ function isNoiseText(text) {
         let imageFormulas = [];
         if (data.imageUrl && imageOutputCount > 0) {
           const imageUrls = _splitImageUrls(data.imageUrl);
-          const maxImages = imageOutputCount === 999 ? imageUrls.length : Math.min(imageUrls.length, imageOutputCount);
+          const maxImages = _getMaxImageCount(imageUrls, imageOutputCount);
           imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
         }
 
@@ -5048,17 +5076,17 @@ function isNoiseText(text) {
           ...imageFormulas
         ];
 
-      } else if (site === 'rakuten' || site === 'yahooshopping') {
-        // 楽天, Yahoo!ショッピング（7フィールド + 画像: 基本6 + ページURL1 + 画像）
+      } else if (site === 'rakuten' || site === 'yahooshopping' || site === 'hardoff') {
+        // 楽天, Yahoo!ショッピング, ハードオフ（7フィールド + 画像: 基本6 + ページURL1 + 画像）
         let imageFormulas = [];
         if (data.imageUrl && imageOutputCount > 0) {
           const imageUrls = _splitImageUrls(data.imageUrl);
-          const maxImages = imageOutputCount === 999 ? imageUrls.length : Math.min(imageUrls.length, imageOutputCount);
+          const maxImages = _getMaxImageCount(imageUrls, imageOutputCount);
           imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
         }
 
         values = [
-          data.platform || (site === 'rakuten' ? 'rakuten' : 'yahoo_shopping'),
+          data.platform || (site === 'rakuten' ? 'rakuten' : site === 'yahooshopping' ? 'yahoo_shopping' : 'hardoff'),
           data.url || window.location.href,
           data.price || '',
           data.name || '',
@@ -5073,7 +5101,7 @@ function isNoiseText(text) {
         let imageFormulas = [];
         if (data.imageUrl && imageOutputCount > 0) {
           const imageUrls = _splitImageUrls(data.imageUrl);
-          const maxImages = imageOutputCount === 999 ? imageUrls.length : Math.min(imageUrls.length, imageOutputCount);
+          const maxImages = _getMaxImageCount(imageUrls, imageOutputCount);
           imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
         }
 
@@ -6622,6 +6650,233 @@ function isNoiseText(text) {
 
     } catch (error) {
       console.error('❌ ラクマ抽出エラー:', error);
+      return { error: 'データの抽出に失敗しました: ' + error.message };
+    }
+  }
+
+  // ==========================================
+  // ハードオフ商品データ抽出
+  // ==========================================
+  function extractHardoffProductData() {
+    _log('=== Hardoffデータ抽出開始 ===');
+
+    try {
+      const url = window.location.href;
+
+      const jsonLdObjects = Array.from(document.querySelectorAll('script[type="application/ld+json"]'))
+        .flatMap(el => {
+          try {
+            const parsed = JSON.parse(el.textContent);
+            if (Array.isArray(parsed)) {
+              return parsed;
+            }
+            if (parsed && Array.isArray(parsed['@graph'])) {
+              return [parsed, ...parsed['@graph']];
+            }
+            return parsed ? [parsed] : [];
+          } catch (e) {
+            return [];
+          }
+        })
+        .filter(Boolean);
+
+      const productJsonLd = jsonLdObjects.find(obj => {
+        const type = obj?.['@type'];
+        return type === 'Product' || (Array.isArray(type) && type.includes('Product'));
+      }) || null;
+
+      const ogTitle = document.querySelector('meta[property="og:title"]')?.content?.trim() || '';
+      const ogTitleParts = ogTitle.split('|').map(part => part.trim()).filter(Boolean);
+
+      let name = getTextBySelectors([
+        '.product-detail-name > h1',
+        '.product-detail-name h1',
+        '.product-detail-info h1'
+      ]) || (typeof productJsonLd?.name === 'string' ? productJsonLd.name.trim() : '');
+
+      if (!name) {
+        name = ogTitleParts[1] || '';
+      }
+
+      const priceText = getTextBySelectors([
+        '.product-detail-price__main'
+      ]);
+
+      let price = extractNumber(priceText);
+
+      if (!price) {
+        for (const script of Array.from(document.scripts)) {
+          const scriptText = script.textContent || '';
+          if (!scriptText.includes('view_item')) continue;
+
+          const viewItemMatch = scriptText.match(/gtag\((['"])event\1,\s*(['"])view_item\2,\s*\{[\s\S]*?\bvalue["']?\s*:\s*(\d+)/);
+          if (viewItemMatch?.[3]) {
+            price = parseInt(viewItemMatch[3], 10);
+            _log('✅ view_itemから価格を取得:', price);
+            break;
+          }
+        }
+      }
+
+      const detailRows = Array.from(document.querySelectorAll('#panel1 tr'))
+        .map(row => {
+          const th = row.querySelector('th')?.innerText?.replace(/\s+/g, ' ').trim() || '';
+          const td = row.querySelector('td')?.innerText?.replace(/\s+/g, ' ').trim() || '';
+          return { th, td };
+        })
+        .filter(row => row.th && row.td);
+
+      const findDetailValues = (label) => detailRows
+        .filter(row => row.th.includes(label))
+        .map(row => row.td)
+        .filter(Boolean);
+
+      const uniqueValues = (values) => values.filter((value, index, array) => value && array.indexOf(value) === index);
+
+      const brand = (typeof productJsonLd?.brand?.name === 'string' ? productJsonLd.brand.name.trim() : '')
+        || (typeof productJsonLd?.brand === 'string' ? productJsonLd.brand.trim() : '')
+        || getTextBySelectors(['.product-detail-cate-name'])
+        || ogTitleParts[0]
+        || '';
+
+      const modelText = findDetailValues('型番')[0]
+        || (getTextBySelectors(['.product-detail-num']).match(/型番[：:]\s*(.+)$/)?.[1] || '').trim();
+
+      const itemConditionUrl = productJsonLd?.offers?.itemCondition || '';
+      const condition = /UsedCondition/.test(itemConditionUrl) ? '中古' : '';
+
+      const rankAlt = document.querySelector('.product-detail-price__rank img')?.alt?.trim() || '';
+      const rank = (rankAlt.match(/[A-Z]\s*RANK/i)?.[0] || rankAlt).replace(/\s+/g, ' ').trim();
+
+      const storeSummary = getTextBySelectors([
+        '.product-detail-postage-store__all'
+      ]);
+      const storeAddress = getTextBySelectors([
+        '.product-detail-store__address'
+      ]);
+
+      let seller = getTextBySelectors([
+        '.product-detail-store__name'
+      ]) || (typeof productJsonLd?.offers?.seller?.name === 'string' ? productJsonLd.offers.seller.name.trim() : '');
+
+      if (!seller && storeSummary) {
+        seller = storeSummary.split('/').map(part => part.trim()).filter(Boolean)[0] || '';
+      }
+
+      let prefecture = '';
+      if (storeSummary.includes('/')) {
+        prefecture = storeSummary.split('/').map(part => part.trim()).filter(Boolean)[1] || '';
+      }
+      if (!prefecture && storeAddress) {
+        prefecture = storeAddress.match(/(東京都|北海道|(?:京都|大阪)府|.{2,3}県)/)?.[1] || '';
+      }
+
+      const featureNotes = uniqueValues(findDetailValues('特徴・備考'));
+      const captionNotes = uniqueValues(
+        Array.from(document.querySelectorAll('.product-detail-images-main__text'))
+          .map(el => el.innerText?.replace(/\s+/g, ' ').trim() || '')
+          .filter(Boolean)
+      );
+
+      const otherDetailLines = detailRows
+        .filter(row => !row.th.includes('特徴・備考') && !row.th.includes('型番'))
+        .map(row => `${row.th}: ${row.td}`);
+
+      const descriptionLines = [];
+      const descriptionSet = new Set();
+      const addDescriptionLine = (line) => {
+        if (!line) return;
+        const normalized = line.trim();
+        if (!normalized || descriptionSet.has(normalized)) return;
+        descriptionSet.add(normalized);
+        descriptionLines.push(normalized);
+      };
+
+      addDescriptionLine(brand ? `ブランド: ${brand}` : '');
+      addDescriptionLine(modelText ? `型番: ${modelText}` : '');
+      addDescriptionLine(condition ? `状態: ${condition}` : '');
+      addDescriptionLine(rank ? `ランク: ${rank}` : '');
+      addDescriptionLine(seller && prefecture ? `店舗: ${seller} / ${prefecture}` : seller ? `店舗: ${seller}` : '');
+      addDescriptionLine(featureNotes.length ? `特徴・備考: ${featureNotes.join(' / ')}` : '');
+      addDescriptionLine(captionNotes.length ? `画像キャプション: ${captionNotes.join(' / ')}` : '');
+      otherDetailLines.forEach(addDescriptionLine);
+
+      const imageUrls = [];
+      const imageUrlSet = new Set();
+      const normalizeImageUrl = (candidate) => {
+        if (typeof candidate !== 'string') return '';
+        const trimmed = candidate.trim();
+        if (!trimmed) return '';
+
+        try {
+          return new URL(trimmed, url).toString().replace(/,/g, '%2C');
+        } catch (e) {
+          return '';
+        }
+      };
+      const addImageUrl = (candidate) => {
+        const normalizedUrl = normalizeImageUrl(candidate);
+        if (!/^https?:/i.test(normalizedUrl) || imageUrlSet.has(normalizedUrl)) return;
+
+        imageUrlSet.add(normalizedUrl);
+        imageUrls.push(normalizedUrl);
+      };
+
+      Array.from(document.querySelectorAll('.product-detail-images-main__image img, .product-detail-images-wrapper img'))
+        .forEach(img => {
+          [
+            img.currentSrc,
+            img.src,
+            img.getAttribute('src'),
+            img.getAttribute('data-src'),
+            img.getAttribute('data-original')
+          ].forEach(addImageUrl);
+        });
+
+      const jsonLdImagesRaw = Array.isArray(productJsonLd?.image)
+        ? productJsonLd.image
+        : (productJsonLd?.image ? [productJsonLd.image] : []);
+      jsonLdImagesRaw.forEach(image => {
+        if (typeof image === 'string') {
+          addImageUrl(image);
+          return;
+        }
+        if (image && typeof image === 'object') {
+          addImageUrl(image.url || image.contentUrl || '');
+        }
+      });
+      addImageUrl(document.querySelector('meta[property="og:image"]')?.content || '');
+
+      const imageUrl = imageUrls.join(',');
+      const description = descriptionLines.join('\n');
+
+      _log('=== Hardoff抽出結果 ===');
+      _log('商品名:', name);
+      _log('価格:', price);
+      _log('出品者:', seller);
+      _log('説明行数:', descriptionLines.length);
+      _log('画像URL数:', imageUrls.length);
+
+      if (!name || name.trim() === '') {
+        return { error: '商品名が取得できませんでした。' };
+      }
+      if (!price || price === 0) {
+        return {
+          error: '価格が取得できませんでした。\n\n取得できたデータ:\n商品名: ' + name
+        };
+      }
+
+      return {
+        platform: 'hardoff',
+        url: url,
+        price: price,
+        name: name,
+        description: description || '商品詳細なし',
+        seller: seller || '出品者情報なし',
+        imageUrl: imageUrl || ''
+      };
+    } catch (error) {
+      console.error('❌ Hardoff抽出エラー:', error);
       return { error: 'データの抽出に失敗しました: ' + error.message };
     }
   }

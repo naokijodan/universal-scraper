@@ -270,6 +270,11 @@
       color: #e65100;
     }
 
+    .badge-hardoff {
+      background-color: #fff8e1;
+      color: #a66b00;
+    }
+
     .badge-sheets {
       background-color: #e8f5e9;
       color: #2e7d32;
@@ -384,6 +389,25 @@
             <span class="toggle-status" id="statusAmazon">有効</span>
           </div>
         </div>
+
+        <div class="divider"></div>
+
+        <div class="setting-item">
+          <label class="setting-label">
+            ハードオフ（オフモール）
+            <span class="site-badge badge-hardoff">Hardoff</span>
+          </label>
+          <div class="setting-description">
+            ハードオフ（オフモール）の商品ページでスクレイパーを有効化します
+          </div>
+          <div class="toggle-container">
+            <label class="toggle-switch">
+              <input type="checkbox" id="enableHardoff">
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-status" id="statusHardoff">有効</span>
+          </div>
+        </div>
       </div>
 
       <!-- 画像出力設定 -->
@@ -402,9 +426,9 @@
             <option value="0">画像なし</option>
             <option value="1">1枚</option>
             <option value="3">3枚</option>
-            <option value="5" selected>5枚（デフォルト）</option>
+            <option value="5">5枚</option>
             <option value="10">10枚</option>
-            <option value="999">全ての画像</option>
+            <option value="999" selected>全ての画像（最大20枚）</option>
           </select>
         </div>
 
@@ -585,6 +609,14 @@ function doPost(e) {
             ラクマで画像読み込みが遅い場合に調整してください（0 = 待機なし）
           </div>
           <input type="number" id="frilLoadDelay" min="0" max="10" step="0.5" value="0">
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label" for="hardoffLoadDelay">ハードオフ（オフモール） 待機時間（秒）</label>
+          <div class="setting-description">
+            ハードオフで画像読み込みが遅い場合に調整してください（0 = 待機なし）
+          </div>
+          <input type="number" id="hardoffLoadDelay" min="0" max="10" step="0.5" value="3">
         </div>
       </div>
 

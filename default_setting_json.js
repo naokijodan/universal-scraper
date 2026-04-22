@@ -209,12 +209,13 @@ const default_setting_json = {
   enableMercari: true,
   enableYahoo: true,
   enableFril: true,
+  enableHardoff: true,
 
   // ボタン位置
   buttonPosition: 'top-right',
 
   // 画像設定
-  imageOutputCount: 20, // 20枚固定
+  imageOutputCount: 999, // 全ての画像（最大20枚）
   enableImageInClipboard: false,
 
   // サイト別読み込み待機時間（秒）
@@ -224,6 +225,7 @@ const default_setting_json = {
   mercariLoadDelay: 3,
   yahooLoadDelay: 3,
   frilLoadDelay: 3,
+  hardoffLoadDelay: 3,
 
   // アラート・除外設定
   // alertKeywords: オプション画面の「除外キーワード」（赤ハイライト）

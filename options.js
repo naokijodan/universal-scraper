@@ -5,13 +5,14 @@ const defaultSettings = {
   enableEbay: true,
   enableRakuten: true,
   enableAmazon: true,
+  enableHardoff: true,
   alertKeywords: defaultAlertKeywords().join('\n'), // 除外キーワード（赤ハイライト）
   popupKeywords: defaultPopupKeywords().join('\n'), // 注目キーワード（黄色ハイライト）
   buttonPosition: 'top-right',
   spreadsheets: [], // 複数スプレッドシート対応
   lastUsedSheetId: null, // 最後に使ったシートID
   maxSheets: 10, // 最大登録数
-  imageOutputCount: 20, // 出力する画像枚数（デフォルト20枚）
+  imageOutputCount: 999, // 出力する画像枚数（全ての画像、最大20枚）
   enableImageInClipboard: true, // クリップボードコピー時に画像URLを含める（デフォルト有効）
   // 画像読み込み待機時間（秒）
   amazonLoadDelay: 3,
@@ -20,6 +21,7 @@ const defaultSettings = {
   mercariLoadDelay: 3,
   yahooLoadDelay: 3,
   frilLoadDelay: 3,
+  hardoffLoadDelay: 3,
   // フリマサイトアラート条件
   alertBadRate: 5,
   alertLowReviewCount: 100,
@@ -49,6 +51,7 @@ async function loadSettings() {
     document.getElementById('enableEbay').checked = syncSettings.enableEbay;
     document.getElementById('enableRakuten').checked = syncSettings.enableRakuten;
     document.getElementById('enableAmazon').checked = syncSettings.enableAmazon;
+    document.getElementById('enableHardoff').checked = syncSettings.enableHardoff;
 
     // その他の設定値を設定
     document.getElementById('alertKeywords').value = syncSettings.alertKeywords;
@@ -66,6 +69,7 @@ async function loadSettings() {
     document.getElementById('mercariLoadDelay').value = syncSettings.mercariLoadDelay;
     document.getElementById('yahooLoadDelay').value = syncSettings.yahooLoadDelay;
     document.getElementById('frilLoadDelay').value = syncSettings.frilLoadDelay;
+    document.getElementById('hardoffLoadDelay').value = syncSettings.hardoffLoadDelay;
 
     // フリマサイトアラート設定を設定
     document.getElementById('alertBadRate').value = syncSettings.alertBadRate || 5;
@@ -81,6 +85,7 @@ async function loadSettings() {
     updateToggleStatus('enableEbay', 'statusEbay');
     updateToggleStatus('enableRakuten', 'statusRakuten');
     updateToggleStatus('enableAmazon', 'statusAmazon');
+    updateToggleStatus('enableHardoff', 'statusHardoff');
     updateToggleStatus('enableImageInClipboard', 'statusImageInClipboard');
   } catch (error) {
     console.error('Error loading settings:', error);
@@ -183,6 +188,10 @@ function setupEventListeners() {
 
   document.getElementById('enableAmazon').addEventListener('change', () => {
     updateToggleStatus('enableAmazon', 'statusAmazon');
+  });
+
+  document.getElementById('enableHardoff').addEventListener('change', () => {
+    updateToggleStatus('enableHardoff', 'statusHardoff');
   });
 
   // 画像出力設定のトグル
@@ -385,10 +394,11 @@ async function saveSettings() {
       enableEbay: document.getElementById('enableEbay').checked,
       enableRakuten: document.getElementById('enableRakuten').checked,
       enableAmazon: document.getElementById('enableAmazon').checked,
+      enableHardoff: document.getElementById('enableHardoff').checked,
       alertKeywords: document.getElementById('alertKeywords').value,
       popupKeywords: document.getElementById('popupKeywords').value,
       buttonPosition: document.getElementById('buttonPosition').value,
-      imageOutputCount: (() => { const v = parseInt(document.getElementById('imageOutputCount').value); return isNaN(v) ? 5 : v; })(),
+      imageOutputCount: (() => { const v = parseInt(document.getElementById('imageOutputCount').value); return isNaN(v) ? 999 : v; })(),
       enableImageInClipboard: document.getElementById('enableImageInClipboard').checked,
       // 画像読み込み待機時間（秒）
       amazonLoadDelay: parseFloat(document.getElementById('amazonLoadDelay').value) || 0,
@@ -397,6 +407,7 @@ async function saveSettings() {
       mercariLoadDelay: parseFloat(document.getElementById('mercariLoadDelay').value) || 0,
       yahooLoadDelay: parseFloat(document.getElementById('yahooLoadDelay').value) || 0,
       frilLoadDelay: parseFloat(document.getElementById('frilLoadDelay').value) || 0,
+      hardoffLoadDelay: parseFloat(document.getElementById('hardoffLoadDelay').value) || 0,
       // フリマサイトアラート設定
       alertBadRate: parseFloat(document.getElementById('alertBadRate').value) || 5,
       alertLowReviewCount: parseInt(document.getElementById('alertLowReviewCount').value) || 100,
