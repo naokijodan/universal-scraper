@@ -270,6 +270,7 @@ function createProductLinksBar(currentSite, keyword) {
     if (currentSite === 'rakuten' && site === 'rakuten') return false;
     if (currentSite === 'ebay' && site === 'ebay') return false;
     if (currentSite === 'hardoff' && site === 'hardoff') return false;
+    if (currentSite === 'yahooshopping' && site === 'yahooshopping') return false;
     return true;
   });
 
@@ -355,4 +356,83 @@ function initExternalLinksForProduct(currentSite) {
       }
     }
   }, 4000);
+}
+
+/**
+ * 検索ページを判定してサイトキーを返す
+ * content.js から呼ばれる（external-links.js が先に読まれるため利用可能）
+ * @param {string} hostname - window.location.hostname
+ * @param {string} pathname - window.location.pathname
+ * @returns {string|null} サイトキー or null（非検索ページ）
+ */
+function detectSearchPageSite(hostname, pathname) {
+  if (hostname.includes('mercari.com') && pathname === '/search') return 'mercari';
+  if (hostname.includes('fril.jp') && pathname === '/s') return 'rakuma';
+  if (hostname.includes('auctions.yahoo.co.jp') && pathname.includes('/search/search')) return 'yahuoku';
+  if (hostname.includes('paypayfleamarket.yahoo.co.jp') && pathname.startsWith('/search')) return 'paypayfurima';
+  if (hostname.includes('amazon.co.jp') && pathname === '/s') return 'amazon';
+  if (hostname.includes('search.rakuten.co.jp') && pathname.startsWith('/search/mall/')) return 'rakuten';
+  if (hostname.includes('shopping.yahoo.co.jp') && pathname === '/search') return 'yahooshopping';
+  if (hostname.includes('netmall.hardoff.co.jp') && pathname.startsWith('/search')) return 'hardoff';
+  if (hostname.includes('ebay.') && pathname.includes('/sch/')) return 'ebay';
+  return null;
+}
+
+/**
+ * 検索画面の URL からキーワードを抽出
+ * @param {string} currentSite - detectSearchPageSite の戻り値
+ * @returns {string} キーワード（取得失敗時は空文字）
+ */
+function getSearchKeyword(currentSite) {
+  try {
+    const url = new URL(window.location.href);
+    const params = url.searchParams;
+    const pathname = url.pathname;
+
+    if (currentSite === 'mercari') {
+      // URLSearchParams.get() は自動デコード済み（WHATWG URL 仕様）
+      return params.get('keyword') || '';
+    } else if (currentSite === 'rakuma') {
+      return params.get('query') || '';
+    } else if (currentSite === 'yahuoku') {
+      return params.get('p') || '';
+    } else if (currentSite === 'paypayfurima') {
+      // URL: /search/<keyword> (パスベース、pathname は percent-encoded)
+      const parts = pathname.split('/');
+      return decodeURIComponent(parts[2] || '');
+    } else if (currentSite === 'amazon') {
+      return params.get('k') || '';
+    } else if (currentSite === 'rakuten') {
+      // URL: /search/mall/<keyword>/... (パスベース、pathname は percent-encoded)
+      const parts = pathname.split('/');
+      return decodeURIComponent(parts[3] || '');
+    } else if (currentSite === 'yahooshopping') {
+      return params.get('p') || '';
+    } else if (currentSite === 'hardoff') {
+      return params.get('q') || '';
+    } else if (currentSite === 'ebay') {
+      return params.get('_nkw') || '';
+    }
+    console.log('⚠️ getSearchKeyword: 未知のサイト:', currentSite);
+    return '';
+  } catch (error) {
+    console.error('❌ 検索キーワード取得エラー:', error);
+    return '';
+  }
+}
+
+/**
+ * 検索画面にリンクバーを表示
+ * URL パラメータは即時取得できるため setTimeout 不要
+ * @param {string} currentSite - detectSearchPageSite の戻り値
+ */
+function initExternalLinksForSearch(currentSite) {
+  console.log('🔍 検索画面リンクバーを初期化:', currentSite);
+  const keyword = getSearchKeyword(currentSite);
+  if (keyword) {
+    createProductLinksBar(currentSite, keyword);
+    console.log('✅ 検索画面リンクバーを表示:', currentSite, keyword);
+  } else {
+    console.log('⚠️ 検索キーワードが取得できませんでした:', currentSite);
+  }
 }

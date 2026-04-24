@@ -197,6 +197,22 @@ function isNoiseText(text) {
   // サイトを判別
   const hostname = window.location.hostname;
   const pathname = window.location.pathname;
+
+  // ==========================================
+  // 検索ページ判定（商品ページ判定より先に実行）
+  // ==========================================
+  if (typeof detectSearchPageSite === 'function') {
+    const searchSite = detectSearchPageSite(hostname, pathname);
+    if (searchSite) {
+      _log('🔍 検索ページ検出:', searchSite, 'URL:', window.location.href);
+      if (typeof initExternalLinksForSearch === 'function') {
+        initExternalLinksForSearch(searchSite);
+      }
+      return; // 商品ページ抽出は不要
+    }
+  }
+
+  // 既存の商品ページ判定（変更なし）
   let currentSite = null;
 
   if (hostname.includes('ebay.') && pathname.includes('/itm/')) {
