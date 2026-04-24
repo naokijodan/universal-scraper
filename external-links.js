@@ -7,7 +7,7 @@
 const EXTERNAL_SITES = {
   rakuma: {
     name: 'ラクマ',
-    url: 'https://fril.jp/search/',
+    url: 'https://fril.jp/s?query=',
     color: '#e52618'
   },
   mercari: {
@@ -40,6 +40,12 @@ const EXTERNAL_SITES = {
     name: 'PayPayフリマ',
     url: 'https://paypayfleamarket.yahoo.co.jp/search/',
     color: '#ff8800'
+  },
+  hardoff: {
+    name: 'ハードオフ',
+    url: 'https://netmall.hardoff.co.jp/search/?q=',
+    color: '#FFCC00',
+    textColor: '#333'
   },
   ebay: {
     name: 'eBay',
@@ -168,6 +174,31 @@ function getProductKeyword(currentSite) {
       } else {
         console.log('⚠️ eBay: タイトル要素が見つかりません');
       }
+    } else if (currentSite === 'hardoff') {
+      // OGP タイトル形式: "ブランド|商品名|サイト名|WEB No." → parts[1] が商品名
+      const ogTitle = document.querySelector('meta[property="og:title"]');
+      if (ogTitle) {
+        const content = ogTitle.getAttribute('content') || '';
+        const parts = content.split('|');
+        if (parts.length >= 2 && parts[1].trim()) {
+          keyword = parts[1].trim();
+          console.log('✅ ハードオフ商品名 (OGP):', keyword);
+        } else {
+          console.log('⚠️ ハードオフ: OGPパーツ不足、h1フォールバックへ');
+        }
+      } else {
+        console.log('⚠️ ハードオフ: OGPタイトルなし、h1フォールバックへ');
+      }
+      // フォールバック: h1 要素
+      if (!keyword) {
+        const titleEl = document.querySelector('h1');
+        if (titleEl && titleEl.textContent.trim()) {
+          keyword = titleEl.textContent.trim();
+          console.log('✅ ハードオフ商品名 (h1フォールバック):', keyword);
+        } else {
+          console.log('⚠️ ハードオフ: タイトル要素が見つかりません');
+        }
+      }
     }
 
     if (!keyword) {
@@ -238,6 +269,7 @@ function createProductLinksBar(currentSite, keyword) {
     if (currentSite === 'amazon' && site === 'amazon') return false;
     if (currentSite === 'rakuten' && site === 'rakuten') return false;
     if (currentSite === 'ebay' && site === 'ebay') return false;
+    if (currentSite === 'hardoff' && site === 'hardoff') return false;
     return true;
   });
 
