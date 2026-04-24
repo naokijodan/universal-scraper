@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "とりこみ君",
   "short_name": "とりこみ君",
-  "version": "1.3.4",
+  "version": "1.3.5",
   "description": "ECサイト・フリマサイトの商品情報を取得し、スプレッドシートへのエクスポートやクリップボードへのコピーができます。",
   "permissions": [
     "clipboardWrite",
@@ -51,6 +51,35 @@
       ],
       "js": ["default_setting_json.js", "external-links.js", "content.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://*.ebay.com/*",
+        "https://*.ebay.co.jp/*",
+        "https://*.ebay.co.uk/*",
+        "https://*.ebay.de/*",
+        "https://*.ebay.fr/*",
+        "https://*.ebay.it/*",
+        "https://*.ebay.es/*",
+        "https://*.ebay.ca/*",
+        "https://*.ebay.com.au/*",
+        "https://*.rakuten.co.jp/*",
+        "https://www.amazon.co.jp/*",
+        "https://*.mercari.com/*",
+        "https://jp.mercari.com/*",
+        "https://auctions.yahoo.co.jp/*",
+        "https://page.auctions.yahoo.co.jp/*",
+        "https://paypayfleamarket.yahoo.co.jp/*",
+        "https://shopping.yahoo.co.jp/*",
+        "https://store.shopping.yahoo.co.jp/*",
+        "https://netmall.hardoff.co.jp/*",
+        "https://*.fril.jp/*",
+        "https://fril.jp/*",
+        "https://item.fril.jp/*"
+      ],
+      "js": ["spa-watcher.js"],
+      "world": "MAIN",
+      "run_at": "document_start"
     }
   ],
   "icons": {

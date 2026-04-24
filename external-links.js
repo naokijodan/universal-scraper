@@ -59,6 +59,10 @@ const EXTERNAL_SITES = {
   }
 };
 
+// SPA ナビゲーション用状態
+let _pendingProductBarCanceled = false; // 商品ページの pending setTimeout キャンセル用
+let _urlChangeTimer = null;             // URL 変化 debounce タイマー
+
 /**
  * 商品名からキーワードを抽出
  */
@@ -338,9 +342,11 @@ function createProductLinksBar(currentSite, keyword) {
  */
 function initExternalLinksForProduct(currentSite) {
   console.log('🔗 外部リンク機能を初期化:', currentSite);
+  _pendingProductBarCanceled = false; // ★ SPA 遷移時キャンセルをリセット
 
   // 少し待ってから表示
   setTimeout(() => {
+    if (_pendingProductBarCanceled) return; // ★ SPA 遷移で中断された場合はスキップ
     const keyword = getProductKeyword(currentSite);
     if (keyword) {
       createProductLinksBar(currentSite, keyword);
@@ -349,6 +355,7 @@ function initExternalLinksForProduct(currentSite) {
 
   // 2回目の試行（ページ読み込みが遅い場合に対応）
   setTimeout(() => {
+    if (_pendingProductBarCanceled) return; // ★ SPA 遷移で中断された場合はスキップ
     if (!document.getElementById('us-external-links-bar')) {
       const keyword = getProductKeyword(currentSite);
       if (keyword) {
@@ -436,3 +443,66 @@ function initExternalLinksForSearch(currentSite) {
     console.log('⚠️ 検索キーワードが取得できませんでした:', currentSite);
   }
 }
+
+/**
+ * URL 変化の実処理
+ * バーを削除し、新 URL を評価する（検索ページならバーを再表示）
+ * ★ 商品データ抽出（getProductData等）は呼ばない（スコープ制約）
+ */
+function _doHandleUrlChange() {
+  // pending の商品ページバーをキャンセル
+  _pendingProductBarCanceled = true;
+
+  // 既存バーを削除
+  const existingBar = document.getElementById('us-external-links-bar');
+  if (existingBar) {
+    existingBar.remove();
+    console.log('🗑️ SPA: 既存バーを削除しました');
+  }
+
+  // 新 URL を評価: 検索ページなら検索バーを表示
+  const hostname = window.location.hostname;
+  const pathname = window.location.pathname;
+  const searchSite = detectSearchPageSite(hostname, pathname);
+
+  if (searchSite) {
+    console.log('🔍 SPA: 検索ページへ遷移:', searchSite, window.location.href);
+    initExternalLinksForSearch(searchSite);
+  } else {
+    // 商品ページや他のページ: バーなし
+    // （スコープ制約: 商品データ抽出は SPA 遷移で再実行しない）
+    console.log('📦 SPA: 非検索ページへ遷移、バーなし:', pathname);
+  }
+}
+
+/**
+ * URL 変化ハンドラ（50ms debounce）
+ * replaceState の連続呼出によるチラつきを防ぐ
+ */
+function handleUrlChange() {
+  clearTimeout(_urlChangeTimer);
+  _urlChangeTimer = setTimeout(_doHandleUrlChange, 50);
+}
+
+/**
+ * SPA ナビゲーション監視をセットアップする
+ * MAIN world の spa-watcher.js と popstate リスナーで URL 変化を監視する
+ * ★ content.js の変更不要。このスクリプトのロード時に自動実行される
+ */
+function setupSpaNavigation() {
+  // pushState/replaceState のフックは MAIN world の spa-watcher.js が担う
+  // (ISOLATED world で history を書き換えてもページの MAIN world には効かないため)
+
+  // 戻る / 進むボタン対応 (popstate は DOM イベントで両 world で発火)
+  window.addEventListener('popstate', () => {
+    window.dispatchEvent(new Event('us-url-change'));
+  });
+
+  // spa-watcher.js (MAIN) からの us-url-change を受信
+  window.addEventListener('us-url-change', handleUrlChange);
+
+  console.log('🔄 SPA ナビゲーション監視を開始しました (MAIN world 連携)');
+}
+
+// スクリプト読み込み時に自動セットアップ
+setupSpaNavigation();
