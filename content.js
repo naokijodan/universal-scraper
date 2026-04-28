@@ -5103,7 +5103,7 @@ function isNoiseText(text) {
 
         values = [
           data.platform || (site === 'rakuten' ? 'rakuten' : site === 'yahooshopping' ? 'yahoo_shopping' : 'hardoff'),
-          data.url || window.location.href,
+          site === 'hardoff' ? (data.url || '') : (data.url || window.location.href),
           data.price || '',
           data.name || '',
           data.description || '',
