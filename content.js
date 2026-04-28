@@ -6677,7 +6677,8 @@ function isNoiseText(text) {
     _log('=== Hardoffデータ抽出開始 ===');
 
     try {
-      const url = window.location.href;
+      const pageUrl = window.location.href;
+      const productId = (window.location.pathname.match(/\/product\/(\d+)\/?/) || [])[1] || '';
 
       const jsonLdObjects = Array.from(document.querySelectorAll('script[type="application/ld+json"]'))
         .flatMap(el => {
@@ -6825,7 +6826,7 @@ function isNoiseText(text) {
         if (!trimmed) return '';
 
         try {
-          return new URL(trimmed, url).toString().replace(/,/g, '%2C');
+          return new URL(trimmed, pageUrl).toString().replace(/,/g, '%2C');
         } catch (e) {
           return '';
         }
@@ -6884,7 +6885,7 @@ function isNoiseText(text) {
 
       return {
         platform: 'hardoff',
-        url: url,
+        url: productId,
         price: price,
         name: name,
         description: description || '商品詳細なし',
