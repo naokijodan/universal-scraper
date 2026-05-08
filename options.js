@@ -22,6 +22,8 @@ const defaultSettings = {
   yahooLoadDelay: 3,
   frilLoadDelay: 3,
   hardoffLoadDelay: 3,
+  // ハードオフ専用：県未選択時に price に加算する固定送料（円）
+  hardoffShipping: 0,
   // フリマサイトアラート条件
   alertBadRate: 5,
   alertLowReviewCount: 100,
@@ -70,6 +72,9 @@ async function loadSettings() {
     document.getElementById('yahooLoadDelay').value = syncSettings.yahooLoadDelay;
     document.getElementById('frilLoadDelay').value = syncSettings.frilLoadDelay;
     document.getElementById('hardoffLoadDelay').value = syncSettings.hardoffLoadDelay;
+
+    // ハードオフ送料設定（数値で設定値、未設定なら0）
+    document.getElementById('hardoffShipping').value = Number.isFinite(syncSettings.hardoffShipping) ? syncSettings.hardoffShipping : 0;
 
     // フリマサイトアラート設定を設定
     document.getElementById('alertBadRate').value = syncSettings.alertBadRate || 5;
@@ -408,6 +413,8 @@ async function saveSettings() {
       yahooLoadDelay: parseFloat(document.getElementById('yahooLoadDelay').value) || 0,
       frilLoadDelay: parseFloat(document.getElementById('frilLoadDelay').value) || 0,
       hardoffLoadDelay: parseFloat(document.getElementById('hardoffLoadDelay').value) || 0,
+      // ハードオフ送料（負値は 0 にクリップ）
+      hardoffShipping: Math.max(0, parseInt(document.getElementById('hardoffShipping').value, 10) || 0),
       // フリマサイトアラート設定
       alertBadRate: parseFloat(document.getElementById('alertBadRate').value) || 5,
       alertLowReviewCount: parseInt(document.getElementById('alertLowReviewCount').value) || 100,

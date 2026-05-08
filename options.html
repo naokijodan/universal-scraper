@@ -408,6 +408,17 @@
             <span class="toggle-status" id="statusHardoff">有効</span>
           </div>
         </div>
+
+        <div class="setting-item">
+          <label class="setting-label" for="hardoffShipping">ハードオフの送料（円）</label>
+          <div class="setting-description">
+            ハードオフ商品の出力時に「本体価格＋ここに入力した送料」を合計して price として出力します。商品ページでお届け先の都道府県が選択され、ページ上に「送料（参考価格）」が表示されている場合は、そちらの値を優先します。
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="number" id="hardoffShipping" min="0" step="1" value="0" style="width: 160px;">
+            <span>円</span>
+          </div>
+        </div>
       </div>
 
       <!-- 画像出力設定 -->

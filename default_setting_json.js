@@ -227,6 +227,9 @@ const default_setting_json = {
   frilLoadDelay: 3,
   hardoffLoadDelay: 3,
 
+  // ハードオフ専用：県未選択時に price に加算する固定送料（円）
+  hardoffShipping: 0,
+
   // アラート・除外設定
   // alertKeywords: オプション画面の「除外キーワード」（赤ハイライト）
   // popupKeywords: オプション画面の「注目キーワード」（黄色ハイライト）

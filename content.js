@@ -265,6 +265,7 @@ function isNoiseText(text) {
     paypayLoadDelay: 0,
     frilLoadDelay: 0,
     hardoffLoadDelay: 3,
+    hardoffShipping: 0,
     alertKeywords: [],
     popupKeywords: [],
     excludeKeywords: [],
@@ -1580,6 +1581,69 @@ function isNoiseText(text) {
   buttonContainer.appendChild(topRow);
   buttonContainer.appendChild(exportButton);
 
+  // ==========================================
+  // ハードオフ送料内訳表示（ハードオフのみ）
+  // ボタン直下に「価格 X ＋ 送料 Y(設定値|ページ表示) ＝ Z 円」を表示
+  // 県選択でページ送料が変わったら動的更新する
+  // ==========================================
+  let hardoffBreakdownEl = null;
+  const updateHardoffBreakdown = () => {
+    if (!hardoffBreakdownEl || !extractedData || extractedData.error) return;
+    const price = Number(extractedData.price) || 0;
+    const shipping = Number(extractedData.shipping) || 0;
+    const total = Number(extractedData.total) || price;
+    const sourceLabel = extractedData.shippingSource === 'page' ? 'ページ表示' : '設定値';
+    hardoffBreakdownEl.textContent =
+      `価格 ${price.toLocaleString()} ＋ 送料 ${shipping.toLocaleString()}（${sourceLabel}） ＝ ${total.toLocaleString()}円（出力値）`;
+  };
+
+  if (currentSite === 'hardoff' && extractedData && !extractedData.error) {
+    hardoffBreakdownEl = document.createElement('div');
+    hardoffBreakdownEl.id = 'unified-scraper-hardoff-breakdown';
+    Object.assign(hardoffBreakdownEl.style, {
+      fontSize: '11px',
+      color: 'white',
+      background: 'rgba(0, 0, 0, 0.55)',
+      padding: '6px 8px',
+      borderRadius: '6px',
+      marginTop: '4px',
+      width: '100%',
+      boxSizing: 'border-box',
+      textAlign: 'center',
+      lineHeight: '1.4',
+      whiteSpace: 'normal'
+    });
+    buttonContainer.appendChild(hardoffBreakdownEl);
+    updateHardoffBreakdown();
+
+    // 送料を再計算して extractedData と内訳表示を更新
+    const recalcHardoffShipping = () => {
+      try {
+        const info = readHardoffShippingFromPage(settings);
+        extractedData.shipping = info.shipping;
+        extractedData.shippingSource = info.source;
+        extractedData.total = (Number(extractedData.price) || 0) + info.shipping;
+        updateHardoffBreakdown();
+      } catch (error) {
+        console.error('❌ Hardoff送料再計算エラー:', error);
+      }
+    };
+
+    // 送料表示エリアの DOM 変化（display 属性 / 中身）を MutationObserver で監視
+    // 県選択 → calcDelvCom が Ajax で送料取得 → DOM 書き換えが起きるのを Observer が必ず捕捉する
+    const postageWrapper = document.querySelector('.product-detail-postage-price');
+    if (postageWrapper) {
+      const observer = new MutationObserver(recalcHardoffShipping);
+      observer.observe(postageWrapper, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+      });
+    }
+  }
+
   // ドラッグ機能（コンテナ全体をドラッグ）
   let isDragging = false;
   let dragStartX = 0;
@@ -2334,10 +2398,12 @@ function isNoiseText(text) {
         </div>
       `;
     } else {
-      // eBay, 楽天, Yahoo!ショッピング
-      const priceLabel = (site === 'rakuten' || site === 'yahooshopping') ? '価格（送料込み）' : '価格';
+      // eBay, 楽天, Yahoo!ショッピング, ハードオフ
+      const priceLabel = (site === 'rakuten' || site === 'yahooshopping' || site === 'hardoff') ? '価格（送料込み）' : '価格';
       const priceType = (site === 'rakuten' || site === 'yahooshopping') ? 'number' : 'number';
       const priceStep = (site === 'rakuten' || site === 'hardoff') ? '' : 'step="0.01"';
+      // ハードオフは送料込みの total をプレビューに表示する
+      const priceValue = (site === 'hardoff' && Number.isFinite(Number(data.total))) ? Number(data.total) : data.price;
 
       // 画像ギャラリー（配列または文字列に対応）
       const imageUrls = Array.isArray(data.imageUrl)
@@ -2386,7 +2452,7 @@ function isNoiseText(text) {
           <label style="display: block; font-weight: bold; margin-bottom: 8px; color: #555;">
             🔸 ${priceLabel}<span style="color: ${colors.primary}; font-size: 12px; margin-left: 8px;">※要確認</span>
           </label>
-          <input type="${priceType}" id="preview-price" value="${data.price}" ${priceStep}
+          <input type="${priceType}" id="preview-price" value="${priceValue}" ${priceStep}
             style="width: 100%; padding: 10px; border: 2px solid #ff9800; border-radius: 4px; font-size: 16px; font-weight: bold;">
           <div style="font-size: 12px; color: #666; margin-top: 5px;">
             抽出された価格が正しいか確認してください。誤っている場合は修正できます。
@@ -2545,15 +2611,29 @@ function isNoiseText(text) {
           imageUrl: data.imageUrl // 元のデータから画像URLを保持
         };
       } else {
+        const previewPriceRaw = document.getElementById('preview-price').value;
+        const previewPriceInt = parseInt(previewPriceRaw, 10) || 0;
+        const previewPriceFloat = parseFloat(previewPriceRaw) || 0;
+        // ハードオフ：プレビューには合計値が表示されているので、編集値は total。price は total - shipping で逆算（内部整合性を保つ）
+        const hardoffShippingForEdit = Number(data.shipping) || 0;
+        const hardoffPriceFromTotal = Math.max(0, previewPriceInt - hardoffShippingForEdit);
         editedData = {
           platform: document.getElementById('preview-platform').value,
           url: document.getElementById('preview-url').value,
-          price: (site === 'rakuten' || site === 'hardoff') ? parseInt(document.getElementById('preview-price').value) || 0 : parseFloat(document.getElementById('preview-price').value) || 0,
+          price: site === 'hardoff'
+            ? hardoffPriceFromTotal
+            : ((site === 'rakuten') ? previewPriceInt : previewPriceFloat),
           name: document.getElementById('preview-name').value,
           description: document.getElementById('preview-description').value,
           seller: document.getElementById('preview-seller').value,
           imageUrl: data.imageUrl // 元のデータから画像URLを保持
         };
+
+        if (site === 'hardoff') {
+          editedData.shipping = hardoffShippingForEdit;
+          editedData.shippingSource = data.shippingSource || 'default';
+          editedData.total = previewPriceInt;
+        }
 
         // フリマサイトの追加フィールドを保持
         if (site === 'mercari' || site === 'mercari_shop' || site === 'yahuoku' || site === 'paypayfurima' || site === 'rakuma') {
@@ -2610,15 +2690,29 @@ function isNoiseText(text) {
             imageUrl: data.imageUrl // 元のデータから画像URLを保持
           };
         } else {
+          const previewPriceRaw = document.getElementById('preview-price').value;
+          const previewPriceInt = parseInt(previewPriceRaw, 10) || 0;
+          const previewPriceFloat = parseFloat(previewPriceRaw) || 0;
+          // ハードオフ：プレビューには合計値が表示されているので、編集値は total。price は total - shipping で逆算（内部整合性を保つ）
+          const hardoffShippingForEdit = Number(data.shipping) || 0;
+          const hardoffPriceFromTotal = Math.max(0, previewPriceInt - hardoffShippingForEdit);
           editedData = {
             platform: document.getElementById('preview-platform').value,
             url: document.getElementById('preview-url').value,
-            price: (site === 'rakuten' || site === 'hardoff') ? parseInt(document.getElementById('preview-price').value) || 0 : parseFloat(document.getElementById('preview-price').value) || 0,
+            price: site === 'hardoff'
+              ? hardoffPriceFromTotal
+              : ((site === 'rakuten') ? previewPriceInt : previewPriceFloat),
             name: document.getElementById('preview-name').value,
             description: document.getElementById('preview-description').value,
             seller: document.getElementById('preview-seller').value,
             imageUrl: data.imageUrl // 元のデータから画像URLを保持
           };
+
+          if (site === 'hardoff') {
+            editedData.shipping = hardoffShippingForEdit;
+            editedData.shippingSource = data.shippingSource || 'default';
+            editedData.total = previewPriceInt;
+          }
 
           // フリマサイトの追加フィールドを保持
           if (site === 'mercari' || site === 'mercari_shop' || site === 'yahuoku' || site === 'paypayfurima' || site === 'rakuma') {
@@ -2782,15 +2876,19 @@ function isNoiseText(text) {
       tsvData = row.map(field => field.toString().replace(/\t/g, ' ').replace(/\n/g, ' ')).join('\t');
 
     } else {
-      // eBay, 楽天, Yahoo!ショッピング（7フィールド + 画像: 基本6 + ページURL1 + 画像）
-      _log('🛒 eBay/楽天/Yahoo!ショッピング: クリップボードコピー');
+      // eBay, 楽天, Yahoo!ショッピング, ハードオフ（7フィールド + 画像: 基本6 + ページURL1 + 画像）
+      _log('🛒 eBay/楽天/Yahoo!ショッピング/ハードオフ: クリップボードコピー');
+      // ハードオフは送料込みの total を price として出力する
+      const priceForClipboard = (site === 'hardoff' && Number.isFinite(Number(data.total)))
+        ? Number(data.total)
+        : data.price;
       const row = [
-        data.platform,    // 1. プラットフォーム (A列)
-        data.url,         // 2. URL (B列)
-        data.price,       // 3. 価格 (C列)
-        data.name,        // 4. 商品名 (D列)
-        data.description, // 5. 説明 (E列)
-        data.seller       // 6. 販売者 (F列)
+        data.platform,        // 1. プラットフォーム (A列)
+        data.url,             // 2. URL (B列)
+        priceForClipboard,    // 3. 価格 (C列)
+        data.name,            // 4. 商品名 (D列)
+        data.description,     // 5. 説明 (E列)
+        data.seller           // 6. 販売者 (F列)
       ];
 
       // enableImageInClipboard設定で出力範囲を制御
@@ -2822,7 +2920,18 @@ function isNoiseText(text) {
     await navigator.clipboard.writeText(tsvData);
 
     const displayName = site === 'amazon' ? data.title : data.name;
-    const displayPrice = (site === 'rakuten' || site === 'hardoff') ? `${data.price}円` : site === 'amazon' ? data.price : `$${data.price}`;
+    // ハードオフは送料込みの total を価格として通知に表示する
+    const hardoffShownPrice = (site === 'hardoff' && Number.isFinite(Number(data.total))) ? Number(data.total) : data.price;
+    let displayPrice;
+    if (site === 'hardoff') {
+      displayPrice = `${(Number(hardoffShownPrice) || 0).toLocaleString()}円`;
+    } else if (site === 'rakuten') {
+      displayPrice = `${data.price}円`;
+    } else if (site === 'amazon') {
+      displayPrice = data.price;
+    } else {
+      displayPrice = `$${data.price}`;
+    }
     const extraInfo = site === 'amazon' ? `\nASIN: ${data.asin}` : '';
 
     showNotification(
@@ -5101,10 +5210,15 @@ function isNoiseText(text) {
           imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
         }
 
+        // ハードオフは送料込みの total を price として出力する
+        const priceForOutput = (site === 'hardoff' && Number.isFinite(Number(data.total)))
+          ? Number(data.total)
+          : (data.price || '');
+
         values = [
           data.platform || (site === 'rakuten' ? 'rakuten' : site === 'yahooshopping' ? 'yahoo_shopping' : 'hardoff'),
           site === 'hardoff' ? (data.url || '') : (data.url || window.location.href),
-          data.price || '',
+          priceForOutput,
           data.name || '',
           data.description || '',
           data.seller || '',
@@ -6883,6 +6997,9 @@ function isNoiseText(text) {
         };
       }
 
+      // ハードオフ送料の決定: ページ表示があればそちら、なければ設定値
+      const shippingInfo = readHardoffShippingFromPage(settings);
+
       return {
         platform: 'hardoff',
         url: productId,
@@ -6890,11 +7007,55 @@ function isNoiseText(text) {
         name: name,
         description: description || '商品詳細なし',
         seller: seller || '出品者情報なし',
-        imageUrl: imageUrl || ''
+        imageUrl: imageUrl || '',
+        shipping: shippingInfo.shipping,
+        shippingSource: shippingInfo.source,
+        total: price + shippingInfo.shipping
       };
     } catch (error) {
       console.error('❌ Hardoff抽出エラー:', error);
       return { error: 'データの抽出に失敗しました: ' + error.message };
+    }
+  }
+
+  // ==========================================
+  // ハードオフ送料：ページから取得（県選択済みで表示されている場合のみ）
+  // 取得できない場合は設定値（hardoffShipping）を使う
+  // 戻り値: { shipping: number, source: 'page' | 'default' }
+  // ==========================================
+  function readHardoffShippingFromPage(settings) {
+    const defaultShipping = Math.max(0, parseInt(settings?.hardoffShipping, 10) || 0);
+    try {
+      const wrapper = document.querySelector('.product-detail-postage-price');
+      const main = document.querySelector('.product-detail-postage-price__main');
+      if (!wrapper || !main) {
+        return { shipping: defaultShipping, source: 'default' };
+      }
+      // 親要素の display:none をチェック（県選択前は非表示）
+      const wrapperStyle = wrapper.getAttribute('style') || '';
+      const isHidden = /display\s*:\s*none/i.test(wrapperStyle)
+        || (window.getComputedStyle && window.getComputedStyle(wrapper).display === 'none');
+      if (isHidden) {
+        return { shipping: defaultShipping, source: 'default' };
+      }
+      const text = (main.textContent || '').trim();
+      // 「送料無料」「無料」表記が出ているケースは送料 0 円として扱う（将来 DOM 仕様変化への防御）
+      if (/送料無料|無料/.test(text)) {
+        return { shipping: 0, source: 'page' };
+      }
+      // 「円」の直前の数値を取る（先頭の関係ない数字を誤認しないため）
+      const match = text.match(/(\d[\d,]*)\s*円/);
+      if (!match) {
+        return { shipping: defaultShipping, source: 'default' };
+      }
+      const value = parseInt(match[1].replace(/,/g, ''), 10);
+      if (!Number.isFinite(value) || value < 0) {
+        return { shipping: defaultShipping, source: 'default' };
+      }
+      return { shipping: value, source: 'page' };
+    } catch (error) {
+      console.error('❌ Hardoff送料DOM読み取りエラー:', error);
+      return { shipping: defaultShipping, source: 'default' };
     }
   }
 
