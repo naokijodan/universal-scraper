@@ -73,6 +73,26 @@
       margin-bottom: 0;
     }
 
+    /* コンパクトレイアウト: ラベル(説明含む) + 入力欄 を横並びにして縦の高さを抑える */
+    .compact-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .compact-row:last-child { border-bottom: none; }
+    .compact-row .label-block { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .compact-row .label-block .label { font-weight: 600; color: #555; font-size: 14px; }
+    .compact-row .label-block .desc { font-size: 12px; color: #888; line-height: 1.4; }
+    .compact-row .input-block { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .compact-row .input-block input[type="number"] { width: 90px; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
+    .compact-row .input-block select { padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
+    /* ヘッダー行用: タイトル右にトグルを配置 */
+    .section-title-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #667eea; }
+    .section-title-row .title { font-size: 20px; font-weight: bold; color: #333; display: flex; align-items: center; gap: 10px; }
+
     .setting-label {
       display: block;
       font-weight: 600;
@@ -354,23 +374,10 @@
 
       <!-- AI 翻訳設定 -->
       <div class="section">
-        <h2 class="section-title">
-          AI 翻訳設定（実験版）
-          <span class="site-badge" style="background: linear-gradient(135deg, #6a1b9a 0%, #4527a0 100%); color: white;">AI</span>
-        </h2>
-
-        <div class="info-box" style="background-color: #fff3e0; border-left-color: #f57c00; color: #e65100;">
-          🔒 <strong>API キーの取り扱い</strong><br>
-          ・あなたの OpenAI API キーは、お使いのブラウザの<strong>ローカルストレージのみ</strong>に保存されます（他端末への自動同期はしません）。<br>
-          ・API は OpenAI 公式（<code>https://api.openai.com</code>）への通信時のみ使用されます。<br>
-          ・利用料金はあなたの OpenAI アカウントに直接課金されます。<br>
-          ・ <strong>必ず OpenAI ダッシュボードで「Spending limits」を設定してください。</strong>万一キーが漏洩した場合の損害を上限化できます。
-        </div>
-
-        <div class="setting-item" style="margin-top: 25px;">
-          <label class="setting-label">AI 翻訳機能を使う</label>
-          <div class="setting-description">
-            ON にすると、対応プラットフォームの商品ページで取り込み時に AI が英訳タイトル・HTML 商品説明・eBay カテゴリ ID 候補・Item Specifics を自動生成します。OFF のときは従来通り日本語で取り込みます。
+        <div class="section-title-row">
+          <div class="title">
+            AI 翻訳設定
+            <span class="site-badge" style="background: linear-gradient(135deg, #6a1b9a 0%, #4527a0 100%); color: white;">AI</span>
           </div>
           <div class="toggle-container">
             <label class="toggle-switch">
@@ -381,7 +388,12 @@
           </div>
         </div>
 
-        <div class="divider"></div>
+        <div class="info-box" style="background-color: #fff3e0; border-left-color: #f57c00; color: #e65100;">
+          🔒 <strong>API キーの取り扱い</strong><br>
+          ・OpenAI API キーはお使いのブラウザの<strong>ローカルストレージのみ</strong>に保存（他端末への自動同期なし）。<br>
+          ・通信先は OpenAI 公式（<code>https://api.openai.com</code>）。利用料金は OpenAI アカウントに直接課金。<br>
+          ・<strong>必ず OpenAI ダッシュボードで「Spending limits」を設定してください。</strong>
+        </div>
 
         <div class="setting-item">
           <label class="setting-label" for="aiApiKey">OpenAI API キー</label>
@@ -398,63 +410,63 @@
 
         <div class="divider"></div>
 
-        <div class="setting-item">
-          <label class="setting-label" for="aiModel">使用モデル</label>
-          <div class="setting-description">
-            OpenAI のモデルを選択します。新しいモデルを使いたい場合は「カスタム」を選んでモデル名を直接入力できます。
+        <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #e0e0e0;">
+          <div class="compact-row">
+            <div class="label-block">
+              <span class="label">使用モデル</span>
+              <span class="desc">OpenAI のモデル。「カスタム」で任意モデル名を直接入力可。</span>
+            </div>
+            <div class="input-block">
+              <select id="aiModel">
+                <option value="gpt-5.5">GPT-5.5（最高精度）</option>
+                <option value="gpt-5.4">GPT-5.4（バランス）</option>
+                <option value="gpt-5.4-mini" selected>GPT-5.4 mini（推奨）</option>
+                <option value="custom">カスタム</option>
+              </select>
+              <input type="text" id="aiCustomModel" placeholder="モデル名" style="width: 140px; display: none;">
+            </div>
           </div>
-          <select id="aiModel" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
-            <option value="gpt-5.5">GPT-5.5（最高精度・高コスト）</option>
-            <option value="gpt-5.4">GPT-5.4（バランス）</option>
-            <option value="gpt-5.4-mini" selected>GPT-5.4 mini（推奨・コスト重視）</option>
-            <option value="custom">カスタム（モデル名を直接入力）</option>
-          </select>
-          <input type="text" id="aiCustomModel" placeholder="例: gpt-5.5-mini" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; margin-top: 10px; display: none;">
-        </div>
 
-        <div class="divider"></div>
-
-        <div class="setting-item">
-          <label class="setting-label">Web 検索ツール</label>
-          <div class="setting-description">
-            ON にすると、AI が必要に応じて Web 検索を行い eBay カテゴリ ID やブランド名の正式表記などを参照します。精度向上が期待できますが料金が増えます。
+          <div class="compact-row">
+            <div class="label-block">
+              <span class="label">Web 検索ツール</span>
+              <span class="desc">eBay カテゴリ ID やブランド名を Web 検索で参照（精度向上、料金増）。</span>
+            </div>
+            <div class="input-block">
+              <label class="toggle-switch">
+                <input type="checkbox" id="aiWebSearchEnabled" checked>
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-status" id="statusAiWebSearchEnabled">有効</span>
+            </div>
           </div>
-          <div class="toggle-container">
-            <label class="toggle-switch">
-              <input type="checkbox" id="aiWebSearchEnabled" checked>
-              <span class="toggle-slider"></span>
-            </label>
-            <span class="toggle-status" id="statusAiWebSearchEnabled">有効</span>
-          </div>
-        </div>
 
-        <div class="divider"></div>
-
-        <div class="setting-item">
-          <label class="setting-label" for="aiDailyLimit">1 日あたりの AI 翻訳上限</label>
-          <div class="setting-description">
-            暴走時の被害を抑えるための拡張機能側の上限です。OpenAI 側の Spending limits とは別に動作します。
+          <div class="compact-row">
+            <div class="label-block">
+              <span class="label">1 日あたりの AI 翻訳上限</span>
+              <span class="desc">拡張機能側の暴走防止。OpenAI 側の Spending limits とは別。</span>
+            </div>
+            <div class="input-block">
+              <input type="number" id="aiDailyLimit" min="1" max="100000" step="1" value="1000">
+              <span>件 / 日</span>
+            </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <input type="number" id="aiDailyLimit" min="1" max="100000" step="1" value="1000" style="width: 160px;">
-            <span>件 / 日</span>
-          </div>
-        </div>
 
-        <div class="divider"></div>
-
-        <div class="setting-item">
-          <label class="setting-label" for="aiImageCount">AI に渡す画像枚数</label>
-          <div class="setting-description">
-            商品ページから取得した画像のうち、何枚を AI に渡すかを指定します。<strong>枚数が多いほど精度は上がりますが、API 料金も比例して増えます。</strong>1 枚はメイン画像、2 枚目以降はサブ画像です。
+          <div class="compact-row">
+            <div class="label-block">
+              <span class="label">AI に渡す画像枚数</span>
+              <span class="desc">枚数↑で精度↑、API 料金↑。1 枚はメイン画像、2 枚目以降はサブ。</span>
+            </div>
+            <div class="input-block">
+              <select id="aiImageCount">
+                <option value="0">渡さない</option>
+                <option value="1" selected>1 枚（推奨）</option>
+                <option value="3">3 枚</option>
+                <option value="5">5 枚</option>
+                <option value="10">10 枚</option>
+              </select>
+            </div>
           </div>
-          <select id="aiImageCount" style="width: 240px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
-            <option value="0">画像を渡さない（テキストのみ）</option>
-            <option value="1" selected>1 枚（メイン画像のみ・推奨）</option>
-            <option value="3">3 枚</option>
-            <option value="5">5 枚</option>
-            <option value="10">10 枚（最大）</option>
-          </select>
         </div>
 
         <div class="divider"></div>
@@ -671,64 +683,38 @@ function doPost(e) {
       <!-- 画像読み込み待機時間設定 -->
       <div class="section">
         <h2 class="section-title">画像読み込み待機時間設定</h2>
-        <div class="setting-description" style="margin-bottom: 20px;">
-          各サイトで画像の遅延読み込みに対応するため、データ抽出前の待機時間を設定できます
+        <div class="setting-description" style="margin-bottom: 12px;">
+          各サイトで画像の遅延読み込みに対応するため、データ抽出前の待機秒数を設定できます（0 = 待機なし）。
         </div>
-
-        <div class="setting-item">
-          <label class="setting-label" for="amazonLoadDelay">Amazon 待機時間（秒）</label>
-          <div class="setting-description">
-            Amazonの画像が遅延読み込みされるため、3秒推奨
+        <div>
+          <div class="compact-row">
+            <div class="label-block"><span class="label">Amazon</span><span class="desc">Amazon の画像は遅延読み込み、3 秒推奨。</span></div>
+            <div class="input-block"><input type="number" id="amazonLoadDelay" min="0" max="10" step="0.5" value="3"><span>秒</span></div>
           </div>
-          <input type="number" id="amazonLoadDelay" min="0" max="10" step="0.5" value="3">
-        </div>
-
-        <div class="setting-item">
-          <label class="setting-label" for="ebayLoadDelay">eBay 待機時間（秒）</label>
-          <div class="setting-description">
-            eBayで画像読み込みが遅い場合に調整してください（0 = 待機なし）
+          <div class="compact-row">
+            <div class="label-block"><span class="label">eBay</span><span class="desc">画像読み込みが遅い場合のみ調整。</span></div>
+            <div class="input-block"><input type="number" id="ebayLoadDelay" min="0" max="10" step="0.5" value="0"><span>秒</span></div>
           </div>
-          <input type="number" id="ebayLoadDelay" min="0" max="10" step="0.5" value="0">
-        </div>
-
-        <div class="setting-item">
-          <label class="setting-label" for="rakutenLoadDelay">楽天市場 待機時間（秒）</label>
-          <div class="setting-description">
-            楽天で画像読み込みが遅い場合に調整してください（0 = 待機なし）
+          <div class="compact-row">
+            <div class="label-block"><span class="label">楽天市場</span><span class="desc">画像読み込みが遅い場合のみ調整。</span></div>
+            <div class="input-block"><input type="number" id="rakutenLoadDelay" min="0" max="10" step="0.5" value="0"><span>秒</span></div>
           </div>
-          <input type="number" id="rakutenLoadDelay" min="0" max="10" step="0.5" value="0">
-        </div>
-
-        <div class="setting-item">
-          <label class="setting-label" for="mercariLoadDelay">メルカリ 待機時間（秒）</label>
-          <div class="setting-description">
-            メルカリで画像読み込みが遅い場合に調整してください（0 = 待機なし）
+          <div class="compact-row">
+            <div class="label-block"><span class="label">メルカリ</span><span class="desc">画像読み込みが遅い場合のみ調整。</span></div>
+            <div class="input-block"><input type="number" id="mercariLoadDelay" min="0" max="10" step="0.5" value="0"><span>秒</span></div>
           </div>
-          <input type="number" id="mercariLoadDelay" min="0" max="10" step="0.5" value="0">
-        </div>
-
-        <div class="setting-item">
-          <label class="setting-label" for="yahooLoadDelay">ヤフオク 待機時間（秒）</label>
-          <div class="setting-description">
-            ヤフオクで画像読み込みが遅い場合に調整してください（0 = 待機なし）
+          <div class="compact-row">
+            <div class="label-block"><span class="label">ヤフオク</span><span class="desc">画像読み込みが遅い場合のみ調整。</span></div>
+            <div class="input-block"><input type="number" id="yahooLoadDelay" min="0" max="10" step="0.5" value="0"><span>秒</span></div>
           </div>
-          <input type="number" id="yahooLoadDelay" min="0" max="10" step="0.5" value="0">
-        </div>
-
-        <div class="setting-item">
-          <label class="setting-label" for="frilLoadDelay">ラクマ 待機時間（秒）</label>
-          <div class="setting-description">
-            ラクマで画像読み込みが遅い場合に調整してください（0 = 待機なし）
+          <div class="compact-row">
+            <div class="label-block"><span class="label">ラクマ</span><span class="desc">画像読み込みが遅い場合のみ調整。</span></div>
+            <div class="input-block"><input type="number" id="frilLoadDelay" min="0" max="10" step="0.5" value="0"><span>秒</span></div>
           </div>
-          <input type="number" id="frilLoadDelay" min="0" max="10" step="0.5" value="0">
-        </div>
-
-        <div class="setting-item">
-          <label class="setting-label" for="hardoffLoadDelay">ハードオフ（オフモール） 待機時間（秒）</label>
-          <div class="setting-description">
-            ハードオフで画像読み込みが遅い場合に調整してください（0 = 待機なし）
+          <div class="compact-row">
+            <div class="label-block"><span class="label">ハードオフ（オフモール）</span><span class="desc">3 秒推奨。</span></div>
+            <div class="input-block"><input type="number" id="hardoffLoadDelay" min="0" max="10" step="0.5" value="3"><span>秒</span></div>
           </div>
-          <input type="number" id="hardoffLoadDelay" min="0" max="10" step="0.5" value="3">
         </div>
       </div>
 
@@ -754,58 +740,31 @@ function doPost(e) {
 
         <h3 class="section-title">フリマ設定（メルカリ、ヤフオク、PayPayフリマ、ラクマ）</h3>
 
-        <div class="setting-item">
-          <label class="setting-label">悪い評価の割合アラート</label>
-          <div class="setting-description">
-            悪い評価率が次の値以上の場合にアラートを表示します
+        <div>
+          <div class="compact-row">
+            <div class="label-block"><span class="label">悪い評価の割合</span><span class="desc">この値以上なら警告。</span></div>
+            <div class="input-block"><input type="number" id="alertBadRate" min="0" max="100" step="0.1"><span>% 以上で警告</span></div>
           </div>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <input type="number" id="alertBadRate" min="0" max="100" step="0.1" style="width: 100px;">
-            <span>%以上ならアラートを表示</span>
+          <div class="compact-row">
+            <div class="label-block"><span class="label">評価件数</span><span class="desc">この値以下なら警告。</span></div>
+            <div class="input-block"><input type="number" id="alertLowReviewCount" min="0" step="1"><span>件 以下で警告</span></div>
           </div>
-        </div>
-
-        <div class="setting-item">
-          <label class="setting-label">評価件数のアラート</label>
-          <div class="setting-description">
-            評価件数が次の値以下の場合にアラートを表示します
+          <div class="compact-row">
+            <div class="label-block"><span class="label">出品経過日数</span><span class="desc">出品から経過した日数。</span></div>
+            <div class="input-block"><input type="number" id="alertDaysFromListing" min="0" step="1"><span>日 以上で警告</span></div>
           </div>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <input type="number" id="alertLowReviewCount" min="0" step="1" style="width: 100px;">
-            <span>件以下ならアラートを表示</span>
+          <div class="compact-row">
+            <div class="label-block"><span class="label">更新経過日数</span><span class="desc">最終更新から経過した日数。</span></div>
+            <div class="input-block"><input type="number" id="alertDaysFromUpdate" min="0" step="1"><span>日 以上で警告</span></div>
           </div>
-        </div>
-
-        <div class="setting-item">
-          <label class="setting-label">出品経過日数アラート</label>
-          <div class="setting-description">
-            出品からの経過日数が次の値以上の場合にアラートを表示します
-          </div>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <input type="number" id="alertDaysFromListing" min="0" step="1" style="width: 100px;">
-            <span>日経過したらアラートを表示</span>
-          </div>
-        </div>
-
-        <div class="setting-item">
-          <label class="setting-label">更新経過日数アラート</label>
-          <div class="setting-description">
-            更新からの経過日数が次の値以上の場合にアラートを表示します
-          </div>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <input type="number" id="alertDaysFromUpdate" min="0" step="1" style="width: 100px;">
-            <span>日経過したらアラートを表示</span>
-          </div>
-        </div>
-
-        <div class="setting-item">
-          <label class="setting-label">発送日数アラート</label>
-          <div class="setting-description">
-            発送までの日数が「4〜7日」の場合にアラートを表示します
-          </div>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <input type="checkbox" id="alertHandlingDays" style="width: 20px; height: 20px;">
-            <span>「4〜7日」でアラートを表示する</span>
+          <div class="compact-row">
+            <div class="label-block"><span class="label">発送日数</span><span class="desc">「4〜7 日」表示の場合に警告する。</span></div>
+            <div class="input-block">
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="checkbox" id="alertHandlingDays" style="width: 18px; height: 18px;">
+                <span>有効</span>
+              </label>
+            </div>
           </div>
         </div>
 
