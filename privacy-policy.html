@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>プライバシーポリシー - とりこみ君AI</title>
+  <title>プライバシーポリシー - とりこみ君</title>
   <style>
     * {
       box-sizing: border-box;
@@ -74,10 +74,10 @@
 <body>
   <div class="container">
     <h1>プライバシーポリシー</h1>
-    <p class="app-name">とりこみ君AI Chrome拡張機能</p>
+    <p class="app-name">とりこみ君 Chrome拡張機能</p>
 
     <h2>はじめに</h2>
-    <p>本プライバシーポリシーは、Chrome拡張機能「とりこみ君AI」（以下「本拡張機能」）における、ユーザー情報の取り扱いについて説明します。</p>
+    <p>本プライバシーポリシーは、Chrome拡張機能「とりこみ君」（以下「本拡張機能」）における、ユーザー情報の取り扱いについて説明します。</p>
 
     <h2>収集するデータ</h2>
     <p>本拡張機能は、以下のデータをユーザーのブラウザ内でのみ取得・処理します：</p>
@@ -114,7 +114,7 @@
       <li>ユーザーが入力した OpenAI API キーは、ブラウザのローカルストレージ（<code>chrome.storage.local</code>）にのみ保存されます。</li>
       <li>API キーは <strong>他の端末への自動同期は行いません</strong>（chrome.storage.sync には保存しません）。</li>
       <li>API キーの送信先は OpenAI 公式 API（<code>https://api.openai.com</code>）のみです。</li>
-      <li>API キーは <code>chrome.storage.local.setAccessLevel</code> によって信頼されたコンテキスト（拡張機能の Service Worker および設定画面）からのみ読み取り可能に制限されます。</li>
+      <li>API キーは拡張機能の Service Worker（バックグラウンドスクリプト）内でのみ参照され、商品ページに挿入される content script からは API キーを直接読み取らない設計になっています。</li>
       <li>本拡張機能の利用ログ・テレメトリーを開発者を含む第三者に送信することはありません。</li>
       <li>ユーザーは設定画面からいつでも API キーを削除できます。</li>
       <li>API の利用料金は、ユーザー自身の OpenAI アカウントに直接課金されます。</li>
