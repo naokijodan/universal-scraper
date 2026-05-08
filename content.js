@@ -266,6 +266,16 @@ function isNoiseText(text) {
     frilLoadDelay: 0,
     hardoffLoadDelay: 3,
     hardoffShipping: 0,
+    // AI 翻訳設定
+    aiTranslationEnabled: false,
+    aiModel: 'gpt-5.4-mini',
+    aiCustomModel: '',
+    aiWebSearchEnabled: true,
+    aiImageCount: 1,
+    aiPlatforms: { mercari: true, rakuten: false, yahooshopping: false, hardoff: false },
+    aiPromptOverride_common: '',
+    aiPromptOverride_mercari: '',
+    aiMyTags: '',
     alertKeywords: [],
     popupKeywords: [],
     excludeKeywords: [],
@@ -1580,6 +1590,81 @@ function isNoiseText(text) {
   // コンテナにボタンを追加
   buttonContainer.appendChild(topRow);
   buttonContainer.appendChild(exportButton);
+
+  // ==========================================
+  // AI 翻訳ボタン（メルカリのみ・AI翻訳ON時）
+  // ==========================================
+  const aiPlatformOn = settings.aiPlatforms && settings.aiPlatforms[currentSite];
+  if (settings.aiTranslationEnabled && aiPlatformOn && currentSite === 'mercari' && extractedData && !extractedData.error) {
+    const aiButton = document.createElement('button');
+    aiButton.id = 'unified-scraper-ai-btn';
+    aiButton.innerHTML = '🤖 AI 翻訳（eBay 出品データ生成）';
+    Object.assign(aiButton.style, {
+      padding: '10px 16px',
+      backgroundColor: '#6a1b9a',
+      color: 'white',
+      border: 'none',
+      borderRadius: '8px',
+      fontSize: '13px',
+      fontWeight: 'bold',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '6px',
+      boxShadow: '0 4px 12px rgba(106, 27, 154, 0.3)',
+      transition: 'all 0.2s',
+      userSelect: 'none',
+      width: '100%',
+      marginTop: '6px',
+      whiteSpace: 'nowrap'
+    });
+    const originalAiLabel = aiButton.innerHTML;
+    const aiOriginalBg = aiButton.style.backgroundColor;
+
+    // AI 翻訳実行関数（強制再翻訳にも使う）
+    const runAiTranslation = async (force = false) => {
+      if (aiButton.disabled) return;
+      // すでに結果があり、force でなければ再表示のみ
+      if (!force && extractedData.ai && !extractedData.ai.error) {
+        showAiResultModal(extractedData.ai, colors);
+        return;
+      }
+      aiButton.disabled = true;
+      aiButton.innerHTML = '🔄 AI 翻訳中...（最長 60 秒）';
+      aiButton.style.cursor = 'wait';
+      try {
+        const aiResult = await callAiTranslate(extractedData, settings, currentSite);
+        extractedData.ai = aiResult;
+        // 既存フィールド（name/description）は元の日本語のまま保持。
+        // 「インポート用」は元データ（画像つき）、「v5インポート」は AI 英訳（画像なし）と役割分担。
+        aiButton.dataset.aiApplied = 'true';
+        showAiResultModal(aiResult, colors);
+      } catch (err) {
+        showNotification('AI 翻訳エラー', err?.message || '原因不明のエラー', 'error', colors);
+      } finally {
+        aiButton.disabled = false;
+        if (aiButton.dataset.aiApplied === 'true') {
+          aiButton.innerHTML = '✅ AI 翻訳済み（クリックで再表示）';
+          aiButton.style.backgroundColor = '#4caf50';
+        } else {
+          aiButton.innerHTML = originalAiLabel;
+          aiButton.style.backgroundColor = aiOriginalBg || '#6a1b9a';
+        }
+        aiButton.style.cursor = 'pointer';
+      }
+    };
+
+    // 親スコープから参照できるようにする（モーダルの「再翻訳」ボタンから呼ぶ）
+    extractedData._aiRerun = () => runAiTranslation(true);
+
+    aiButton.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      await runAiTranslation(false);
+    });
+    buttonContainer.appendChild(aiButton);
+  }
 
   // ==========================================
   // ハードオフ送料内訳表示（ハードオフのみ）
@@ -5043,37 +5128,81 @@ function isNoiseText(text) {
    * ドロップダウンを初期化
    */
   async function initSheetSelector() {
+    console.log('[initSheetSelector] ▶ START');
     try {
-      // スプレッドシート設定は同期ストレージから取得
       const syncSettings = await chrome.storage.sync.get(['spreadsheets']);
-      // 最後に使ったシートIDはローカルストレージから取得
       const localSettings = await chrome.storage.local.get(['lastUsedSheetId']);
       const spreadsheets = syncSettings.spreadsheets || [];
+      console.log('[initSheetSelector] storage spreadsheets count:', spreadsheets.length, spreadsheets);
 
       const container = document.getElementById('sheet-selector-container');
       const selector = document.getElementById('sheet-selector');
+      console.log('[initSheetSelector] container:', container, 'selector:', selector);
 
-      if (spreadsheets.length === 0) {
-        // スプレッドシートが登録されていない
-        container.style.display = 'none';
+      if (!container || !selector) {
+        console.error('[initSheetSelector] ❌ container/selector not found in DOM');
         return;
       }
 
-      // スプレッドシートが登録されている場合は表示
-      container.style.display = 'block';
+      if (spreadsheets.length === 0) {
+        container.style.display = 'none';
+        console.log('[initSheetSelector] ▶ END (no spreadsheets, hidden)');
+        return;
+      }
 
-      // ドロップダウンのオプションを生成
+      container.style.display = 'block';
       selector.innerHTML = spreadsheets.map(sheet =>
         `<option value="${sheet.id}">${sheet.name} (${sheet.sheetName})</option>`
       ).join('');
 
-      // 最後に使ったシートを選択
       if (localSettings.lastUsedSheetId && spreadsheets.some(s => s.id === localSettings.lastUsedSheetId)) {
         selector.value = localSettings.lastUsedSheetId;
       }
-
+      console.log('[initSheetSelector] ✅ END (displayed)');
     } catch (error) {
-      console.error('Error initializing sheet selector:', error);
+      console.error('[initSheetSelector] ❌ ERROR:', error?.message || error, error);
+    }
+  }
+
+  /**
+   * AI 翻訳モーダル用の出力先ドロップダウンを初期化
+   * 内容確認モーダルとは独立した id (#ai-sheet-selector-container / #ai-sheet-selector) を使う。
+   * @param {HTMLElement} content - AI 翻訳モーダルのルート要素（querySelector のスコープ用）
+   */
+  async function initAiSheetSelector_(content) {
+    console.log('[initAiSheetSelector_] ▶ START');
+    try {
+      const syncSettings = await chrome.storage.sync.get(['spreadsheets']);
+      const localSettings = await chrome.storage.local.get(['lastUsedSheetId']);
+      const spreadsheets = syncSettings.spreadsheets || [];
+      console.log('[initAiSheetSelector_] storage spreadsheets count:', spreadsheets.length, spreadsheets);
+
+      const container = content.querySelector('#ai-sheet-selector-container');
+      const selector = content.querySelector('#ai-sheet-selector');
+      console.log('[initAiSheetSelector_] container:', container, 'selector:', selector);
+
+      if (!container || !selector) {
+        console.error('[initAiSheetSelector_] ❌ container/selector not found in modal DOM');
+        return;
+      }
+
+      if (spreadsheets.length === 0) {
+        container.style.display = 'none';
+        console.log('[initAiSheetSelector_] ▶ END (no spreadsheets, hidden)');
+        return;
+      }
+
+      container.style.display = 'block';
+      selector.innerHTML = spreadsheets.map(sheet =>
+        `<option value="${sheet.id}">${sheet.name} (${sheet.sheetName})</option>`
+      ).join('');
+
+      if (localSettings.lastUsedSheetId && spreadsheets.some(s => s.id === localSettings.lastUsedSheetId)) {
+        selector.value = localSettings.lastUsedSheetId;
+      }
+      console.log('[initAiSheetSelector_] ✅ END (displayed)');
+    } catch (error) {
+      console.error('[initAiSheetSelector_] ❌ ERROR:', error?.message || error, error);
     }
   }
 
@@ -7016,6 +7145,924 @@ function isNoiseText(text) {
       console.error('❌ Hardoff抽出エラー:', error);
       return { error: 'データの抽出に失敗しました: ' + error.message };
     }
+  }
+
+  // ==========================================
+  // AI 翻訳呼び出し（background.js 経由で OpenAI Responses API へ）
+  // ==========================================
+  async function callAiTranslate(data, settings, site) {
+    // プロンプト取得（ユーザーカスタム > 公式）
+    const commonPrompt = (settings.aiPromptOverride_common || '').trim()
+      || await fetchOfficialPrompt('common');
+    const platformPrompt = (settings.aiPromptOverride_mercari || '').trim()
+      || await fetchOfficialPrompt(site);
+
+    if (!commonPrompt || !platformPrompt) {
+      throw new Error('プロンプトの取得に失敗しました');
+    }
+
+    // モデル決定
+    const model = (settings.aiModel === 'custom')
+      ? (settings.aiCustomModel || 'gpt-5.4-mini')
+      : (settings.aiModel || 'gpt-5.4-mini');
+
+    // 画像 URL（設定された枚数まで）
+    const allImageUrls = (() => {
+      if (Array.isArray(data.imageUrl)) return data.imageUrl.filter(u => typeof u === 'string' && u);
+      if (typeof data.imageUrl === 'string' && data.imageUrl) return _splitImageUrls(data.imageUrl);
+      return [];
+    })();
+    const requestedImageCount = Math.max(0, Math.min(10, parseInt(settings.aiImageCount, 10) || 0));
+    const imageUrls = allImageUrls.slice(0, requestedImageCount);
+
+    // 商品データ（API キー等は含めない、AI 出力に必要な情報のみ）
+    const product = {
+      platform: data.platform || site,
+      url: data.url || window.location.href,
+      title: data.name || data.title || '',
+      description: data.description || '',
+      seller: data.seller || '',
+      condition: data.condition || '',
+      categoryPath: data.categoryPath || '',
+      itemDetails: data.itemDetails || null
+    };
+
+    // ユーザーのマイタグ（タグ名のみのリスト）を AI に渡す
+    const userTagNames = parseMyTagsText(settings.aiMyTags || '').map(t => t.name);
+
+    const payload = {
+      model,
+      product,
+      imageUrls,
+      prompts: { common: commonPrompt, platform: platformPrompt },
+      webSearchEnabled: !!settings.aiWebSearchEnabled,
+      userTags: userTagNames
+    };
+
+    const response = await chrome.runtime.sendMessage({ action: 'aiTranslate', payload });
+    if (!response) throw new Error('background から応答がありません');
+    if (!response.success) throw new Error(response.error || 'AI 翻訳に失敗しました');
+    return response.data;
+  }
+
+  async function callAiRefine(currentAi, userInstruction, productSourceData, settings, site) {
+    // プロンプト取得（同じく user override > 公式）
+    const commonPrompt = (settings.aiPromptOverride_common || '').trim()
+      || await fetchOfficialPrompt('common');
+    const platformPrompt = (settings.aiPromptOverride_mercari || '').trim()
+      || await fetchOfficialPrompt(site);
+    if (!commonPrompt || !platformPrompt) {
+      throw new Error('プロンプトの取得に失敗しました');
+    }
+
+    const model = (settings.aiModel === 'custom')
+      ? (settings.aiCustomModel || 'gpt-5.4-mini')
+      : (settings.aiModel || 'gpt-5.4-mini');
+
+    // 商品コンテキスト（参考情報として渡す。元データ）
+    const productContext = {
+      platform: productSourceData.platform || site,
+      url: productSourceData.url || window.location.href,
+      title: productSourceData._originalName || productSourceData.name || '',
+      description: productSourceData._originalDescription || productSourceData.description || '',
+      seller: productSourceData.seller || '',
+      condition: productSourceData.condition || '',
+      categoryPath: productSourceData.categoryPath || ''
+    };
+
+    const payload = {
+      model,
+      currentAi: {
+        title: currentAi.title || '',
+        description: currentAi.description || '',
+        categorySuggestions: currentAi.categorySuggestions || [],
+        itemSpecifics: currentAi.itemSpecifics || {},
+        warnings: currentAi.warnings || []
+      },
+      userInstruction,
+      productContext,
+      prompts: { common: commonPrompt, platform: platformPrompt },
+      webSearchEnabled: !!settings.aiWebSearchEnabled
+    };
+
+    const response = await chrome.runtime.sendMessage({ action: 'aiRefine', payload });
+    if (!response) throw new Error('background から応答がありません');
+    if (!response.success) throw new Error(response.error || 'AI 修正に失敗しました');
+    return response.data;
+  }
+
+  async function fetchOfficialPrompt(key) {
+    // key が 'mercari' / 'common' 等
+    const fileName = (key === 'common') ? 'system_common.txt' : `platform_${key}.txt`;
+    try {
+      const url = chrome.runtime.getURL(`prompts/${fileName}`);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return (await res.text()).trim();
+    } catch (e) {
+      console.error('公式プロンプト取得失敗:', key, e?.message);
+      return '';
+    }
+  }
+
+  // ==========================================
+  // AI 翻訳結果モーダル（編集可能）
+  // - title / description: 編集可能
+  // - categorySuggestions: ラジオで推奨選択 + カスタム ID 入力
+  // - itemSpecifics: 各項目を個別 input で編集（追加・削除可）
+  // 編集された値は extractedData.ai に随時反映される（参照渡し）
+  // 「v5インポート へエクスポート」「TSV でコピー」ボタンを提供
+  // ==========================================
+  function showAiResultModal(ai, colors) {
+    const existing = document.getElementById('unified-scraper-ai-modal');
+    if (existing) existing.remove();
+
+    // ai は extractedData.ai と同じ参照。編集はここに直接反映される。
+    if (!ai.itemSpecifics || typeof ai.itemSpecifics !== 'object' || Array.isArray(ai.itemSpecifics)) {
+      ai.itemSpecifics = {};
+    }
+    if (!Array.isArray(ai.categorySuggestions)) ai.categorySuggestions = [];
+    if (!Array.isArray(ai.warnings)) ai.warnings = [];
+    if (typeof ai.selectedCategoryId !== 'string') {
+      const recommended = ai.categorySuggestions.find(c => c?.recommended);
+      ai.selectedCategoryId = (recommended?.id) || (ai.categorySuggestions[0]?.id) || '';
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'unified-scraper-ai-modal';
+    overlay.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.55); z-index: 10001;
+      display: flex; align-items: center; justify-content: center;
+    `;
+
+    const content = document.createElement('div');
+    content.style.cssText = `
+      background: white; border-radius: 12px; padding: 24px;
+      width: min(960px, 92vw); max-height: 90vh; overflow: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3); font-size: 14px; line-height: 1.6;
+      color: #222;
+    `;
+
+    content.innerHTML = `
+      <h2 style="margin:0 0 16px 0; color:#222; font-size:20px; border-bottom:2px solid #6a1b9a; padding-bottom:10px;">
+        🤖 AI 翻訳結果（eBay 出品データ・編集可能）
+      </h2>
+
+      <!-- Title -->
+      <section style="margin-bottom:20px;">
+        <label style="display:flex; align-items:center; gap:8px; font-weight:600; margin-bottom:6px;">
+          eBay Title
+          <span id="ai-title-counter" style="font-size:12px; color:#666; font-weight:400;"></span>
+        </label>
+        <textarea id="ai-result-title" rows="2" style="width:100%; font-size:14px; padding:10px; border:1px solid #bbb; border-radius:6px; background:#fff; color:#111;"></textarea>
+      </section>
+
+      <!-- Description（プレビューのみ。編集は AI 修正リクエスト経由） -->
+      <section style="margin-bottom:20px;">
+        <label style="display:block; font-weight:600; margin-bottom:6px;">eBay Description（HTML プレビュー / 編集は下の「AI に修正を依頼」から）</label>
+        <div id="ai-result-description-preview" style="border:1px solid #ddd; border-radius:4px; padding:14px; background:#fafafa; color:#222; min-height:120px;"></div>
+        <style>
+          #ai-result-description-preview ul { margin: 4px 0 !important; padding: 0 0 0 20px !important; }
+          #ai-result-description-preview li { margin: 2px 0 !important; padding: 0 !important; }
+          #ai-result-description-preview strong { display: inline !important; }
+          #ai-result-description-preview p { margin: 0 !important; padding: 0 !important; display: inline !important; }
+          #ai-result-description-preview h1, #ai-result-description-preview h2, #ai-result-description-preview h3,
+          #ai-result-description-preview h4, #ai-result-description-preview h5, #ai-result-description-preview h6 {
+            margin: 0 !important; padding: 0 !important; font-size: inherit !important; display: inline !important;
+          }
+          #ai-result-description-preview { line-height: 1.6 !important; }
+        </style>
+      </section>
+
+      <!-- Category -->
+      <section style="margin-bottom:20px;">
+        <label style="display:block; font-weight:600; margin-bottom:6px;">eBay Category（ラジオで選択 or カスタム ID 直接入力）</label>
+        <div id="ai-category-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+        <div style="display:flex; gap:8px; align-items:center; margin-top:10px;">
+          <label style="display:flex; align-items:center; gap:6px;">
+            <input type="radio" name="ai-category-radio" id="ai-category-custom-radio" value="__custom__">
+            <span>カスタム ID</span>
+          </label>
+          <input type="text" id="ai-category-custom-id" placeholder="例: 31387" style="width:200px; padding:6px 10px; border:1px solid #bbb; border-radius:4px; color:#111;">
+        </div>
+      </section>
+
+      <!-- Item Specifics -->
+      <section style="margin-bottom:20px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+          <label style="font-weight:600;">Item Specifics <span id="ai-specifics-counter" style="font-size:12px; color:#666; font-weight:400;"></span></label>
+          <button type="button" id="ai-spec-add" style="padding:6px 12px; background:#26a69a; color:white; border:none; border-radius:6px; cursor:pointer;">＋ specifics を追加</button>
+        </div>
+        <div id="ai-spec-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+      </section>
+
+      <!-- マイタグ -->
+      <section style="margin-bottom:20px;">
+        <label style="display:block; font-weight:600; margin-bottom:6px;">🏷️ タグ（出力の「タグ」列に書き込む）</label>
+        <div style="font-size:12px; color:#666; margin-bottom:8px;">AI が判定した eBay カテゴリと商品内容から、マイタグの中で合うものを自動推奨します。プルダウンから手動で追加することも可能です。</div>
+        <div id="ai-tag-recommended-area" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px;"></div>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <select id="ai-tag-pulldown" style="flex:1; min-width:240px; padding:6px 10px; border:1px solid #bbb; border-radius:4px; color:#111;">
+            <option value="">＋ マイタグから選んで追加...</option>
+          </select>
+          <input type="text" id="ai-tag-custom-input" placeholder="または直接入力" style="flex:1; min-width:200px; padding:6px 10px; border:1px solid #bbb; border-radius:4px; color:#111;">
+          <button type="button" id="ai-tag-custom-add" style="padding:6px 12px; background:#26a69a; color:white; border:none; border-radius:6px; cursor:pointer;">＋ 追加</button>
+        </div>
+        <div id="ai-tag-selected-area" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+      </section>
+
+      <!-- Warnings -->
+      <section style="margin-bottom:20px;">
+        <label style="display:block; font-weight:600; margin-bottom:6px;">⚠️ Warnings（推測補完の透明性）</label>
+        <div id="ai-warnings-area"></div>
+      </section>
+
+      <!-- AI 修正リクエスト -->
+      <section style="margin-bottom:20px; background:#f3e5f5; padding:14px; border-radius:8px; border:1px solid #ce93d8;">
+        <label style="display:block; font-weight:600; margin-bottom:8px; color:#4a148c;">🤖 AI に修正を依頼（自然言語で指示）</label>
+        <div style="font-size:12px; color:#555; margin-bottom:8px;">
+          現在の AI 結果に対して、追加の修正指示を出せます。例:<br>
+          ・もっと SEO を意識してタイトルを書き直して<br>
+          ・Item Specifics に MPN を追加して<br>
+          ・Description をもう少し短く、箇条書き多めに<br>
+          ・"Vintage" を強調して
+        </div>
+        <textarea id="ai-refine-input" rows="3" placeholder="ここに修正指示を書いてください..." style="width:100%; padding:10px; border:1px solid #bbb; border-radius:6px; background:#fff; color:#111; font-size:13px;"></textarea>
+        <div style="display:flex; gap:10px; margin-top:8px; align-items:center;">
+          <button type="button" id="ai-refine-submit" style="padding:10px 16px; background:#6a1b9a; color:white; border:none; border-radius:6px; cursor:pointer;">🤖 AI に修正を依頼</button>
+          <span id="ai-refine-status" style="font-size:12px; color:#666;"></span>
+        </div>
+      </section>
+
+      <!-- 出力先スプレッドシート -->
+      <div id="ai-sheet-selector-container" style="margin-top:16px; padding-top:12px; border-top:1px solid #e0e0e0; display:none;">
+        <label style="display:block; font-weight:600; margin-bottom:8px; color:#555;">📊 出力先スプレッドシート:</label>
+        <select id="ai-sheet-selector" style="width:100%; padding:10px; border:2px solid #4CAF50; border-radius:6px; font-size:14px; background:white; cursor:pointer;">
+          <option value="">読み込み中...</option>
+        </select>
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:flex; gap:10px; justify-content:flex-end; padding-top:12px; border-top:1px solid #e0e0e0; flex-wrap:wrap;">
+        <button type="button" id="ai-rerun" style="padding:10px 14px; background:#ff9800; color:white; border:none; border-radius:6px; cursor:pointer;">🔄 再翻訳</button>
+        <button type="button" id="ai-export-both" style="padding:10px 16px; background:#26a69a; color:white; border:none; border-radius:6px; cursor:pointer;">⏩ 両方へ一括エクスポート（インポート用 + v5インポート）</button>
+        <button type="button" id="ai-modal-close" style="padding:10px 16px; background:#9e9e9e; color:white; border:none; border-radius:6px; cursor:pointer;">閉じる</button>
+      </div>
+    `;
+
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+
+    // ----- 描画関数 -----
+    const titleEl = content.querySelector('#ai-result-title');
+    const titleCounter = content.querySelector('#ai-title-counter');
+    const descPreview = content.querySelector('#ai-result-description-preview');
+    const specList = content.querySelector('#ai-spec-list');
+    const specCounter = content.querySelector('#ai-specifics-counter');
+    const catList = content.querySelector('#ai-category-list');
+    const catCustomRadio = content.querySelector('#ai-category-custom-radio');
+    const catCustomInput = content.querySelector('#ai-category-custom-id');
+    const warningsArea = content.querySelector('#ai-warnings-area');
+    const tagRecommendedArea = content.querySelector('#ai-tag-recommended-area');
+    const tagSelectedArea = content.querySelector('#ai-tag-selected-area');
+    const tagCustomInput = content.querySelector('#ai-tag-custom-input');
+    const tagCustomAddBtn = content.querySelector('#ai-tag-custom-add');
+    const tagPulldown = content.querySelector('#ai-tag-pulldown');
+
+    // タグ管理: ai.selectedTags を初期化
+    // 初回のみ、AI 推奨タグ（マイタグに存在するもの）の **先頭 1 つだけ** を自動で選択状態にする。
+    // 椛島さん指示: 推奨は複数あって正解だが、実際に選ばれるのは 1 つだけ。
+    // ユーザーが手動で追加・削除できる（推奨エリアの他のタグをクリックして追加）。
+    // ユーザーが手動で外したら空配列が保たれるので再選択はしない（refine 後の再描画でも触らない）。
+    if (!Array.isArray(ai.selectedTags)) {
+      const myTagNamesInit = new Set(parseMyTagsText(settings.aiMyTags || '').map(t => t.name));
+      const recommendedInit = (Array.isArray(ai.recommendedUserTags) ? ai.recommendedUserTags : [])
+        .filter(name => myTagNamesInit.has(name));
+      ai.selectedTags = recommendedInit.length > 0 ? [recommendedInit[0]] : [];
+    }
+
+    titleEl.value = ai.title || '';
+    refreshTitleCounter();
+    refreshDescPreview();
+    renderCategoryList();
+    renderSpecifics();
+    renderWarnings();
+    renderTags();
+
+    function refreshTitleCounter() {
+      const len = titleEl.value.length;
+      titleCounter.textContent = `（${len} / 80 字）`;
+      titleCounter.style.color = len > 80 ? '#c62828' : '#666';
+    }
+
+    function refreshDescPreview() {
+      // background.js で既にサニタイズ済み（プロンプトと background サニタイズで <script> 等を除去）
+      descPreview.innerHTML = ai.description || '';
+    }
+
+    function renderCategoryList() {
+      catList.innerHTML = '';
+      ai.categorySuggestions.forEach((c, idx) => {
+        const id = c?.id || '';
+        const path = c?.path || '';
+        const reason = c?.reason || '';
+        const recommended = !!c?.recommended;
+        const checked = (ai.selectedCategoryId === id) ? 'checked' : '';
+        const row = document.createElement('label');
+        row.style.cssText = 'display:flex; align-items:flex-start; gap:8px; padding:8px 10px; border:1px solid #e0e0e0; border-radius:6px; background:' + (recommended ? '#fff8e1' : '#fafafa') + ';';
+        row.innerHTML = `
+          <input type="radio" name="ai-category-radio" value="${escapeAiAttr(id)}" ${checked} style="margin-top:4px;">
+          <div style="flex:1;">
+            <div><strong>${recommended ? '★ 推奨 ' : ''}${escapeAiText(id)}</strong> <span style="color:#555;">${escapeAiText(path)}</span></div>
+            <div style="font-size:12px; color:#555;">${escapeAiText(reason)}</div>
+          </div>
+        `;
+        catList.appendChild(row);
+      });
+      // カスタム ラジオの初期状態
+      const idsKnown = ai.categorySuggestions.map(c => c?.id);
+      if (ai.selectedCategoryId && !idsKnown.includes(ai.selectedCategoryId)) {
+        catCustomRadio.checked = true;
+        catCustomInput.value = ai.selectedCategoryId;
+      }
+    }
+
+    function renderSpecifics() {
+      specList.innerHTML = '';
+      const entries = Object.entries(ai.itemSpecifics);
+      specCounter.textContent = `（${entries.length} 項目）`;
+      entries.forEach(([k, v], idx) => {
+        const row = document.createElement('div');
+        row.dataset.index = String(idx);
+        row.style.cssText = 'display:grid; grid-template-columns: 1fr 2fr auto; gap:8px; align-items:center;';
+        row.innerHTML = `
+          <input type="text" data-spec-key value="${escapeAiAttr(k)}" placeholder="項目名（例: Brand）" style="padding:8px 10px; border:1px solid #bbb; border-radius:4px; color:#111;">
+          <input type="text" data-spec-value value="${escapeAiAttr(String(v))}" placeholder="値（例: SEIKO）" style="padding:8px 10px; border:1px solid #bbb; border-radius:4px; color:#111;">
+          <button type="button" data-spec-delete style="padding:6px 10px; background:#e57373; color:white; border:none; border-radius:4px; cursor:pointer;">削除</button>
+        `;
+        specList.appendChild(row);
+      });
+    }
+
+    function renderTags() {
+      const myTags = parseMyTagsText(settings.aiMyTags || '');
+      const myTagNames = new Set(myTags.map(t => t.name));
+
+      // AI が推奨したタグ（マイタグに存在するものだけを採用）
+      const aiRecommended = (Array.isArray(ai.recommendedUserTags) ? ai.recommendedUserTags : [])
+        .filter(name => myTagNames.has(name));
+
+      // 推奨タグエリアを描画
+      tagRecommendedArea.innerHTML = '';
+      if (!aiRecommended.length) {
+        const msg = document.createElement('span');
+        msg.style.cssText = 'font-size:12px; color:#999;';
+        msg.textContent = myTags.length === 0
+          ? '※ マイタグが未登録です（設定画面の「マイタグ管理」から登録してください）'
+          : '※ AI が判定したカテゴリに合うマイタグはありませんでした。プルダウンから手動で選ぶか、直接入力で追加してください。';
+        tagRecommendedArea.appendChild(msg);
+      } else {
+        const label = document.createElement('span');
+        label.style.cssText = 'font-size:12px; color:#6a1b9a; align-self:center; margin-right:4px;';
+        label.textContent = '🤖 AI 推奨:';
+        tagRecommendedArea.appendChild(label);
+        aiRecommended.forEach(name => {
+          const isSelected = ai.selectedTags.includes(name);
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = (isSelected ? '✓ ' : '+ ') + name;
+          btn.style.cssText = `padding:6px 10px; border:1px solid ${isSelected ? '#4caf50' : '#6a1b9a'}; border-radius:16px; cursor:pointer; font-size:12px; background:${isSelected ? '#e8f5e9' : '#f3e5f5'}; color:#333;`;
+          btn.addEventListener('click', () => {
+            if (ai.selectedTags.includes(name)) {
+              ai.selectedTags = ai.selectedTags.filter(n => n !== name);
+            } else {
+              ai.selectedTags.push(name);
+            }
+            renderTags();
+          });
+          tagRecommendedArea.appendChild(btn);
+        });
+      }
+
+      // プルダウン: 全マイタグから選択（既に選択済みは除外）
+      tagPulldown.innerHTML = '<option value="">＋ マイタグから選んで追加...</option>';
+      // グループ化されているとなお見やすい（マイタグに group がない場合は単純列挙）
+      const remaining = myTags.filter(t => !ai.selectedTags.includes(t.name));
+      remaining.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.name;
+        opt.textContent = t.name;
+        tagPulldown.appendChild(opt);
+      });
+
+      // 選択済みタグの表示
+      tagSelectedArea.innerHTML = '';
+      if (ai.selectedTags.length === 0) {
+        const empty = document.createElement('span');
+        empty.style.cssText = 'font-size:12px; color:#999;';
+        empty.textContent = 'タグ未選択';
+        tagSelectedArea.appendChild(empty);
+      } else {
+        ai.selectedTags.forEach((name) => {
+          const chip = document.createElement('span');
+          chip.style.cssText = 'display:inline-flex; align-items:center; gap:6px; background:#6a1b9a; color:white; padding:4px 10px; border-radius:16px; font-size:12px;';
+          chip.innerHTML = `${escapeAiText(name)} <button type="button" data-tag-remove="${escapeAiAttr(name)}" style="background:transparent; border:none; color:white; cursor:pointer; padding:0; font-size:14px;">×</button>`;
+          tagSelectedArea.appendChild(chip);
+        });
+        tagSelectedArea.querySelectorAll('button[data-tag-remove]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const removeName = btn.dataset.tagRemove;
+            ai.selectedTags = ai.selectedTags.filter(n => n !== removeName);
+            renderTags();
+          });
+        });
+      }
+    }
+
+    function renderWarnings() {
+      if (!ai.warnings.length) {
+        warningsArea.innerHTML = '<div style="color:#4caf50;">✓ 推測による補完はありません</div>';
+        return;
+      }
+      warningsArea.innerHTML = '<ul style="margin:0; padding-left:20px; color:#b65a00;">' +
+        ai.warnings.map(w => `<li>${escapeAiText(String(w))}</li>`).join('') +
+        '</ul>';
+    }
+
+    // ----- 双方向バインディング（編集を ai に反映） -----
+    // 注: 既存フィールド (extractedData.name / description) は触らない。
+    //     インポート用（元データ）への影響を防ぎ、v5インポート（英訳）だけに反映するため。
+    titleEl.addEventListener('input', () => {
+      ai.title = titleEl.value;
+      refreshTitleCounter();
+    });
+    // description はプレビューのみ。編集は「AI に修正を依頼」経由
+
+    // category 選択
+    catList.addEventListener('change', (e) => {
+      if (e.target?.name === 'ai-category-radio') {
+        ai.selectedCategoryId = e.target.value;
+        catCustomRadio.checked = false;
+      }
+    });
+    catCustomRadio.addEventListener('change', () => {
+      if (catCustomRadio.checked) {
+        ai.selectedCategoryId = catCustomInput.value.trim();
+        // 候補のラジオを全部 OFF
+        catList.querySelectorAll('input[type=radio]').forEach(r => { r.checked = false; });
+      }
+    });
+    catCustomInput.addEventListener('input', () => {
+      if (catCustomRadio.checked) {
+        ai.selectedCategoryId = catCustomInput.value.trim();
+      }
+    });
+
+    // specifics 編集 / 削除
+    specList.addEventListener('input', (e) => {
+      if (e.target?.dataset?.specKey !== undefined || e.target?.dataset?.specValue !== undefined) {
+        rebuildItemSpecificsFromUI();
+      }
+    });
+    specList.addEventListener('click', (e) => {
+      const target = e.target.closest('button[data-spec-delete]');
+      if (!target) return;
+      const row = target.closest('div[data-index]');
+      if (!row) return;
+      row.remove();
+      rebuildItemSpecificsFromUI();
+      // カウンタ更新
+      const count = specList.querySelectorAll('div[data-index]').length;
+      specCounter.textContent = `（${count} 項目）`;
+    });
+    function rebuildItemSpecificsFromUI() {
+      const newSpec = {};
+      specList.querySelectorAll('div[data-index]').forEach(row => {
+        const k = row.querySelector('input[data-spec-key]').value.trim();
+        const v = row.querySelector('input[data-spec-value]').value;
+        if (k) newSpec[k] = v;
+      });
+      ai.itemSpecifics = newSpec;
+    }
+
+    // specifics 追加
+    content.querySelector('#ai-spec-add').addEventListener('click', () => {
+      ai.itemSpecifics[''] = '';
+      renderSpecifics();
+      // 新規行のキーフィールドにフォーカス
+      const rows = specList.querySelectorAll('div[data-index]');
+      const last = rows[rows.length - 1];
+      if (last) last.querySelector('input[data-spec-key]')?.focus();
+    });
+
+    // カスタムタグ追加
+    const addCustomTag = () => {
+      const v = (tagCustomInput.value || '').trim();
+      if (!v) return;
+      if (!ai.selectedTags.includes(v)) {
+        ai.selectedTags.push(v);
+      }
+      tagCustomInput.value = '';
+      renderTags();
+    };
+    tagCustomAddBtn.addEventListener('click', addCustomTag);
+    tagCustomInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addCustomTag();
+      }
+    });
+
+    // プルダウン選択でタグを追加
+    tagPulldown.addEventListener('change', () => {
+      const v = tagPulldown.value;
+      if (!v) return;
+      if (!ai.selectedTags.includes(v)) {
+        ai.selectedTags.push(v);
+      }
+      tagPulldown.value = '';
+      renderTags();
+    });
+
+    // 閉じる
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    content.querySelector('#ai-modal-close').addEventListener('click', () => overlay.remove());
+
+    // 出力先スプレッドシートのドロップダウンを初期化（登録済みの全シートを表示・選択可）
+    initAiSheetSelector_(content).catch((err) => {
+      console.error('[ai-sheet-selector] init error:', err);
+    });
+
+    // 両方へ一括エクスポート（fire-and-forget）
+    // 1 回の sendMessage で background.js が両方を順次送信する。
+    // content.js 側は応答を待たずに即「送信受付」と返すので、ユーザーがタブを閉じても背後で完走する。
+    content.querySelector('#ai-export-both').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      if (btn.disabled) return;
+      const originalLabel = btn.innerHTML;
+      const originalBg = btn.style.background;
+      btn.disabled = true;
+      btn.style.cursor = 'wait';
+      btn.style.opacity = '0.7';
+      btn.style.background = '#9e9e9e';
+      btn.innerHTML = '⏳ 送信受付中...';
+
+      try {
+        // ドロップダウンから target 解決（無ければ spreadsheets[0] にフォールバック）
+        let target = null;
+        const sel = content.querySelector('#ai-sheet-selector');
+        const sync = await chrome.storage.sync.get(['spreadsheets']);
+        const spreadsheets = sync.spreadsheets || [];
+        if (sel && sel.value) {
+          target = spreadsheets.find(s => s.id === sel.value) || null;
+          await chrome.storage.local.set({ lastUsedSheetId: sel.value });
+        }
+        if (!target && spreadsheets.length > 0) target = spreadsheets[0];
+        if (!target) throw new Error('スプレッドシートが登録されていません');
+
+        // 両方の values を作る（content.js 側で同期的に確定）
+        const import1Values = buildImport1Values_(extractedData);
+        const v5Values = await buildV5ImportValues_(ai, extractedData);
+
+        // 1 回の sendMessage で両方の送信を background.js に依頼（fire-and-forget）
+        // タブを閉じても background.js は service worker として fetch を完走する
+        chrome.runtime.sendMessage({
+          action: 'exportBoth',
+          webhookUrl: target.webhookUrl,
+          payloads: [
+            { sheetName: 'インポート用', values: import1Values },
+            { sheetName: 'v5インポート', values: v5Values }
+          ]
+        }).catch((err) => {
+          console.error('[ai-export-both] sendMessage error:', err);
+        });
+
+        showNotification(
+          '送信受付',
+          'バックグラウンドで送信中です。タブを閉じても続行します。',
+          'success',
+          colors
+        );
+        btn.style.background = '#2e7d32';
+        btn.innerHTML = '✅ 送信受付';
+      } catch (err) {
+        showNotification('送信エラー', err?.message || '失敗', 'error', colors);
+        btn.style.background = '#c62828';
+        btn.innerHTML = '❌ 失敗';
+      } finally {
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.style.cursor = 'pointer';
+          btn.style.opacity = '1';
+          btn.style.background = originalBg;
+          btn.innerHTML = originalLabel;
+        }, 1500);
+      }
+    });
+
+    // AI に修正を依頼（追加修正リクエスト）
+    content.querySelector('#ai-refine-submit').addEventListener('click', async () => {
+      const refineInput = content.querySelector('#ai-refine-input');
+      const refineStatus = content.querySelector('#ai-refine-status');
+      const submitBtn = content.querySelector('#ai-refine-submit');
+      const instruction = (refineInput.value || '').trim();
+      if (!instruction) {
+        refineStatus.textContent = '修正指示を入力してください';
+        refineStatus.style.color = '#c62828';
+        return;
+      }
+      submitBtn.disabled = true;
+      const originalLabel = submitBtn.innerHTML;
+      submitBtn.innerHTML = '🔄 AI が修正中...';
+      submitBtn.style.cursor = 'wait';
+      refineStatus.textContent = '';
+      try {
+        // 変化検知用に修正前の状態を保存
+        const oldTitle = ai.title || '';
+        const oldDesc = ai.description || '';
+        const oldSpecKeys = JSON.stringify(Object.keys(ai.itemSpecifics || {}).sort());
+        const oldSpecValues = JSON.stringify(Object.values(ai.itemSpecifics || {}).sort());
+
+        const refined = await callAiRefine(ai, instruction, extractedData, settings, currentSite);
+
+        // 結果を ai オブジェクトにマージ（参照渡しで extractedData.ai も更新される）
+        // 空文字なら更新しない、それ以外（同じ内容も含む）は確実に上書き
+        if (typeof refined.title === 'string' && refined.title.trim()) ai.title = refined.title;
+        if (typeof refined.description === 'string' && refined.description.trim()) ai.description = refined.description;
+        if (Array.isArray(refined.categorySuggestions)) ai.categorySuggestions = refined.categorySuggestions;
+        if (refined.itemSpecifics && typeof refined.itemSpecifics === 'object' && !Array.isArray(refined.itemSpecifics)) {
+          ai.itemSpecifics = refined.itemSpecifics;
+        }
+        ai.warnings = Array.isArray(refined.warnings) ? refined.warnings : [];
+
+        // selectedCategoryId を再計算（元の選択を尊重しつつ、新しい候補に存在しなければ推奨へ）
+        const ids = (ai.categorySuggestions || []).map(c => c?.id);
+        if (!ids.includes(ai.selectedCategoryId)) {
+          const recommended = ai.categorySuggestions.find(c => c?.recommended);
+          ai.selectedCategoryId = (recommended?.id) || (ai.categorySuggestions[0]?.id) || '';
+        }
+
+        // UI 再描画
+        titleEl.value = ai.title || '';
+        refreshTitleCounter();
+        refreshDescPreview();
+        renderCategoryList();
+        renderSpecifics();
+        renderWarnings();
+        refineInput.value = '';
+
+        // 変化があったか判定
+        const newSpecKeys = JSON.stringify(Object.keys(ai.itemSpecifics || {}).sort());
+        const newSpecValues = JSON.stringify(Object.values(ai.itemSpecifics || {}).sort());
+        const titleChanged = (oldTitle !== (ai.title || ''));
+        const descChanged = (oldDesc !== (ai.description || ''));
+        const specChanged = (oldSpecKeys !== newSpecKeys) || (oldSpecValues !== newSpecValues);
+
+        if (!titleChanged && !descChanged && !specChanged) {
+          refineStatus.textContent = '⚠️ AI は内容を変えませんでした。指示をより具体的に書いてみてください（例: "Item Specifics に MPN を追加して"、"タイトルにブランド名を最初に入れて"）';
+          refineStatus.style.color = '#e65100';
+        } else {
+          const changedParts = [];
+          if (titleChanged) changedParts.push('タイトル');
+          if (descChanged) changedParts.push('説明文');
+          if (specChanged) changedParts.push('Item Specifics');
+          refineStatus.textContent = `✓ 修正反映: ${changedParts.join(' / ')}`;
+          refineStatus.style.color = '#2e7d32';
+        }
+      } catch (err) {
+        refineStatus.textContent = err?.message || '修正に失敗しました';
+        refineStatus.style.color = '#c62828';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalLabel;
+        submitBtn.style.cursor = 'pointer';
+      }
+    });
+
+    // 再翻訳（強制 API 再呼び出し）
+    content.querySelector('#ai-rerun').addEventListener('click', async () => {
+      const rerunFn = (typeof extractedData !== 'undefined') ? extractedData._aiRerun : null;
+      if (typeof rerunFn !== 'function') {
+        showNotification('再翻訳できません', '内部状態が見つかりません。一度ページを再読み込みしてください。', 'error', colors);
+        return;
+      }
+      // 確認
+      const ok = confirm('AI 翻訳を再実行しますか？\n（API コストが発生します。現在の編集内容は破棄されます）');
+      if (!ok) return;
+      // 既存結果を破棄してから再実行
+      extractedData.ai = null;
+      overlay.remove();
+      try {
+        await rerunFn();
+      } catch (e) {
+        showNotification('再翻訳エラー', e?.message || '失敗しました', 'error', colors);
+      }
+    });
+  }
+
+  function escapeAiAttr(s) {
+    return escapeAiText(s).replace(/\n/g, ' ');
+  }
+
+  async function copyToClipboardSafe(text, btn) {
+    try {
+      await navigator.clipboard.writeText(text || '');
+      const original = btn.textContent;
+      const originalBg = btn.style.background;
+      btn.textContent = '✓ コピーしました';
+      btn.style.background = '#4caf50';
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.style.background = originalBg;
+      }, 1500);
+    } catch (_) {
+      alert('クリップボードへのコピーに失敗しました');
+    }
+  }
+
+  // ==========================================
+  // 「インポート用」シート用 values 配列を生成（送信は呼び出し側）
+  // 「両方へ一括エクスポート」と単独エクスポートで共有するための抽出ヘルパー
+  // ==========================================
+  function buildImport1Values_(extractedData) {
+    if (!extractedData || extractedData.error) {
+      throw new Error('商品データがありません');
+    }
+    const platform = extractedData.platform || '';
+    const supplierCode = extractedData.url || '';
+    const price = extractedData.price || extractedData.total || '';
+    const name = extractedData._originalName || extractedData.name || '';
+    const description = extractedData._originalDescription || extractedData.description || '';
+    const seller = extractedData.seller || '';
+    const url = (typeof window !== 'undefined' && window.location) ? window.location.href : '';
+
+    const imageUrls = (() => {
+      if (Array.isArray(extractedData.imageUrl)) return extractedData.imageUrl.filter(u => u);
+      if (typeof extractedData.imageUrl === 'string' && extractedData.imageUrl) return _splitImageUrls(extractedData.imageUrl);
+      return [];
+    })();
+    const imageFormulas = imageUrls.slice(0, 20).map(u => `=IMAGE("${u}")`);
+
+    return [
+      platform, supplierCode, price, name, description, seller, url, ...imageFormulas
+    ];
+  }
+
+  // ==========================================
+  // 「v5インポート」シート用 values 配列を生成（送信は呼び出し側）
+  // chrome.storage.sync から operatorName を読むため async
+  // ==========================================
+  async function buildV5ImportValues_(ai, extractedData) {
+    if (!extractedData || extractedData.error) {
+      throw new Error('商品データがありません');
+    }
+    const tags = Array.isArray(ai.selectedTags) ? ai.selectedTags : [];
+    const tagStr = tags.join(' ');
+    const platform = extractedData.platform || 'mercari';
+    const supplierCode = extractedData.url || '';
+    const price = extractedData.price || extractedData.total || '';
+    const enTitle = ai.title || '';
+    const enDescription = ai.description || '';
+    const jaTitle = extractedData._originalName || extractedData.name || '';
+    const jaDescription = extractedData._originalDescription || extractedData.description || '';
+    const seller = extractedData.seller || '';
+    const categoryId = ai.selectedCategoryId || '';
+
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+
+    const opSync = await chrome.storage.sync.get(['aiOperatorName']);
+    const operatorName = (opSync && opSync.aiOperatorName) || '';
+
+    const specsFlat = Object.entries(ai.itemSpecifics || {})
+      .filter(([k]) => k && String(k).trim())
+      .flatMap(([k, v]) => [
+        String(k).replace(/[\n\r\t]/g, ' ').trim(),
+        String(v ?? '').replace(/[\n\r\t]/g, ' ').trim()
+      ]);
+
+    return [
+      dateStr, operatorName, '', tagStr, '', categoryId,
+      platform, supplierCode, price, jaTitle, jaDescription, seller,
+      enTitle, enDescription, '', ...specsFlat
+    ];
+  }
+
+  // ==========================================
+  // 「インポート用」シートへ直接エクスポート（元データ・既存スキーマ）
+  // sheetName: 'インポート用' で background.js → doPost
+  // 既存の doPost は startCol=2（B列）から貼り付け（A列はユーザーが手動でタグ）
+  // ==========================================
+  async function exportToImport1Direct(extractedData, colors, target) {
+    const values = buildImport1Values_(extractedData);
+
+    // target が指定されていればそれを使う（AI 翻訳モーダルのドロップダウン選択結果）
+    // 未指定なら従来どおり spreadsheets[0] にフォールバック
+    let resolvedTarget = target;
+    if (!resolvedTarget) {
+      const sync = await chrome.storage.sync.get(['spreadsheets']);
+      const spreadsheets = sync.spreadsheets || [];
+      if (!spreadsheets.length) {
+        throw new Error('スプレッドシートが登録されていません');
+      }
+      resolvedTarget = spreadsheets[0];
+    }
+    const response = await chrome.runtime.sendMessage({
+      action: 'exportToSheet',
+      webhookUrl: resolvedTarget.webhookUrl,
+      sheetName: 'インポート用',
+      values
+    });
+    if (!response || !response.success) {
+      throw new Error(response?.error || '送信失敗');
+    }
+  }
+
+  // ==========================================
+  // 「v5インポート」シートへの暫定エクスポート
+  // 列構成（暫定・椛島さんから IS 列情報受領後に最終化）:
+  //   1. タグ（複数選択時はスペース区切り）
+  //   2. 仕入先
+  //   3. 仕入先コード
+  //   4. 価格
+  //   5. 英語タイトル
+  //   6. 英語商品説明（HTML）
+  //   7. セラーID
+  //   8. URL
+  //   9. eBay Category ID
+  //   10〜. Item Specifics（key=value;key=value;... の形式で 1 セル、暫定）
+  // ==========================================
+  async function exportAiToV5Import(ai, colors, target) {
+    const values = await buildV5ImportValues_(ai, extractedData);
+
+    // target が指定されていればそれを使う（AI 翻訳モーダルのドロップダウン選択結果）
+    // 未指定なら従来どおり spreadsheets[0] にフォールバック / 登録 0 件なら TSV コピー
+    let resolvedTarget = target;
+    if (!resolvedTarget) {
+      const sync = await chrome.storage.sync.get(['spreadsheets']);
+      const spreadsheets = sync.spreadsheets || [];
+      if (!spreadsheets.length) {
+        const tsv = values.map(f => String(f ?? '').replace(/\t/g, ' ').replace(/\r?\n/g, ' ')).join('\t');
+        try {
+          await navigator.clipboard.writeText(tsv);
+          showNotification(
+            'v5インポート 用 TSV をコピー',
+            'スプレッドシート未登録のため、クリップボードへ TSV 形式でコピーしました。\n設定でスプレッドシートを登録するとシートへ直接送信できます。',
+            'success',
+            colors
+          );
+        } catch (_) {
+          throw new Error('クリップボードへのコピーに失敗しました');
+        }
+        return;
+      }
+      resolvedTarget = spreadsheets[0];
+    }
+
+    // シート名は固定: 'v5インポート'（一括ボタンから呼ばれるためダイアログは不要）
+    const response = await chrome.runtime.sendMessage({
+      action: 'exportToSheet',
+      webhookUrl: resolvedTarget.webhookUrl,
+      sheetName: 'v5インポート',
+      values
+    });
+    if (!response || !response.success) {
+      throw new Error(response?.error || '不明なエラー');
+    }
+  }
+
+  function escapeAiText(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // マイタグテキストをパース: 各行 "タグ名\tkeyword1, keyword2, ..."
+  function parseMyTagsText(text) {
+    if (!text) return [];
+    const rows = String(text).split(/\r?\n/);
+    const tags = [];
+    for (const raw of rows) {
+      const line = raw.trim();
+      if (!line || line.startsWith('#')) continue;
+      const tabIdx = line.indexOf('\t');
+      let name, kwStr;
+      if (tabIdx >= 0) {
+        name = line.slice(0, tabIdx).trim();
+        kwStr = line.slice(tabIdx + 1).trim();
+      } else {
+        name = line;
+        kwStr = '';
+      }
+      if (!name) continue;
+      const keywords = kwStr
+        ? kwStr.split(',').map(s => s.trim()).filter(Boolean)
+        : [];
+      tags.push({ name, keywords });
+    }
+    return tags;
   }
 
   // ==========================================

@@ -1,0 +1,5836 @@
+[
+  {
+    "name": "時計",
+    "group": "時計用",
+    "keywords": [
+      "watch",
+      "wristwatch",
+      "clock"
+    ]
+  },
+  {
+    "name": "腕時計",
+    "group": "時計用",
+    "keywords": [
+      "watch",
+      "wristwatch",
+      "clock"
+    ]
+  },
+  {
+    "name": "ウォッチ",
+    "group": "時計用",
+    "keywords": [
+      "watch",
+      "wristwatch",
+      "clock"
+    ]
+  },
+  {
+    "name": "懐中時計",
+    "group": "時計用",
+    "keywords": [
+      "watch",
+      "wristwatch",
+      "clock"
+    ]
+  },
+  {
+    "name": "置き時計",
+    "group": "時計用",
+    "keywords": [
+      "watch",
+      "wristwatch",
+      "clock"
+    ]
+  },
+  {
+    "name": "時計パーツ",
+    "group": "時計用",
+    "keywords": [
+      "watch",
+      "wristwatch",
+      "clock"
+    ]
+  },
+  {
+    "name": "ウォッチパーツ",
+    "group": "時計用",
+    "keywords": [
+      "watch",
+      "wristwatch",
+      "clock"
+    ]
+  },
+  {
+    "name": "時計部品",
+    "group": "時計用",
+    "keywords": [
+      "watch",
+      "wristwatch",
+      "clock"
+    ]
+  },
+  {
+    "name": "カメラ",
+    "group": "カメラ",
+    "keywords": [
+      "camera",
+      "lens",
+      "digital camera"
+    ]
+  },
+  {
+    "name": "デジカメ",
+    "group": "カメラ",
+    "keywords": [
+      "camera",
+      "lens",
+      "digital camera"
+    ]
+  },
+  {
+    "name": "一眼レフ",
+    "group": "カメラ",
+    "keywords": [
+      "camera",
+      "lens",
+      "digital camera"
+    ]
+  },
+  {
+    "name": "ミラーレス",
+    "group": "カメラ",
+    "keywords": [
+      "camera",
+      "lens",
+      "digital camera"
+    ]
+  },
+  {
+    "name": "レンズ",
+    "group": "カメラ",
+    "keywords": [
+      "camera",
+      "lens",
+      "digital camera"
+    ]
+  },
+  {
+    "name": "リール",
+    "group": "リール",
+    "keywords": [
+      "reel",
+      "fishing reel",
+      "fishing"
+    ]
+  },
+  {
+    "name": "電動リール",
+    "group": "リール",
+    "keywords": [
+      "reel",
+      "fishing reel",
+      "fishing"
+    ]
+  },
+  {
+    "name": "スピニングリール",
+    "group": "リール",
+    "keywords": [
+      "reel",
+      "fishing reel",
+      "fishing"
+    ]
+  },
+  {
+    "name": "ベイトリール",
+    "group": "リール",
+    "keywords": [
+      "reel",
+      "fishing reel",
+      "fishing"
+    ]
+  },
+  {
+    "name": "両軸リール",
+    "group": "リール",
+    "keywords": [
+      "reel",
+      "fishing reel",
+      "fishing"
+    ]
+  },
+  {
+    "name": "フライリール",
+    "group": "リール",
+    "keywords": [
+      "reel",
+      "fishing reel",
+      "fishing"
+    ]
+  },
+  {
+    "name": "フィッシングリール",
+    "group": "リール",
+    "keywords": [
+      "reel",
+      "fishing reel",
+      "fishing"
+    ]
+  },
+  {
+    "name": "釣竿",
+    "group": "釣竿",
+    "keywords": [
+      "fishing rod",
+      "rod",
+      "fishing"
+    ]
+  },
+  {
+    "name": "ロッド",
+    "group": "釣竿",
+    "keywords": [
+      "fishing rod",
+      "rod",
+      "fishing"
+    ]
+  },
+  {
+    "name": "竿",
+    "group": "釣竿",
+    "keywords": [
+      "fishing rod",
+      "rod",
+      "fishing"
+    ]
+  },
+  {
+    "name": "ジギングロッド",
+    "group": "釣竿",
+    "keywords": [
+      "fishing rod",
+      "rod",
+      "fishing"
+    ]
+  },
+  {
+    "name": "エギングロッド",
+    "group": "釣竿",
+    "keywords": [
+      "fishing rod",
+      "rod",
+      "fishing"
+    ]
+  },
+  {
+    "name": "テンカラ",
+    "group": "釣竿",
+    "keywords": [
+      "fishing rod",
+      "rod",
+      "fishing"
+    ]
+  },
+  {
+    "name": "シーバスロッド",
+    "group": "釣竿",
+    "keywords": [
+      "fishing rod",
+      "rod",
+      "fishing"
+    ]
+  },
+  {
+    "name": "アユロッド",
+    "group": "釣竿",
+    "keywords": [
+      "fishing rod",
+      "rod",
+      "fishing"
+    ]
+  },
+  {
+    "name": "渓流竿",
+    "group": "釣竿",
+    "keywords": [
+      "fishing rod",
+      "rod",
+      "fishing"
+    ]
+  },
+  {
+    "name": "ルアー",
+    "group": "釣具汎用",
+    "keywords": [
+      "fishing",
+      "lure"
+    ]
+  },
+  {
+    "name": "ルアーミノー",
+    "group": "釣具汎用",
+    "keywords": [
+      "fishing",
+      "lure"
+    ]
+  },
+  {
+    "name": "ルアークランクベイト",
+    "group": "釣具汎用",
+    "keywords": [
+      "fishing",
+      "lure"
+    ]
+  },
+  {
+    "name": "ルアーワーム",
+    "group": "釣具汎用",
+    "keywords": [
+      "fishing",
+      "lure"
+    ]
+  },
+  {
+    "name": "ルアーメタルジグ",
+    "group": "釣具汎用",
+    "keywords": [
+      "fishing",
+      "lure"
+    ]
+  },
+  {
+    "name": "ルアーエギ",
+    "group": "釣具汎用",
+    "keywords": [
+      "fishing",
+      "lure"
+    ]
+  },
+  {
+    "name": "ルアースプーン",
+    "group": "釣具汎用",
+    "keywords": [
+      "fishing",
+      "lure"
+    ]
+  },
+  {
+    "name": "ルアージグ",
+    "group": "釣具汎用",
+    "keywords": [
+      "fishing",
+      "lure"
+    ]
+  },
+  {
+    "name": "ルアートップウォーター",
+    "group": "釣具汎用",
+    "keywords": [
+      "fishing",
+      "lure"
+    ]
+  },
+  {
+    "name": "ルアーソフトベイト",
+    "group": "釣具汎用",
+    "keywords": [
+      "fishing",
+      "lure"
+    ]
+  },
+  {
+    "name": "ルアースピナーベイト",
+    "group": "釣具汎用",
+    "keywords": [
+      "fishing",
+      "lure"
+    ]
+  },
+  {
+    "name": "ルアーバイブレーション",
+    "group": "釣具汎用",
+    "keywords": [
+      "fishing",
+      "lure"
+    ]
+  },
+  {
+    "name": "ルアーフロッグ",
+    "group": "釣具汎用",
+    "keywords": [
+      "fishing",
+      "lure"
+    ]
+  },
+  {
+    "name": "ルアータックル",
+    "group": "釣具汎用",
+    "keywords": [
+      "fishing",
+      "lure"
+    ]
+  },
+  {
+    "name": "ゴルフ",
+    "group": "ゴルフ",
+    "keywords": [
+      "golf",
+      "golf club"
+    ]
+  },
+  {
+    "name": "ゴルフクラブ",
+    "group": "ゴルフ",
+    "keywords": [
+      "golf",
+      "golf club"
+    ]
+  },
+  {
+    "name": "ゴルフヘッド",
+    "group": "ゴルフ",
+    "keywords": [
+      "golf",
+      "golf club"
+    ]
+  },
+  {
+    "name": "ドライバー",
+    "group": "ゴルフ",
+    "keywords": [
+      "golf",
+      "golf club"
+    ]
+  },
+  {
+    "name": "アイアン",
+    "group": "ゴルフ",
+    "keywords": [
+      "golf",
+      "golf club"
+    ]
+  },
+  {
+    "name": "パター",
+    "group": "ゴルフ",
+    "keywords": [
+      "golf",
+      "golf club"
+    ]
+  },
+  {
+    "name": "ウェッジ",
+    "group": "ゴルフ",
+    "keywords": [
+      "golf",
+      "golf club"
+    ]
+  },
+  {
+    "name": "ネックレス",
+    "group": "ジュエリー",
+    "keywords": [
+      "jewelry"
+    ]
+  },
+  {
+    "name": "リング",
+    "group": "ジュエリー",
+    "keywords": [
+      "jewelry"
+    ]
+  },
+  {
+    "name": "指輪",
+    "group": "ジュエリー",
+    "keywords": [
+      "jewelry"
+    ]
+  },
+  {
+    "name": "リング・指輪",
+    "group": "ジュエリー",
+    "keywords": [
+      "jewelry"
+    ]
+  },
+  {
+    "name": "ペンダント",
+    "group": "ジュエリー",
+    "keywords": [
+      "jewelry"
+    ]
+  },
+  {
+    "name": "チェーン",
+    "group": "ジュエリー",
+    "keywords": [
+      "jewelry"
+    ]
+  },
+  {
+    "name": "ブレスレット",
+    "group": "ジュエリー",
+    "keywords": [
+      "jewelry"
+    ]
+  },
+  {
+    "name": "バングル",
+    "group": "ジュエリー",
+    "keywords": [
+      "jewelry"
+    ]
+  },
+  {
+    "name": "ピアス",
+    "group": "ジュエリー",
+    "keywords": [
+      "jewelry"
+    ]
+  },
+  {
+    "name": "イヤリング",
+    "group": "ジュエリー",
+    "keywords": [
+      "jewelry"
+    ]
+  },
+  {
+    "name": "ピアス・イヤリング",
+    "group": "ジュエリー",
+    "keywords": [
+      "jewelry"
+    ]
+  },
+  {
+    "name": "ブローチ",
+    "group": "ジュエリー",
+    "keywords": [
+      "jewelry"
+    ]
+  },
+  {
+    "name": "カフリンクス",
+    "group": "ジュエリー",
+    "keywords": [
+      "jewelry"
+    ]
+  },
+  {
+    "name": "カフリンク",
+    "group": "ジュエリー",
+    "keywords": [
+      "jewelry"
+    ]
+  },
+  {
+    "name": "カフスボタン",
+    "group": "ジュエリー",
+    "keywords": [
+      "jewelry"
+    ]
+  },
+  {
+    "name": "チャーム",
+    "group": "ジュエリー",
+    "keywords": [
+      "jewelry"
+    ]
+  },
+  {
+    "name": "ペンダントトップ",
+    "group": "ジュエリー",
+    "keywords": [
+      "jewelry"
+    ]
+  },
+  {
+    "name": "ポケカ",
+    "group": "ポケカ",
+    "keywords": [
+      "pokemon",
+      "trading card"
+    ]
+  },
+  {
+    "name": "ポケモンカード",
+    "group": "ポケカ",
+    "keywords": [
+      "pokemon",
+      "trading card"
+    ]
+  },
+  {
+    "name": "MTG",
+    "group": "MTG",
+    "keywords": [
+      "mtg",
+      "magic the gathering"
+    ]
+  },
+  {
+    "name": "マジックザギャザリング",
+    "group": "MTG",
+    "keywords": [
+      "mtg",
+      "magic the gathering"
+    ]
+  },
+  {
+    "name": "ベースボールカード",
+    "group": "ベースボールカード",
+    "keywords": [
+      "baseball card",
+      "trading card"
+    ]
+  },
+  {
+    "name": "野球カード",
+    "group": "ベースボールカード",
+    "keywords": [
+      "baseball card",
+      "trading card"
+    ]
+  },
+  {
+    "name": "BBM",
+    "group": "ベースボールカード",
+    "keywords": [
+      "baseball card",
+      "trading card"
+    ]
+  },
+  {
+    "name": "大相撲カード",
+    "group": "大相撲カード",
+    "keywords": [
+      "sumo",
+      "trading card"
+    ]
+  },
+  {
+    "name": "遊戯王",
+    "group": "遊戯王",
+    "keywords": [
+      "yu-gi-oh",
+      "yugioh"
+    ]
+  },
+  {
+    "name": "ワンピースカード",
+    "group": "ワンピースカード",
+    "keywords": [
+      "one piece",
+      "trading card"
+    ]
+  },
+  {
+    "name": "ドラゴンボールカード",
+    "group": "ドラゴンボールカード",
+    "keywords": [
+      "dragon ball",
+      "trading card"
+    ]
+  },
+  {
+    "name": "ヴァイスシュヴァルツ",
+    "group": "ヴァイスシュヴァルツ",
+    "keywords": [
+      "weiss schwarz",
+      "trading card"
+    ]
+  },
+  {
+    "name": "デジモン",
+    "group": "デジモンカード",
+    "keywords": [
+      "digimon",
+      "trading card"
+    ]
+  },
+  {
+    "name": "デジモンカード",
+    "group": "デジモンカード",
+    "keywords": [
+      "digimon",
+      "trading card"
+    ]
+  },
+  {
+    "name": "ガンダムカード",
+    "group": "ガンダムカード",
+    "keywords": [
+      "gundam",
+      "trading card"
+    ]
+  },
+  {
+    "name": "ガンダムウォー",
+    "group": "ガンダムカード",
+    "keywords": [
+      "gundam",
+      "trading card"
+    ]
+  },
+  {
+    "name": "アーセナルベース",
+    "group": "ガンダムカード",
+    "keywords": [
+      "gundam",
+      "trading card"
+    ]
+  },
+  {
+    "name": "ガンダムクロスウォー",
+    "group": "ガンダムカード",
+    "keywords": [
+      "gundam",
+      "trading card"
+    ]
+  },
+  {
+    "name": "カードダス",
+    "group": "ガンダムカード",
+    "keywords": [
+      "gundam",
+      "trading card"
+    ]
+  },
+  {
+    "name": "ヴァンガード",
+    "group": "トレカ汎用",
+    "keywords": [
+      "trading card",
+      "tcg",
+      "ccg"
+    ]
+  },
+  {
+    "name": "デュエマ",
+    "group": "トレカ汎用",
+    "keywords": [
+      "trading card",
+      "tcg",
+      "ccg"
+    ]
+  },
+  {
+    "name": "デュエルマスターズ",
+    "group": "トレカ汎用",
+    "keywords": [
+      "trading card",
+      "tcg",
+      "ccg"
+    ]
+  },
+  {
+    "name": "バトスピ",
+    "group": "トレカ汎用",
+    "keywords": [
+      "trading card",
+      "tcg",
+      "ccg"
+    ]
+  },
+  {
+    "name": "バトルスピリッツ",
+    "group": "トレカ汎用",
+    "keywords": [
+      "trading card",
+      "tcg",
+      "ccg"
+    ]
+  },
+  {
+    "name": "トレカ",
+    "group": "トレカ汎用",
+    "keywords": [
+      "trading card",
+      "tcg",
+      "ccg"
+    ]
+  },
+  {
+    "name": "カード",
+    "group": "トレカ汎用",
+    "keywords": [
+      "trading card",
+      "tcg",
+      "ccg"
+    ]
+  },
+  {
+    "name": "トレーディングカード",
+    "group": "トレカ汎用",
+    "keywords": [
+      "trading card",
+      "tcg",
+      "ccg"
+    ]
+  },
+  {
+    "name": "PSA",
+    "group": "トレカ汎用",
+    "keywords": [
+      "trading card",
+      "tcg",
+      "ccg"
+    ]
+  },
+  {
+    "name": "BGS",
+    "group": "トレカ汎用",
+    "keywords": [
+      "trading card",
+      "tcg",
+      "ccg"
+    ]
+  },
+  {
+    "name": "CGC",
+    "group": "トレカ汎用",
+    "keywords": [
+      "trading card",
+      "tcg",
+      "ccg"
+    ]
+  },
+  {
+    "name": "SGC",
+    "group": "トレカ汎用",
+    "keywords": [
+      "trading card",
+      "tcg",
+      "ccg"
+    ]
+  },
+  {
+    "name": "ゲーム",
+    "group": "ゲーム用",
+    "keywords": [
+      "video game",
+      "game"
+    ]
+  },
+  {
+    "name": "ゲームソフト",
+    "group": "ゲーム用",
+    "keywords": [
+      "video game",
+      "game"
+    ]
+  },
+  {
+    "name": "テレビゲーム",
+    "group": "ゲーム用",
+    "keywords": [
+      "video game",
+      "game"
+    ]
+  },
+  {
+    "name": "ゲームソフトPS5",
+    "group": "ゲーム用",
+    "keywords": [
+      "video game",
+      "game"
+    ]
+  },
+  {
+    "name": "ゲームソフトPS4",
+    "group": "ゲーム用",
+    "keywords": [
+      "video game",
+      "game"
+    ]
+  },
+  {
+    "name": "ゲームソフトPS3",
+    "group": "ゲーム用",
+    "keywords": [
+      "video game",
+      "game"
+    ]
+  },
+  {
+    "name": "ゲームソフトPS2",
+    "group": "ゲーム用",
+    "keywords": [
+      "video game",
+      "game"
+    ]
+  },
+  {
+    "name": "ゲームソフトSwitch",
+    "group": "ゲーム用",
+    "keywords": [
+      "video game",
+      "game"
+    ]
+  },
+  {
+    "name": "ゲームソフトXbox",
+    "group": "ゲーム用",
+    "keywords": [
+      "video game",
+      "game"
+    ]
+  },
+  {
+    "name": "ゲームソフトファミコン",
+    "group": "ゲーム用",
+    "keywords": [
+      "video game",
+      "game"
+    ]
+  },
+  {
+    "name": "ゲームソフトスーファミ",
+    "group": "ゲーム用",
+    "keywords": [
+      "video game",
+      "game"
+    ]
+  },
+  {
+    "name": "ゲームソフトゲームボーイ",
+    "group": "ゲーム用",
+    "keywords": [
+      "video game",
+      "game"
+    ]
+  },
+  {
+    "name": "ゲームソフトNintendo",
+    "group": "ゲーム用",
+    "keywords": [
+      "video game",
+      "game"
+    ]
+  },
+  {
+    "name": "ゲームソフトPlayStation",
+    "group": "ゲーム用",
+    "keywords": [
+      "video game",
+      "game"
+    ]
+  },
+  {
+    "name": "ゲーム機",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "ゲーム本体",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "コンソール",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "プレステ",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "PS1",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "Wii",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "ドリームキャスト",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "サターン",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "メガドライブ",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "PCエンジン",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "ネオジオ",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "ゲームキューブ",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "Nintendo 64",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "N64",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "DS",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "3DS",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "PSP",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "PSVita",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "Steam Deck",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "ゲーム機PS5",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "ゲーム機PS4",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "ゲーム機PS3",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "ゲーム機PS2",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "ゲーム機Switch",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "ゲーム機Xbox",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "ゲーム機ファミコン",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "ゲーム機スーファミ",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "ゲーム機ゲームボーイ",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "ゲーム機Nintendo",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "ゲーム機PlayStation",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "コントローラー",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "ジョイスティック",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "メモリーカード",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "ゲーム周辺機器",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "アーケードスティック",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "ゲームパッド",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "AVケーブル",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "HDMIケーブル",
+    "group": "ゲーム機",
+    "keywords": [
+      "game console",
+      "console"
+    ]
+  },
+  {
+    "name": "アンティーク",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "ヴィンテージ",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "骨董品",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "コレクティブル",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "昭和レトロ",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "レトロ",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "当時物",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "ブリキ",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "ソフビ",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "ノベルティ",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "非売品",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "デッドストック",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "景品",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "ピンバッジ",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "ミリタリー",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "鉄道グッズ",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "記念品",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "紙もの",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "けん玉",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "ケンダマ",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "剣玉",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "独楽",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "コマ",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "こま",
+    "group": "コレクティブル",
+    "keywords": [
+      "collectible",
+      "antique",
+      "vintage"
+    ]
+  },
+  {
+    "name": "フィギュア",
+    "group": "フィギュア",
+    "keywords": [
+      "figure",
+      "action figure",
+      "doll"
+    ]
+  },
+  {
+    "name": "アクションフィギュア",
+    "group": "フィギュア",
+    "keywords": [
+      "figure",
+      "action figure",
+      "doll"
+    ]
+  },
+  {
+    "name": "ドール",
+    "group": "フィギュア",
+    "keywords": [
+      "figure",
+      "action figure",
+      "doll"
+    ]
+  },
+  {
+    "name": "ぬいぐるみ",
+    "group": "フィギュア",
+    "keywords": [
+      "figure",
+      "action figure",
+      "doll"
+    ]
+  },
+  {
+    "name": "人形",
+    "group": "フィギュア",
+    "keywords": [
+      "figure",
+      "action figure",
+      "doll"
+    ]
+  },
+  {
+    "name": "テディベア",
+    "group": "フィギュア",
+    "keywords": [
+      "figure",
+      "action figure",
+      "doll"
+    ]
+  },
+  {
+    "name": "プーリップ",
+    "group": "フィギュア",
+    "keywords": [
+      "figure",
+      "action figure",
+      "doll"
+    ]
+  },
+  {
+    "name": "ブライス",
+    "group": "フィギュア",
+    "keywords": [
+      "figure",
+      "action figure",
+      "doll"
+    ]
+  },
+  {
+    "name": "ドルフィー",
+    "group": "フィギュア",
+    "keywords": [
+      "figure",
+      "action figure",
+      "doll"
+    ]
+  },
+  {
+    "name": "BJD",
+    "group": "フィギュア",
+    "keywords": [
+      "figure",
+      "action figure",
+      "doll"
+    ]
+  },
+  {
+    "name": "バービー",
+    "group": "フィギュア",
+    "keywords": [
+      "figure",
+      "action figure",
+      "doll"
+    ]
+  },
+  {
+    "name": "リカちゃん",
+    "group": "フィギュア",
+    "keywords": [
+      "figure",
+      "action figure",
+      "doll"
+    ]
+  },
+  {
+    "name": "ベアブリック",
+    "group": "フィギュア",
+    "keywords": [
+      "figure",
+      "action figure",
+      "doll"
+    ]
+  },
+  {
+    "name": "シュタイフ",
+    "group": "フィギュア",
+    "keywords": [
+      "figure",
+      "action figure",
+      "doll"
+    ]
+  },
+  {
+    "name": "ジェリーキャット",
+    "group": "フィギュア",
+    "keywords": [
+      "figure",
+      "action figure",
+      "doll"
+    ]
+  },
+  {
+    "name": "スクイッシュマロ",
+    "group": "フィギュア",
+    "keywords": [
+      "figure",
+      "action figure",
+      "doll"
+    ]
+  },
+  {
+    "name": "モンチッチ",
+    "group": "フィギュア",
+    "keywords": [
+      "figure",
+      "action figure",
+      "doll"
+    ]
+  },
+  {
+    "name": "スタチュー",
+    "group": "フィギュア",
+    "keywords": [
+      "figure",
+      "action figure",
+      "doll"
+    ]
+  },
+  {
+    "name": "アニメ",
+    "group": "アニメ",
+    "keywords": [
+      "anime"
+    ]
+  },
+  {
+    "name": "アニメグッズ",
+    "group": "アニメ",
+    "keywords": [
+      "anime"
+    ]
+  },
+  {
+    "name": "アクスタ",
+    "group": "アニメ",
+    "keywords": [
+      "anime"
+    ]
+  },
+  {
+    "name": "缶バッジ",
+    "group": "アニメ",
+    "keywords": [
+      "anime"
+    ]
+  },
+  {
+    "name": "タペストリー",
+    "group": "アニメ",
+    "keywords": [
+      "anime"
+    ]
+  },
+  {
+    "name": "クリアファイル",
+    "group": "アニメ",
+    "keywords": [
+      "anime"
+    ]
+  },
+  {
+    "name": "色紙",
+    "group": "アニメ",
+    "keywords": [
+      "anime"
+    ]
+  },
+  {
+    "name": "ラバスト",
+    "group": "アニメ",
+    "keywords": [
+      "anime"
+    ]
+  },
+  {
+    "name": "ポスター",
+    "group": "アニメ",
+    "keywords": [
+      "anime"
+    ]
+  },
+  {
+    "name": "セル画",
+    "group": "アニメ",
+    "keywords": [
+      "anime"
+    ]
+  },
+  {
+    "name": "原画",
+    "group": "アニメ",
+    "keywords": [
+      "anime"
+    ]
+  },
+  {
+    "name": "ブロマイド",
+    "group": "アニメ",
+    "keywords": [
+      "anime"
+    ]
+  },
+  {
+    "name": "キーホルダー",
+    "group": "アニメ",
+    "keywords": [
+      "anime"
+    ]
+  },
+  {
+    "name": "漫画",
+    "group": "漫画",
+    "keywords": [
+      "manga",
+      "comic"
+    ]
+  },
+  {
+    "name": "マンガ",
+    "group": "漫画",
+    "keywords": [
+      "manga",
+      "comic"
+    ]
+  },
+  {
+    "name": "コミック",
+    "group": "漫画",
+    "keywords": [
+      "manga",
+      "comic"
+    ]
+  },
+  {
+    "name": "単行本",
+    "group": "漫画",
+    "keywords": [
+      "manga",
+      "comic"
+    ]
+  },
+  {
+    "name": "文庫本",
+    "group": "漫画",
+    "keywords": [
+      "manga",
+      "comic"
+    ]
+  },
+  {
+    "name": "全巻セット",
+    "group": "漫画",
+    "keywords": [
+      "manga",
+      "comic"
+    ]
+  },
+  {
+    "name": "初版",
+    "group": "漫画",
+    "keywords": [
+      "manga",
+      "comic"
+    ]
+  },
+  {
+    "name": "同人誌",
+    "group": "漫画",
+    "keywords": [
+      "manga",
+      "comic"
+    ]
+  },
+  {
+    "name": "画集",
+    "group": "漫画",
+    "keywords": [
+      "manga",
+      "comic"
+    ]
+  },
+  {
+    "name": "スニーカー",
+    "group": "スニーカー",
+    "keywords": [
+      "sneakers",
+      "shoes"
+    ]
+  },
+  {
+    "name": "靴",
+    "group": "ドレスシューズ",
+    "keywords": [
+      "dress shoes",
+      "leather shoes"
+    ]
+  },
+  {
+    "name": "シューズ",
+    "group": "ドレスシューズ",
+    "keywords": [
+      "dress shoes",
+      "leather shoes"
+    ]
+  },
+  {
+    "name": "ブーツ",
+    "group": "ドレスシューズ",
+    "keywords": [
+      "dress shoes",
+      "leather shoes"
+    ]
+  },
+  {
+    "name": "サンダル",
+    "group": "ドレスシューズ",
+    "keywords": [
+      "dress shoes",
+      "leather shoes"
+    ]
+  },
+  {
+    "name": "パンプス",
+    "group": "ドレスシューズ",
+    "keywords": [
+      "dress shoes",
+      "leather shoes"
+    ]
+  },
+  {
+    "name": "ローファー",
+    "group": "ドレスシューズ",
+    "keywords": [
+      "dress shoes",
+      "leather shoes"
+    ]
+  },
+  {
+    "name": "衣類",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "服",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "トップス",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ボトムス",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ジャケット",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "コート",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ドレス",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "スカート",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "パンツ",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "帽子",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "キャップ",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ハット",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ビーニー",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "バケットハット",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "スナップバック",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ベースボールキャップ",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "トラッカーハット",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ニット帽",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ベレー帽",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "フェドーラ",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "パナマハット",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "キャスケット",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ハンチング",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ダッドハット",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "サンバイザー",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "スカーフ",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "マフラー",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ストール",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ショール",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "バンダナ",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "スヌード",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ネックウォーマー",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ベルト",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "レザーベルト",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "メッシュベルト",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ベルトバックル",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "バックル",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ネクタイ",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "蝶ネクタイ",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ボウタイ",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "アスコットタイ",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ネクタイピン",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "タイピン",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "タイバー",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "スカーフリング",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ハンカチ",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ポケットチーフ",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "タオルハンカチ",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "ヘアアクセサリー",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "バレッタ",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "かんざし",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "髪飾り",
+    "group": "アパレル・ブランド品",
+    "keywords": [
+      "apparel",
+      "fashion",
+      "brand",
+      "clothing"
+    ]
+  },
+  {
+    "name": "バッグ",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "ハンドバッグ",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "ショルダーバッグ",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "トートバッグ",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "リュック",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "ボストンバッグ",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "クラッチバッグ",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "財布",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "長財布",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "二つ折り財布",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "三つ折り財布",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "ミニ財布",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "コインケース",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "カードケース",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "キーケース",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "パスケース",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "マネークリップ",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "札入れ",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "がま口",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "手帳カバー",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "キーリング",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "チャームキーホルダー",
+    "group": "レザーグッズ",
+    "keywords": [
+      "leather",
+      "leather goods",
+      "leather bag"
+    ]
+  },
+  {
+    "name": "オーディオ",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "家電",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "ヘッドホン",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "イヤホン",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "スピーカー",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "電子機器",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "オーディオアンプ",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "AVアンプ",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "レシーバー",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "レコードプレーヤー",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "カセットデッキ",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "ウォークマン",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "DAP",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "ポータブルプレーヤー",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "炊飯器",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "掃除機",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "ドライヤー",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "美顔器",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "電気ケトル",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "空気清浄機",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "プロジェクター",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "ラジオ",
+    "group": "オーディオ・家電",
+    "keywords": [
+      "audio",
+      "home appliance",
+      "electronics"
+    ]
+  },
+  {
+    "name": "楽器",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "バイオリン",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "フルート",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "サックス",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "トランペット",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "ドラム",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "ハーモニカ",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "キーボード",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "シンセサイザー",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "シンセ",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "電子ピアノ",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "ワークステーション",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "サンプラー",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "ドラムマシン",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "グルーヴボックス",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "DJコントローラー",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "ターンテーブル",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "ミキサー",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "CDJ",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "管楽器",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "スネア",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "シンバル",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "パーカッション",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "クラリネット",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "トロンボーン",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "チェロ",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "ビオラ",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "コントラバス",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "ウッドベース",
+    "group": "楽器",
+    "keywords": [
+      "instrument",
+      "musical instrument"
+    ]
+  },
+  {
+    "name": "ギター",
+    "group": "楽器_ギター",
+    "keywords": [
+      "guitar",
+      "bass"
+    ]
+  },
+  {
+    "name": "エレキギター",
+    "group": "楽器_ギター",
+    "keywords": [
+      "guitar",
+      "bass"
+    ]
+  },
+  {
+    "name": "アコースティックギター",
+    "group": "楽器_ギター",
+    "keywords": [
+      "guitar",
+      "bass"
+    ]
+  },
+  {
+    "name": "クラシックギター",
+    "group": "楽器_ギター",
+    "keywords": [
+      "guitar",
+      "bass"
+    ]
+  },
+  {
+    "name": "ベース",
+    "group": "楽器_ギター",
+    "keywords": [
+      "guitar",
+      "bass"
+    ]
+  },
+  {
+    "name": "エレキベース",
+    "group": "楽器_ギター",
+    "keywords": [
+      "guitar",
+      "bass"
+    ]
+  },
+  {
+    "name": "ウクレレ",
+    "group": "楽器_ギター",
+    "keywords": [
+      "guitar",
+      "bass"
+    ]
+  },
+  {
+    "name": "アンプ",
+    "group": "楽器_アンプ",
+    "keywords": [
+      "amplifier",
+      "amp",
+      "guitar"
+    ]
+  },
+  {
+    "name": "ギターアンプ",
+    "group": "楽器_アンプ",
+    "keywords": [
+      "amplifier",
+      "amp",
+      "guitar"
+    ]
+  },
+  {
+    "name": "ベースアンプ",
+    "group": "楽器_アンプ",
+    "keywords": [
+      "amplifier",
+      "amp",
+      "guitar"
+    ]
+  },
+  {
+    "name": "チューブアンプ",
+    "group": "楽器_アンプ",
+    "keywords": [
+      "amplifier",
+      "amp",
+      "guitar"
+    ]
+  },
+  {
+    "name": "エフェクター",
+    "group": "楽器_アンプ",
+    "keywords": [
+      "amplifier",
+      "amp",
+      "guitar"
+    ]
+  },
+  {
+    "name": "ストンプボックス",
+    "group": "楽器_アンプ",
+    "keywords": [
+      "amplifier",
+      "amp",
+      "guitar"
+    ]
+  },
+  {
+    "name": "マルチエフェクター",
+    "group": "楽器_アンプ",
+    "keywords": [
+      "amplifier",
+      "amp",
+      "guitar"
+    ]
+  },
+  {
+    "name": "ペダル",
+    "group": "楽器_アンプ",
+    "keywords": [
+      "amplifier",
+      "amp",
+      "guitar"
+    ]
+  },
+  {
+    "name": "オーバードライブ",
+    "group": "楽器_アンプ",
+    "keywords": [
+      "amplifier",
+      "amp",
+      "guitar"
+    ]
+  },
+  {
+    "name": "ディストーション",
+    "group": "楽器_アンプ",
+    "keywords": [
+      "amplifier",
+      "amp",
+      "guitar"
+    ]
+  },
+  {
+    "name": "ファズ",
+    "group": "楽器_アンプ",
+    "keywords": [
+      "amplifier",
+      "amp",
+      "guitar"
+    ]
+  },
+  {
+    "name": "ディレイ",
+    "group": "楽器_アンプ",
+    "keywords": [
+      "amplifier",
+      "amp",
+      "guitar"
+    ]
+  },
+  {
+    "name": "リバーブ",
+    "group": "楽器_アンプ",
+    "keywords": [
+      "amplifier",
+      "amp",
+      "guitar"
+    ]
+  },
+  {
+    "name": "コーラス",
+    "group": "楽器_アンプ",
+    "keywords": [
+      "amplifier",
+      "amp",
+      "guitar"
+    ]
+  },
+  {
+    "name": "コンプレッサー",
+    "group": "楽器_アンプ",
+    "keywords": [
+      "amplifier",
+      "amp",
+      "guitar"
+    ]
+  },
+  {
+    "name": "ワウ",
+    "group": "楽器_アンプ",
+    "keywords": [
+      "amplifier",
+      "amp",
+      "guitar"
+    ]
+  },
+  {
+    "name": "ルーパー",
+    "group": "楽器_アンプ",
+    "keywords": [
+      "amplifier",
+      "amp",
+      "guitar"
+    ]
+  },
+  {
+    "name": "ブースター",
+    "group": "楽器_アンプ",
+    "keywords": [
+      "amplifier",
+      "amp",
+      "guitar"
+    ]
+  },
+  {
+    "name": "ラジコン",
+    "group": "RC・模型",
+    "keywords": [
+      "rc",
+      "remote control",
+      "model"
+    ]
+  },
+  {
+    "name": "RC",
+    "group": "RC・模型",
+    "keywords": [
+      "rc",
+      "remote control",
+      "model"
+    ]
+  },
+  {
+    "name": "模型",
+    "group": "RC・模型",
+    "keywords": [
+      "rc",
+      "remote control",
+      "model"
+    ]
+  },
+  {
+    "name": "プラモデル",
+    "group": "RC・模型",
+    "keywords": [
+      "rc",
+      "remote control",
+      "model"
+    ]
+  },
+  {
+    "name": "ミニ四駆",
+    "group": "RC・模型",
+    "keywords": [
+      "rc",
+      "remote control",
+      "model"
+    ]
+  },
+  {
+    "name": "鉄道模型",
+    "group": "RC・模型",
+    "keywords": [
+      "rc",
+      "remote control",
+      "model"
+    ]
+  },
+  {
+    "name": "モデルカー",
+    "group": "RC・模型",
+    "keywords": [
+      "rc",
+      "remote control",
+      "model"
+    ]
+  },
+  {
+    "name": "スケールモデル",
+    "group": "RC・模型",
+    "keywords": [
+      "rc",
+      "remote control",
+      "model"
+    ]
+  },
+  {
+    "name": "戦車",
+    "group": "RC・模型",
+    "keywords": [
+      "rc",
+      "remote control",
+      "model"
+    ]
+  },
+  {
+    "name": "戦闘機",
+    "group": "RC・模型",
+    "keywords": [
+      "rc",
+      "remote control",
+      "model"
+    ]
+  },
+  {
+    "name": "ガンプラ",
+    "group": "メカプラモ",
+    "keywords": [
+      "plastic model",
+      "gunpla",
+      "mecha"
+    ]
+  },
+  {
+    "name": "HGUC",
+    "group": "メカプラモ",
+    "keywords": [
+      "plastic model",
+      "gunpla",
+      "mecha"
+    ]
+  },
+  {
+    "name": "MG",
+    "group": "メカプラモ",
+    "keywords": [
+      "plastic model",
+      "gunpla",
+      "mecha"
+    ]
+  },
+  {
+    "name": "RG",
+    "group": "メカプラモ",
+    "keywords": [
+      "plastic model",
+      "gunpla",
+      "mecha"
+    ]
+  },
+  {
+    "name": "PG",
+    "group": "メカプラモ",
+    "keywords": [
+      "plastic model",
+      "gunpla",
+      "mecha"
+    ]
+  },
+  {
+    "name": "SD",
+    "group": "メカプラモ",
+    "keywords": [
+      "plastic model",
+      "gunpla",
+      "mecha"
+    ]
+  },
+  {
+    "name": "BB戦士",
+    "group": "メカプラモ",
+    "keywords": [
+      "plastic model",
+      "gunpla",
+      "mecha"
+    ]
+  },
+  {
+    "name": "プレバン",
+    "group": "メカプラモ",
+    "keywords": [
+      "plastic model",
+      "gunpla",
+      "mecha"
+    ]
+  },
+  {
+    "name": "ゾイド",
+    "group": "メカプラモ",
+    "keywords": [
+      "plastic model",
+      "gunpla",
+      "mecha"
+    ]
+  },
+  {
+    "name": "フレームアームズ",
+    "group": "メカプラモ",
+    "keywords": [
+      "plastic model",
+      "gunpla",
+      "mecha"
+    ]
+  },
+  {
+    "name": "メカプラモ",
+    "group": "メカプラモ",
+    "keywords": [
+      "plastic model",
+      "gunpla",
+      "mecha"
+    ]
+  },
+  {
+    "name": "ロボットプラモ",
+    "group": "メカプラモ",
+    "keywords": [
+      "plastic model",
+      "gunpla",
+      "mecha"
+    ]
+  },
+  {
+    "name": "レコード",
+    "group": "レコード",
+    "keywords": [
+      "vinyl record",
+      "lp"
+    ]
+  },
+  {
+    "name": "LP",
+    "group": "レコード",
+    "keywords": [
+      "vinyl record",
+      "lp"
+    ]
+  },
+  {
+    "name": "EP",
+    "group": "レコード",
+    "keywords": [
+      "vinyl record",
+      "lp"
+    ]
+  },
+  {
+    "name": "CD",
+    "group": "レコード",
+    "keywords": [
+      "vinyl record",
+      "lp"
+    ]
+  },
+  {
+    "name": "カセット",
+    "group": "レコード",
+    "keywords": [
+      "vinyl record",
+      "lp"
+    ]
+  },
+  {
+    "name": "サングラス",
+    "group": "サングラス",
+    "keywords": [
+      "sunglasses"
+    ]
+  },
+  {
+    "name": "メガネ",
+    "group": "サングラス",
+    "keywords": [
+      "sunglasses"
+    ]
+  },
+  {
+    "name": "眼鏡",
+    "group": "サングラス",
+    "keywords": [
+      "sunglasses"
+    ]
+  },
+  {
+    "name": "万年筆",
+    "group": "万年筆・筆記具",
+    "keywords": [
+      "fountain pen",
+      "pen",
+      "writing"
+    ]
+  },
+  {
+    "name": "ボールペン",
+    "group": "万年筆・筆記具",
+    "keywords": [
+      "fountain pen",
+      "pen",
+      "writing"
+    ]
+  },
+  {
+    "name": "ペン",
+    "group": "万年筆・筆記具",
+    "keywords": [
+      "fountain pen",
+      "pen",
+      "writing"
+    ]
+  },
+  {
+    "name": "シャープペンシル",
+    "group": "万年筆・筆記具",
+    "keywords": [
+      "fountain pen",
+      "pen",
+      "writing"
+    ]
+  },
+  {
+    "name": "筆記具",
+    "group": "万年筆・筆記具",
+    "keywords": [
+      "fountain pen",
+      "pen",
+      "writing"
+    ]
+  },
+  {
+    "name": "メカニカルペンシル",
+    "group": "万年筆・筆記具",
+    "keywords": [
+      "fountain pen",
+      "pen",
+      "writing"
+    ]
+  },
+  {
+    "name": "テニス",
+    "group": "テニス",
+    "keywords": [
+      "tennis"
+    ]
+  },
+  {
+    "name": "テニスラケット",
+    "group": "テニス",
+    "keywords": [
+      "tennis"
+    ]
+  },
+  {
+    "name": "ラケット",
+    "group": "テニス",
+    "keywords": [
+      "tennis"
+    ]
+  },
+  {
+    "name": "野球",
+    "group": "野球",
+    "keywords": [
+      "baseball"
+    ]
+  },
+  {
+    "name": "グローブ",
+    "group": "野球",
+    "keywords": [
+      "baseball"
+    ]
+  },
+  {
+    "name": "グラブ",
+    "group": "野球",
+    "keywords": [
+      "baseball"
+    ]
+  },
+  {
+    "name": "バット",
+    "group": "野球",
+    "keywords": [
+      "baseball"
+    ]
+  },
+  {
+    "name": "ミット",
+    "group": "野球",
+    "keywords": [
+      "baseball"
+    ]
+  },
+  {
+    "name": "ユニフォーム",
+    "group": "スポーツウェア",
+    "keywords": [
+      "sportswear",
+      "athletic"
+    ]
+  },
+  {
+    "name": "ジャージ",
+    "group": "スポーツウェア",
+    "keywords": [
+      "sportswear",
+      "athletic"
+    ]
+  },
+  {
+    "name": "トレーニングウェア",
+    "group": "スポーツウェア",
+    "keywords": [
+      "sportswear",
+      "athletic"
+    ]
+  },
+  {
+    "name": "ゴルフウェア",
+    "group": "スポーツウェア",
+    "keywords": [
+      "sportswear",
+      "athletic"
+    ]
+  },
+  {
+    "name": "スキーウェア",
+    "group": "スポーツウェア",
+    "keywords": [
+      "sportswear",
+      "athletic"
+    ]
+  },
+  {
+    "name": "水着",
+    "group": "スポーツウェア",
+    "keywords": [
+      "sportswear",
+      "athletic"
+    ]
+  },
+  {
+    "name": "着物",
+    "group": "着物",
+    "keywords": [
+      "kimono"
+    ]
+  },
+  {
+    "name": "和装",
+    "group": "着物",
+    "keywords": [
+      "kimono"
+    ]
+  },
+  {
+    "name": "振袖",
+    "group": "着物",
+    "keywords": [
+      "kimono"
+    ]
+  },
+  {
+    "name": "留袖",
+    "group": "着物",
+    "keywords": [
+      "kimono"
+    ]
+  },
+  {
+    "name": "訪問着",
+    "group": "着物",
+    "keywords": [
+      "kimono"
+    ]
+  },
+  {
+    "name": "浴衣",
+    "group": "着物",
+    "keywords": [
+      "kimono"
+    ]
+  },
+  {
+    "name": "帯",
+    "group": "着物",
+    "keywords": [
+      "kimono"
+    ]
+  },
+  {
+    "name": "袴",
+    "group": "着物",
+    "keywords": [
+      "kimono"
+    ]
+  },
+  {
+    "name": "小紋",
+    "group": "着物",
+    "keywords": [
+      "kimono"
+    ]
+  },
+  {
+    "name": "紬",
+    "group": "着物",
+    "keywords": [
+      "kimono"
+    ]
+  },
+  {
+    "name": "付下げ",
+    "group": "着物",
+    "keywords": [
+      "kimono"
+    ]
+  },
+  {
+    "name": "羽織",
+    "group": "着物",
+    "keywords": [
+      "kimono"
+    ]
+  },
+  {
+    "name": "色無地",
+    "group": "着物",
+    "keywords": [
+      "kimono"
+    ]
+  },
+  {
+    "name": "反物",
+    "group": "着物",
+    "keywords": [
+      "kimono"
+    ]
+  },
+  {
+    "name": "草履",
+    "group": "着物",
+    "keywords": [
+      "kimono"
+    ]
+  },
+  {
+    "name": "下駄",
+    "group": "着物",
+    "keywords": [
+      "kimono"
+    ]
+  },
+  {
+    "name": "名古屋帯",
+    "group": "着物",
+    "keywords": [
+      "kimono"
+    ]
+  },
+  {
+    "name": "袋帯",
+    "group": "着物",
+    "keywords": [
+      "kimono"
+    ]
+  },
+  {
+    "name": "半幅帯",
+    "group": "着物",
+    "keywords": [
+      "kimono"
+    ]
+  },
+  {
+    "name": "日本刀",
+    "group": "日本刀",
+    "keywords": [
+      "katana",
+      "japanese sword"
+    ]
+  },
+  {
+    "name": "刀",
+    "group": "日本刀",
+    "keywords": [
+      "katana",
+      "japanese sword"
+    ]
+  },
+  {
+    "name": "脇差",
+    "group": "日本刀",
+    "keywords": [
+      "katana",
+      "japanese sword"
+    ]
+  },
+  {
+    "name": "短刀",
+    "group": "日本刀",
+    "keywords": [
+      "katana",
+      "japanese sword"
+    ]
+  },
+  {
+    "name": "太刀",
+    "group": "日本刀",
+    "keywords": [
+      "katana",
+      "japanese sword"
+    ]
+  },
+  {
+    "name": "刀装具",
+    "group": "日本刀",
+    "keywords": [
+      "katana",
+      "japanese sword"
+    ]
+  },
+  {
+    "name": "鍔",
+    "group": "日本刀",
+    "keywords": [
+      "katana",
+      "japanese sword"
+    ]
+  },
+  {
+    "name": "目貫",
+    "group": "日本刀",
+    "keywords": [
+      "katana",
+      "japanese sword"
+    ]
+  },
+  {
+    "name": "拵え",
+    "group": "日本刀",
+    "keywords": [
+      "katana",
+      "japanese sword"
+    ]
+  },
+  {
+    "name": "縁頭",
+    "group": "日本刀",
+    "keywords": [
+      "katana",
+      "japanese sword"
+    ]
+  },
+  {
+    "name": "小柄",
+    "group": "日本刀",
+    "keywords": [
+      "katana",
+      "japanese sword"
+    ]
+  },
+  {
+    "name": "笄",
+    "group": "日本刀",
+    "keywords": [
+      "katana",
+      "japanese sword"
+    ]
+  },
+  {
+    "name": "陶磁器",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "陶器",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "磁器",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "焼物",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "香炉",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "花瓶",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "壺",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "茶碗",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "有田焼",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "伊万里",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "古伊万里",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "九谷焼",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "備前焼",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "萩焼",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "信楽焼",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "瀬戸焼",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "美濃焼",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "唐津焼",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "京焼",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "清水焼",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "織部",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "志野",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "薩摩焼",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "陶器急須",
+    "group": "陶磁器",
+    "keywords": [
+      "ceramic",
+      "porcelain",
+      "pottery"
+    ]
+  },
+  {
+    "name": "茶道具",
+    "group": "茶道具",
+    "keywords": [
+      "tea ceremony",
+      "chadougu"
+    ]
+  },
+  {
+    "name": "茶入",
+    "group": "茶道具",
+    "keywords": [
+      "tea ceremony",
+      "chadougu"
+    ]
+  },
+  {
+    "name": "棗",
+    "group": "茶道具",
+    "keywords": [
+      "tea ceremony",
+      "chadougu"
+    ]
+  },
+  {
+    "name": "茶杓",
+    "group": "茶道具",
+    "keywords": [
+      "tea ceremony",
+      "chadougu"
+    ]
+  },
+  {
+    "name": "水指",
+    "group": "茶道具",
+    "keywords": [
+      "tea ceremony",
+      "chadougu"
+    ]
+  },
+  {
+    "name": "建水",
+    "group": "茶道具",
+    "keywords": [
+      "tea ceremony",
+      "chadougu"
+    ]
+  },
+  {
+    "name": "風炉",
+    "group": "茶道具",
+    "keywords": [
+      "tea ceremony",
+      "chadougu"
+    ]
+  },
+  {
+    "name": "釜",
+    "group": "茶道具",
+    "keywords": [
+      "tea ceremony",
+      "chadougu"
+    ]
+  },
+  {
+    "name": "蓋置",
+    "group": "茶道具",
+    "keywords": [
+      "tea ceremony",
+      "chadougu"
+    ]
+  },
+  {
+    "name": "香合",
+    "group": "茶道具",
+    "keywords": [
+      "tea ceremony",
+      "chadougu"
+    ]
+  },
+  {
+    "name": "花入",
+    "group": "茶道具",
+    "keywords": [
+      "tea ceremony",
+      "chadougu"
+    ]
+  },
+  {
+    "name": "茶筅",
+    "group": "茶道具",
+    "keywords": [
+      "tea ceremony",
+      "chadougu"
+    ]
+  },
+  {
+    "name": "柄杓",
+    "group": "茶道具",
+    "keywords": [
+      "tea ceremony",
+      "chadougu"
+    ]
+  },
+  {
+    "name": "菓子器",
+    "group": "茶道具",
+    "keywords": [
+      "tea ceremony",
+      "chadougu"
+    ]
+  },
+  {
+    "name": "炉縁",
+    "group": "茶道具",
+    "keywords": [
+      "tea ceremony",
+      "chadougu"
+    ]
+  },
+  {
+    "name": "鉄瓶",
+    "group": "鉄瓶",
+    "keywords": [
+      "tetsubin",
+      "iron kettle"
+    ]
+  },
+  {
+    "name": "南部鉄器",
+    "group": "鉄瓶",
+    "keywords": [
+      "tetsubin",
+      "iron kettle"
+    ]
+  },
+  {
+    "name": "銀瓶",
+    "group": "鉄瓶",
+    "keywords": [
+      "tetsubin",
+      "iron kettle"
+    ]
+  },
+  {
+    "name": "銅瓶",
+    "group": "鉄瓶",
+    "keywords": [
+      "tetsubin",
+      "iron kettle"
+    ]
+  },
+  {
+    "name": "茶釜",
+    "group": "鉄瓶",
+    "keywords": [
+      "tetsubin",
+      "iron kettle"
+    ]
+  },
+  {
+    "name": "鉄瓶急須",
+    "group": "鉄瓶",
+    "keywords": [
+      "tetsubin",
+      "iron kettle"
+    ]
+  },
+  {
+    "name": "仏像",
+    "group": "仏教美術",
+    "keywords": [
+      "buddhist art",
+      "buddhism"
+    ]
+  },
+  {
+    "name": "仏具",
+    "group": "仏教美術",
+    "keywords": [
+      "buddhist art",
+      "buddhism"
+    ]
+  },
+  {
+    "name": "仏教美術",
+    "group": "仏教美術",
+    "keywords": [
+      "buddhist art",
+      "buddhism"
+    ]
+  },
+  {
+    "name": "神具",
+    "group": "仏教美術",
+    "keywords": [
+      "buddhist art",
+      "buddhism"
+    ]
+  },
+  {
+    "name": "木彫",
+    "group": "仏教美術",
+    "keywords": [
+      "buddhist art",
+      "buddhism"
+    ]
+  },
+  {
+    "name": "銅像",
+    "group": "仏教美術",
+    "keywords": [
+      "buddhist art",
+      "buddhism"
+    ]
+  },
+  {
+    "name": "観音",
+    "group": "仏教美術",
+    "keywords": [
+      "buddhist art",
+      "buddhism"
+    ]
+  },
+  {
+    "name": "如来",
+    "group": "仏教美術",
+    "keywords": [
+      "buddhist art",
+      "buddhism"
+    ]
+  },
+  {
+    "name": "数珠",
+    "group": "仏教美術",
+    "keywords": [
+      "buddhist art",
+      "buddhism"
+    ]
+  },
+  {
+    "name": "木魚",
+    "group": "仏教美術",
+    "keywords": [
+      "buddhist art",
+      "buddhism"
+    ]
+  },
+  {
+    "name": "盆栽",
+    "group": "盆栽",
+    "keywords": [
+      "bonsai"
+    ]
+  },
+  {
+    "name": "盆栽鉢",
+    "group": "盆栽",
+    "keywords": [
+      "bonsai"
+    ]
+  },
+  {
+    "name": "盆器",
+    "group": "盆栽",
+    "keywords": [
+      "bonsai"
+    ]
+  },
+  {
+    "name": "水石",
+    "group": "盆栽",
+    "keywords": [
+      "bonsai"
+    ]
+  },
+  {
+    "name": "盆栽道具",
+    "group": "盆栽",
+    "keywords": [
+      "bonsai"
+    ]
+  },
+  {
+    "name": "盆栽ハサミ",
+    "group": "盆栽",
+    "keywords": [
+      "bonsai"
+    ]
+  },
+  {
+    "name": "飾台",
+    "group": "盆栽",
+    "keywords": [
+      "bonsai"
+    ]
+  },
+  {
+    "name": "卓",
+    "group": "盆栽",
+    "keywords": [
+      "bonsai"
+    ]
+  },
+  {
+    "name": "水盤",
+    "group": "盆栽",
+    "keywords": [
+      "bonsai"
+    ]
+  },
+  {
+    "name": "包丁",
+    "group": "包丁",
+    "keywords": [
+      "kitchen knife",
+      "knife"
+    ]
+  },
+  {
+    "name": "出刃包丁",
+    "group": "包丁",
+    "keywords": [
+      "kitchen knife",
+      "knife"
+    ]
+  },
+  {
+    "name": "刺身包丁",
+    "group": "包丁",
+    "keywords": [
+      "kitchen knife",
+      "knife"
+    ]
+  },
+  {
+    "name": "柳刃包丁",
+    "group": "包丁",
+    "keywords": [
+      "kitchen knife",
+      "knife"
+    ]
+  },
+  {
+    "name": "三徳包丁",
+    "group": "包丁",
+    "keywords": [
+      "kitchen knife",
+      "knife"
+    ]
+  },
+  {
+    "name": "牛刀",
+    "group": "包丁",
+    "keywords": [
+      "kitchen knife",
+      "knife"
+    ]
+  },
+  {
+    "name": "菜切包丁",
+    "group": "包丁",
+    "keywords": [
+      "kitchen knife",
+      "knife"
+    ]
+  },
+  {
+    "name": "ペティナイフ",
+    "group": "包丁",
+    "keywords": [
+      "kitchen knife",
+      "knife"
+    ]
+  },
+  {
+    "name": "和包丁",
+    "group": "包丁",
+    "keywords": [
+      "kitchen knife",
+      "knife"
+    ]
+  },
+  {
+    "name": "薄刃包丁",
+    "group": "包丁",
+    "keywords": [
+      "kitchen knife",
+      "knife"
+    ]
+  },
+  {
+    "name": "絵画",
+    "group": "アート",
+    "keywords": [
+      "art",
+      "painting"
+    ]
+  },
+  {
+    "name": "油絵",
+    "group": "アート",
+    "keywords": [
+      "art",
+      "painting"
+    ]
+  },
+  {
+    "name": "水彩画",
+    "group": "アート",
+    "keywords": [
+      "art",
+      "painting"
+    ]
+  },
+  {
+    "name": "日本画",
+    "group": "アート",
+    "keywords": [
+      "art",
+      "painting"
+    ]
+  },
+  {
+    "name": "水墨画",
+    "group": "アート",
+    "keywords": [
+      "art",
+      "painting"
+    ]
+  },
+  {
+    "name": "墨絵",
+    "group": "アート",
+    "keywords": [
+      "art",
+      "painting"
+    ]
+  },
+  {
+    "name": "アクリル画",
+    "group": "アート",
+    "keywords": [
+      "art",
+      "painting"
+    ]
+  },
+  {
+    "name": "パステル画",
+    "group": "アート",
+    "keywords": [
+      "art",
+      "painting"
+    ]
+  },
+  {
+    "name": "掛軸",
+    "group": "掛軸",
+    "keywords": [
+      "hanging scroll",
+      "kakejiku"
+    ]
+  },
+  {
+    "name": "掛け軸",
+    "group": "掛軸",
+    "keywords": [
+      "hanging scroll",
+      "kakejiku"
+    ]
+  },
+  {
+    "name": "床掛け",
+    "group": "掛軸",
+    "keywords": [
+      "hanging scroll",
+      "kakejiku"
+    ]
+  },
+  {
+    "name": "浮世絵",
+    "group": "版画",
+    "keywords": [
+      "print",
+      "woodblock",
+      "lithograph"
+    ]
+  },
+  {
+    "name": "版画",
+    "group": "版画",
+    "keywords": [
+      "print",
+      "woodblock",
+      "lithograph"
+    ]
+  },
+  {
+    "name": "木版画",
+    "group": "版画",
+    "keywords": [
+      "print",
+      "woodblock",
+      "lithograph"
+    ]
+  },
+  {
+    "name": "リトグラフ",
+    "group": "版画",
+    "keywords": [
+      "print",
+      "woodblock",
+      "lithograph"
+    ]
+  },
+  {
+    "name": "シルクスクリーン",
+    "group": "版画",
+    "keywords": [
+      "print",
+      "woodblock",
+      "lithograph"
+    ]
+  },
+  {
+    "name": "エッチング",
+    "group": "版画",
+    "keywords": [
+      "print",
+      "woodblock",
+      "lithograph"
+    ]
+  },
+  {
+    "name": "銅版画",
+    "group": "版画",
+    "keywords": [
+      "print",
+      "woodblock",
+      "lithograph"
+    ]
+  },
+  {
+    "name": "新版画",
+    "group": "版画",
+    "keywords": [
+      "print",
+      "woodblock",
+      "lithograph"
+    ]
+  },
+  {
+    "name": "創作版画",
+    "group": "版画",
+    "keywords": [
+      "print",
+      "woodblock",
+      "lithograph"
+    ]
+  },
+  {
+    "name": "パイプ",
+    "group": "パイプ・喫煙具",
+    "keywords": [
+      "smoking",
+      "pipe",
+      "tobacco"
+    ]
+  },
+  {
+    "name": "喫煙パイプ",
+    "group": "パイプ・喫煙具",
+    "keywords": [
+      "smoking",
+      "pipe",
+      "tobacco"
+    ]
+  },
+  {
+    "name": "煙管",
+    "group": "パイプ・喫煙具",
+    "keywords": [
+      "smoking",
+      "pipe",
+      "tobacco"
+    ]
+  },
+  {
+    "name": "キセル",
+    "group": "パイプ・喫煙具",
+    "keywords": [
+      "smoking",
+      "pipe",
+      "tobacco"
+    ]
+  },
+  {
+    "name": "パイプ・喫煙具",
+    "group": "パイプ・喫煙具",
+    "keywords": [
+      "smoking",
+      "pipe",
+      "tobacco"
+    ]
+  },
+  {
+    "name": "皿",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "プレート",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "食器",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "カップ",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "グラス",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "ワイングラス",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "クリスタル",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "カトラリー",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "スプーン",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "フォーク",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "切子",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "ボウル",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "マグカップ",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "ティーカップ",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "ソーサー",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "ティーポット",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "鉢",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "ガラス細工",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "江戸切子",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "薩摩切子",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "デキャンタ",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "ペーパーウェイト",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "銀食器",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "シルバーカトラリー",
+    "group": "テーブルウェア",
+    "keywords": [
+      "tableware",
+      "dinnerware"
+    ]
+  },
+  {
+    "name": "三味線",
+    "group": "和楽器",
+    "keywords": [
+      "japanese instrument"
+    ]
+  },
+  {
+    "name": "尺八",
+    "group": "和楽器",
+    "keywords": [
+      "japanese instrument"
+    ]
+  },
+  {
+    "name": "琴",
+    "group": "和楽器",
+    "keywords": [
+      "japanese instrument"
+    ]
+  },
+  {
+    "name": "太鼓",
+    "group": "和楽器",
+    "keywords": [
+      "japanese instrument"
+    ]
+  },
+  {
+    "name": "和太鼓",
+    "group": "和楽器",
+    "keywords": [
+      "japanese instrument"
+    ]
+  },
+  {
+    "name": "篠笛",
+    "group": "和楽器",
+    "keywords": [
+      "japanese instrument"
+    ]
+  },
+  {
+    "name": "琵琶",
+    "group": "和楽器",
+    "keywords": [
+      "japanese instrument"
+    ]
+  },
+  {
+    "name": "鼓",
+    "group": "和楽器",
+    "keywords": [
+      "japanese instrument"
+    ]
+  },
+  {
+    "name": "和楽器",
+    "group": "和楽器",
+    "keywords": [
+      "japanese instrument"
+    ]
+  },
+  {
+    "name": "雅楽",
+    "group": "和楽器",
+    "keywords": [
+      "japanese instrument"
+    ]
+  },
+  {
+    "name": "切手",
+    "group": "切手・コイン",
+    "keywords": [
+      "stamp",
+      "coin",
+      "numismatic"
+    ]
+  },
+  {
+    "name": "記念切手",
+    "group": "切手・コイン",
+    "keywords": [
+      "stamp",
+      "coin",
+      "numismatic"
+    ]
+  },
+  {
+    "name": "普通切手",
+    "group": "切手・コイン",
+    "keywords": [
+      "stamp",
+      "coin",
+      "numismatic"
+    ]
+  },
+  {
+    "name": "コイン",
+    "group": "切手・コイン",
+    "keywords": [
+      "stamp",
+      "coin",
+      "numismatic"
+    ]
+  },
+  {
+    "name": "古銭",
+    "group": "切手・コイン",
+    "keywords": [
+      "stamp",
+      "coin",
+      "numismatic"
+    ]
+  },
+  {
+    "name": "硬貨",
+    "group": "切手・コイン",
+    "keywords": [
+      "stamp",
+      "coin",
+      "numismatic"
+    ]
+  },
+  {
+    "name": "紙幣",
+    "group": "切手・コイン",
+    "keywords": [
+      "stamp",
+      "coin",
+      "numismatic"
+    ]
+  },
+  {
+    "name": "メダル",
+    "group": "切手・コイン",
+    "keywords": [
+      "stamp",
+      "coin",
+      "numismatic"
+    ]
+  },
+  {
+    "name": "石鹸",
+    "group": "石鹸",
+    "keywords": [
+      "soap"
+    ]
+  },
+  {
+    "name": "せっけん",
+    "group": "石鹸",
+    "keywords": [
+      "soap"
+    ]
+  },
+  {
+    "name": "ソープ",
+    "group": "石鹸",
+    "keywords": [
+      "soap"
+    ]
+  },
+  {
+    "name": "石けん",
+    "group": "石鹸",
+    "keywords": [
+      "soap"
+    ]
+  },
+  {
+    "name": "こけし",
+    "group": "日本人形",
+    "keywords": [
+      "japanese doll"
+    ]
+  },
+  {
+    "name": "日本人形",
+    "group": "日本人形",
+    "keywords": [
+      "japanese doll"
+    ]
+  },
+  {
+    "name": "博多人形",
+    "group": "日本人形",
+    "keywords": [
+      "japanese doll"
+    ]
+  },
+  {
+    "name": "市松人形",
+    "group": "日本人形",
+    "keywords": [
+      "japanese doll"
+    ]
+  },
+  {
+    "name": "雛人形",
+    "group": "日本人形",
+    "keywords": [
+      "japanese doll"
+    ]
+  },
+  {
+    "name": "五月人形",
+    "group": "日本人形",
+    "keywords": [
+      "japanese doll"
+    ]
+  },
+  {
+    "name": "木目込み人形",
+    "group": "日本人形",
+    "keywords": [
+      "japanese doll"
+    ]
+  },
+  {
+    "name": "御所人形",
+    "group": "日本人形",
+    "keywords": [
+      "japanese doll"
+    ]
+  },
+  {
+    "name": "伏見人形",
+    "group": "日本人形",
+    "keywords": [
+      "japanese doll"
+    ]
+  },
+  {
+    "name": "からくり人形",
+    "group": "日本人形",
+    "keywords": [
+      "japanese doll"
+    ]
+  },
+  {
+    "name": "土人形",
+    "group": "日本人形",
+    "keywords": [
+      "japanese doll"
+    ]
+  },
+  {
+    "name": "文楽人形",
+    "group": "日本人形",
+    "keywords": [
+      "japanese doll"
+    ]
+  },
+  {
+    "name": "だるま",
+    "group": "日本人形",
+    "keywords": [
+      "japanese doll"
+    ]
+  },
+  {
+    "name": "達磨",
+    "group": "日本人形",
+    "keywords": [
+      "japanese doll"
+    ]
+  },
+  {
+    "name": "ダルマ",
+    "group": "日本人形",
+    "keywords": [
+      "japanese doll"
+    ]
+  },
+  {
+    "name": "招き猫",
+    "group": "日本人形",
+    "keywords": [
+      "japanese doll"
+    ]
+  },
+  {
+    "name": "まねきねこ",
+    "group": "日本人形",
+    "keywords": [
+      "japanese doll"
+    ]
+  },
+  {
+    "name": "招福猫",
+    "group": "日本人形",
+    "keywords": [
+      "japanese doll"
+    ]
+  },
+  {
+    "name": "スノードーム",
+    "group": "スノーグローブ",
+    "keywords": [
+      "snow globe"
+    ]
+  },
+  {
+    "name": "ガラスドーム",
+    "group": "スノーグローブ",
+    "keywords": [
+      "snow globe"
+    ]
+  },
+  {
+    "name": "スノーグローブ",
+    "group": "スノーグローブ",
+    "keywords": [
+      "snow globe"
+    ]
+  },
+  {
+    "name": "ウォータードーム",
+    "group": "スノーグローブ",
+    "keywords": [
+      "snow globe"
+    ]
+  },
+  {
+    "name": "書籍",
+    "group": "書籍・雑誌",
+    "keywords": [
+      "book",
+      "magazine"
+    ]
+  },
+  {
+    "name": "雑誌",
+    "group": "書籍・雑誌",
+    "keywords": [
+      "book",
+      "magazine"
+    ]
+  },
+  {
+    "name": "小説",
+    "group": "書籍・雑誌",
+    "keywords": [
+      "book",
+      "magazine"
+    ]
+  },
+  {
+    "name": "写真集",
+    "group": "書籍・雑誌",
+    "keywords": [
+      "book",
+      "magazine"
+    ]
+  },
+  {
+    "name": "フォトブック",
+    "group": "書籍・雑誌",
+    "keywords": [
+      "book",
+      "magazine"
+    ]
+  },
+  {
+    "name": "アートブック",
+    "group": "書籍・雑誌",
+    "keywords": [
+      "book",
+      "magazine"
+    ]
+  },
+  {
+    "name": "図録",
+    "group": "書籍・雑誌",
+    "keywords": [
+      "book",
+      "magazine"
+    ]
+  },
+  {
+    "name": "MOOK",
+    "group": "書籍・雑誌",
+    "keywords": [
+      "book",
+      "magazine"
+    ]
+  },
+  {
+    "name": "ムック",
+    "group": "書籍・雑誌",
+    "keywords": [
+      "book",
+      "magazine"
+    ]
+  },
+  {
+    "name": "専門誌",
+    "group": "書籍・雑誌",
+    "keywords": [
+      "book",
+      "magazine"
+    ]
+  },
+  {
+    "name": "文庫",
+    "group": "書籍・雑誌",
+    "keywords": [
+      "book",
+      "magazine"
+    ]
+  },
+  {
+    "name": "新書",
+    "group": "書籍・雑誌",
+    "keywords": [
+      "book",
+      "magazine"
+    ]
+  },
+  {
+    "name": "絵本",
+    "group": "書籍・雑誌",
+    "keywords": [
+      "book",
+      "magazine"
+    ]
+  },
+  {
+    "name": "洋書",
+    "group": "書籍・雑誌",
+    "keywords": [
+      "book",
+      "magazine"
+    ]
+  },
+  {
+    "name": "ジュエリーボックス",
+    "group": "一般商品・汎用",
+    "keywords": []
+  },
+  {
+    "name": "時計ケース",
+    "group": "一般商品・汎用",
+    "keywords": []
+  },
+  {
+    "name": "ウォッチボックス",
+    "group": "一般商品・汎用",
+    "keywords": []
+  },
+  {
+    "name": "宝石箱",
+    "group": "一般商品・汎用",
+    "keywords": []
+  },
+  {
+    "name": "アクセサリーケース",
+    "group": "一般商品・汎用",
+    "keywords": []
+  },
+  {
+    "name": "コレクションケース",
+    "group": "一般商品・汎用",
+    "keywords": []
+  },
+  {
+    "name": "ディスプレイケース",
+    "group": "一般商品・汎用",
+    "keywords": []
+  },
+  {
+    "name": "ベビー",
+    "group": "一般商品・汎用",
+    "keywords": []
+  },
+  {
+    "name": "ベビーシューズ",
+    "group": "一般商品・汎用",
+    "keywords": []
+  },
+  {
+    "name": "ラトル",
+    "group": "一般商品・汎用",
+    "keywords": []
+  },
+  {
+    "name": "ベビー用品",
+    "group": "一般商品・汎用",
+    "keywords": []
+  },
+  {
+    "name": "ガラガラ",
+    "group": "一般商品・汎用",
+    "keywords": []
+  },
+  {
+    "name": "櫛",
+    "group": "一般商品・汎用",
+    "keywords": []
+  },
+  {
+    "name": "くし",
+    "group": "一般商品・汎用",
+    "keywords": []
+  },
+  {
+    "name": "コーム",
+    "group": "一般商品・汎用",
+    "keywords": []
+  },
+  {
+    "name": "つげ櫛",
+    "group": "一般商品・汎用",
+    "keywords": []
+  },
+  {
+    "name": "ヘアコーム",
+    "group": "一般商品・汎用",
+    "keywords": []
+  },
+  {
+    "name": "将棋",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "将棋セット",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "将棋盤",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "将棋駒",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "麻雀",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "麻雀セット",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "麻雀牌",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "マージャン",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "囲碁",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "囲碁セット",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "碁盤",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "碁石",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "いご",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "ボードゲーム",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "卓上ゲーム",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "アナログゲーム",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "テーブルゲーム",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "チェス",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "バックギャモン",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "オセロ",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "リバーシ",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "ダーツ",
+    "group": "ボードゲーム",
+    "keywords": [
+      "board game"
+    ]
+  },
+  {
+    "name": "パソコン周辺機器",
+    "group": "パソコン周辺機器",
+    "keywords": [
+      "computer",
+      "pc accessory"
+    ]
+  },
+  {
+    "name": "パソコン本体",
+    "group": "パソコン本体",
+    "keywords": [
+      "computer",
+      "pc",
+      "laptop",
+      "desktop"
+    ]
+  },
+  {
+    "name": "電子辞書",
+    "group": "電子辞書",
+    "keywords": [
+      "electronic dictionary"
+    ]
+  },
+  {
+    "name": "関数電卓",
+    "group": "関数電卓",
+    "keywords": [
+      "calculator",
+      "scientific calculator"
+    ]
+  },
+  {
+    "name": "手工具",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "カンナ",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "かんな",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "鉋",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "のみ",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "ノミ",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "鑿",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "コテ",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "こて",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "鏝",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "玄能",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "げんのう",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "ゲンノウ",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "鋸",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "のこぎり",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "ノコギリ",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "スパナ",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "墨壺",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "すみつぼ",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "スミツボ",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "曲尺",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "かねじゃく",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "さしがね",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "プライヤー",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "ノギス",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "ヤスリ",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "やすり",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "鑢",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "砥石",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "といし",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "トイシ",
+    "group": "手工具",
+    "keywords": [
+      "hand tool",
+      "woodworking"
+    ]
+  },
+  {
+    "name": "電動工具",
+    "group": "電動工具",
+    "keywords": [
+      "power tool",
+      "electric tool"
+    ]
+  },
+  {
+    "name": "インパクト",
+    "group": "電動工具",
+    "keywords": [
+      "power tool",
+      "electric tool"
+    ]
+  },
+  {
+    "name": "ドリル",
+    "group": "電動工具",
+    "keywords": [
+      "power tool",
+      "electric tool"
+    ]
+  },
+  {
+    "name": "丸ノコ",
+    "group": "電動工具",
+    "keywords": [
+      "power tool",
+      "electric tool"
+    ]
+  }
+]

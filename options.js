@@ -29,8 +29,116 @@ const defaultSettings = {
   alertLowReviewCount: 100,
   alertDaysFromListing: 180,
   alertDaysFromUpdate: 90,
-  alertHandlingDays: false
+  alertHandlingDays: false,
+  // AI 翻訳設定（chrome.storage.sync に保存）。API キーは別管理で chrome.storage.local
+  aiTranslationEnabled: false,
+  aiModel: 'gpt-5.4-mini',
+  aiCustomModel: '',
+  aiWebSearchEnabled: true,
+  aiDailyLimit: 1000,
+  aiImageCount: 1,
+  aiPlatforms: { mercari: true, rakuten: false, yahooshopping: false, hardoff: false },
+  aiPromptOverride_common: '',
+  aiPromptOverride_mercari: '',
+  // マイタグ（タブ区切り形式の文字列で保存。各行: tagName\tkeyword1,keyword2,...）
+  aiMyTags: '',
+  // 担当者名（インポート用2 シートの B列に出力される。未入力なら B列は空白）
+  aiOperatorName: ''
 };
+
+// 公式プロンプトをコード同梱ファイルから取得（共通 + 各プラットフォーム）
+async function loadOfficialPrompt(key) {
+  const fileName = key === 'common' ? 'system_common.txt' : `platform_${key}.txt`;
+  try {
+    const url = chrome.runtime.getURL(`prompts/${fileName}`);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.text();
+  } catch (e) {
+    console.error('公式プロンプト取得失敗:', key, e?.message);
+    return '';
+  }
+}
+
+// API キー表示用のマスキング
+function maskApiKey(key) {
+  if (!key || typeof key !== 'string') return '';
+  if (key.length < 12) return 'sk-***';
+  return key.slice(0, 7) + '***' + key.slice(-4);
+}
+
+// マイタグ: テキスト ⇔ 配列 の変換
+// テキスト形式: 各行 "タグ名\tkeyword1, keyword2, ..."（# で始まる行や空行は無視）
+function parseMyTagsText(text) {
+  if (!text) return [];
+  const rows = String(text).split(/\r?\n/);
+  const tags = [];
+  for (const raw of rows) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const tabIdx = line.indexOf('\t');
+    let name, kwStr;
+    if (tabIdx >= 0) {
+      name = line.slice(0, tabIdx).trim();
+      kwStr = line.slice(tabIdx + 1).trim();
+    } else {
+      name = line;
+      kwStr = '';
+    }
+    if (!name) continue;
+    const keywords = kwStr
+      ? kwStr.split(',').map(s => s.trim()).filter(Boolean)
+      : [];
+    tags.push({ name, keywords });
+  }
+  return tags;
+}
+
+// マイタグ: 配列 → テキスト
+function stringifyMyTags(tagsArray) {
+  if (!Array.isArray(tagsArray) || !tagsArray.length) return '';
+  return tagsArray.map(t => {
+    const name = String(t.name || '').trim();
+    const kws = Array.isArray(t.keywords) ? t.keywords.join(', ') : '';
+    return name + '\t' + kws;
+  }).join('\n');
+}
+
+// マイタグカウンタの表示更新
+function refreshMyTagsCounter() {
+  const counter = document.getElementById('aiMyTagsCounter');
+  if (!counter) return;
+  const text = document.getElementById('aiMyTags')?.value || '';
+  const tags = parseMyTagsText(text);
+  counter.textContent = `登録タグ数: ${tags.length}`;
+}
+
+// 公式タグセット (default_tags.json) を取得してテキスト形式に変換
+async function loadDefaultTagsAsText() {
+  try {
+    const url = chrome.runtime.getURL('prompts/default_tags.json');
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!Array.isArray(data)) return '';
+    // group ごとに区切ってコメントを挿入
+    let lastGroup = null;
+    const lines = [];
+    for (const t of data) {
+      if (t.group && t.group !== lastGroup) {
+        lines.push(`# 【${t.group}】`);
+        lastGroup = t.group;
+      }
+      const name = String(t.name || '').trim();
+      const kws = Array.isArray(t.keywords) ? t.keywords.join(', ') : '';
+      lines.push(name + '\t' + kws);
+    }
+    return lines.join('\n');
+  } catch (e) {
+    console.error('default_tags.json 取得失敗:', e?.message);
+    return '';
+  }
+}
 
 // ページ読み込み時に設定を復元
 document.addEventListener('DOMContentLoaded', async () => {
@@ -92,6 +200,70 @@ async function loadSettings() {
     updateToggleStatus('enableAmazon', 'statusAmazon');
     updateToggleStatus('enableHardoff', 'statusHardoff');
     updateToggleStatus('enableImageInClipboard', 'statusImageInClipboard');
+
+    // AI 翻訳設定を読み込み
+    document.getElementById('aiTranslationEnabled').checked = !!syncSettings.aiTranslationEnabled;
+    document.getElementById('aiWebSearchEnabled').checked = syncSettings.aiWebSearchEnabled !== false;
+
+    const modelSel = document.getElementById('aiModel');
+    const customInput = document.getElementById('aiCustomModel');
+    const knownModels = ['gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini', 'custom'];
+    if (knownModels.includes(syncSettings.aiModel)) {
+      modelSel.value = syncSettings.aiModel;
+    } else {
+      // デフォルト一覧にないモデル名 → カスタム扱い
+      modelSel.value = 'custom';
+      customInput.value = syncSettings.aiModel || '';
+    }
+    if (modelSel.value === 'custom') {
+      customInput.style.display = '';
+      if (!customInput.value) customInput.value = syncSettings.aiCustomModel || '';
+    } else {
+      customInput.style.display = 'none';
+    }
+    document.getElementById('aiDailyLimit').value = Number.isFinite(syncSettings.aiDailyLimit) ? syncSettings.aiDailyLimit : 1000;
+
+    // AI に渡す画像枚数
+    const imgCountValue = String(Number.isFinite(syncSettings.aiImageCount) ? syncSettings.aiImageCount : 1);
+    const imgCountSel = document.getElementById('aiImageCount');
+    if ([...imgCountSel.options].some(o => o.value === imgCountValue)) {
+      imgCountSel.value = imgCountValue;
+    } else {
+      imgCountSel.value = '1';
+    }
+
+    // プラットフォーム別 ON/OFF
+    const platforms = syncSettings.aiPlatforms || {};
+    document.getElementById('aiPlatformMercari').checked = platforms.mercari !== false;
+    document.getElementById('aiPlatformRakuten').checked = !!platforms.rakuten;
+    document.getElementById('aiPlatformYahooshopping').checked = !!platforms.yahooshopping;
+    document.getElementById('aiPlatformHardoff').checked = !!platforms.hardoff;
+
+    // ユーザーカスタムプロンプト
+    document.getElementById('aiPromptOverrideCommon').value = syncSettings.aiPromptOverride_common || '';
+    document.getElementById('aiPromptOverrideMercari').value = syncSettings.aiPromptOverride_mercari || '';
+
+    // マイタグ
+    const myTagsEl = document.getElementById('aiMyTags');
+    myTagsEl.value = syncSettings.aiMyTags || '';
+    refreshMyTagsCounter();
+
+    // 担当者名（最上部の入力欄）
+    const operatorEl = document.getElementById('aiOperatorName');
+    if (operatorEl) operatorEl.value = syncSettings.aiOperatorName || '';
+
+    updateToggleStatus('aiTranslationEnabled', 'statusAiTranslationEnabled');
+    updateToggleStatus('aiWebSearchEnabled', 'statusAiWebSearchEnabled');
+
+    // API キーは chrome.storage.local から（同期されない）
+    const localKeys = await chrome.storage.local.get('aiApiKey');
+    const aiApiKey = localKeys.aiApiKey || '';
+    document.getElementById('aiApiKey').value = aiApiKey;
+    document.getElementById('aiApiKey').type = 'password';
+    document.getElementById('aiApiKeyToggleBtn').textContent = '表示';
+    document.getElementById('aiApiKeyStatus').textContent = aiApiKey
+      ? `保存済み: ${maskApiKey(aiApiKey)}`
+      : '未設定';
   } catch (error) {
     console.error('Error loading settings:', error);
     showMessage('設定の読み込みに失敗しました', 'error');
@@ -202,6 +374,90 @@ function setupEventListeners() {
   // 画像出力設定のトグル
   document.getElementById('enableImageInClipboard').addEventListener('change', () => {
     updateToggleStatus('enableImageInClipboard', 'statusImageInClipboard');
+  });
+
+  // AI 翻訳トグル
+  document.getElementById('aiTranslationEnabled').addEventListener('change', () => {
+    updateToggleStatus('aiTranslationEnabled', 'statusAiTranslationEnabled');
+  });
+  document.getElementById('aiWebSearchEnabled').addEventListener('change', () => {
+    updateToggleStatus('aiWebSearchEnabled', 'statusAiWebSearchEnabled');
+  });
+
+  // モデル選択：カスタム時のみ追加入力を表示
+  const modelSel = document.getElementById('aiModel');
+  const customInput = document.getElementById('aiCustomModel');
+  modelSel.addEventListener('change', () => {
+    customInput.style.display = (modelSel.value === 'custom') ? '' : 'none';
+  });
+
+  // API キー：表示/非表示トグル
+  const apiInput = document.getElementById('aiApiKey');
+  const apiToggle = document.getElementById('aiApiKeyToggleBtn');
+  apiToggle.addEventListener('click', () => {
+    if (apiInput.type === 'password') {
+      apiInput.type = 'text';
+      apiToggle.textContent = '隠す';
+    } else {
+      apiInput.type = 'password';
+      apiToggle.textContent = '表示';
+    }
+  });
+
+  // API キー：削除ボタン
+  document.getElementById('aiApiKeyClearBtn').addEventListener('click', async () => {
+    if (!confirm('保存済みの OpenAI API キーを削除します。よろしいですか？')) return;
+    await chrome.storage.local.remove('aiApiKey');
+    apiInput.value = '';
+    document.getElementById('aiApiKeyStatus').textContent = '未設定（削除しました）';
+    showMessage('API キーを削除しました', 'success');
+  });
+
+  // マイタグ: 公式タグセット読み込みボタン
+  const myTagsEl = document.getElementById('aiMyTags');
+  document.getElementById('aiMyTagsLoadDefault').addEventListener('click', async () => {
+    if (myTagsEl.value && myTagsEl.value.trim()) {
+      if (!confirm('既存のマイタグが上書きされます。よろしいですか？')) return;
+    }
+    const text = await loadDefaultTagsAsText();
+    if (!text) {
+      showMessage('公式タグセットの読み込みに失敗しました', 'error');
+      return;
+    }
+    myTagsEl.value = text;
+    refreshMyTagsCounter();
+    showMessage('公式タグセットを読み込みました。「設定を保存」で適用されます。', 'success');
+  });
+  document.getElementById('aiMyTagsClear').addEventListener('click', () => {
+    if (!myTagsEl.value || !confirm('マイタグをクリアします。よろしいですか？')) return;
+    myTagsEl.value = '';
+    refreshMyTagsCounter();
+  });
+  myTagsEl.addEventListener('input', refreshMyTagsCounter);
+
+  // プロンプトリセット / クリア
+  document.querySelectorAll('button[data-prompt-key]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const key = btn.dataset.promptKey; // 'common' | 'mercari'
+      const action = btn.dataset.action;  // 'reset' | 'clear'
+      const ta = document.getElementById(key === 'common' ? 'aiPromptOverrideCommon' : 'aiPromptOverrideMercari');
+      if (!ta) return;
+
+      if (action === 'reset') {
+        // 公式プロンプトを取得して textarea に流し込む（保存はユーザーが「設定を保存」で行う）
+        const text = await loadOfficialPrompt(key);
+        if (!text) {
+          showMessage('公式プロンプトの取得に失敗しました', 'error');
+          return;
+        }
+        ta.value = text;
+        showMessage(`公式プロンプト（${key}）を読み込みました。「設定を保存」で適用されます。`, 'success');
+      } else if (action === 'clear') {
+        if (!confirm(`カスタムプロンプト（${key}）をクリアして公式版を使うようにします。よろしいですか？`)) return;
+        ta.value = '';
+        showMessage(`カスタムプロンプト（${key}）をクリアしました。「設定を保存」で適用されます。`, 'success');
+      }
+    });
   });
 }
 
@@ -420,10 +676,45 @@ async function saveSettings() {
       alertLowReviewCount: parseInt(document.getElementById('alertLowReviewCount').value) || 100,
       alertDaysFromListing: parseInt(document.getElementById('alertDaysFromListing').value) || 180,
       alertDaysFromUpdate: parseInt(document.getElementById('alertDaysFromUpdate').value) || 90,
-      alertHandlingDays: document.getElementById('alertHandlingDays').checked
+      alertHandlingDays: document.getElementById('alertHandlingDays').checked,
+      // AI 翻訳設定（API キーは含めない、別ストレージ）
+      aiTranslationEnabled: document.getElementById('aiTranslationEnabled').checked,
+      aiWebSearchEnabled: document.getElementById('aiWebSearchEnabled').checked,
+      aiModel: (() => {
+        const sel = document.getElementById('aiModel').value;
+        if (sel === 'custom') {
+          return (document.getElementById('aiCustomModel').value || '').trim() || 'gpt-5.4-mini';
+        }
+        return sel;
+      })(),
+      aiCustomModel: (document.getElementById('aiCustomModel').value || '').trim(),
+      aiDailyLimit: Math.max(1, parseInt(document.getElementById('aiDailyLimit').value, 10) || 1000),
+      aiImageCount: Math.max(0, Math.min(10, parseInt(document.getElementById('aiImageCount').value, 10) || 1)),
+      aiPlatforms: {
+        mercari: document.getElementById('aiPlatformMercari').checked,
+        rakuten: document.getElementById('aiPlatformRakuten').checked,
+        yahooshopping: document.getElementById('aiPlatformYahooshopping').checked,
+        hardoff: document.getElementById('aiPlatformHardoff').checked
+      },
+      aiPromptOverride_common: (document.getElementById('aiPromptOverrideCommon').value || '').trim(),
+      aiPromptOverride_mercari: (document.getElementById('aiPromptOverrideMercari').value || '').trim(),
+      aiMyTags: (document.getElementById('aiMyTags').value || ''),
+      aiOperatorName: (document.getElementById('aiOperatorName')?.value || '').trim()
     };
 
     await chrome.storage.sync.set(settings);
+
+    // API キーは chrome.storage.local（同期されない）
+    const apiKey = (document.getElementById('aiApiKey').value || '').trim();
+    if (apiKey) {
+      await chrome.storage.local.set({ aiApiKey: apiKey });
+      document.getElementById('aiApiKeyStatus').textContent = `保存済み: ${maskApiKey(apiKey)}`;
+    } else {
+      // 空なら削除（未設定状態）
+      await chrome.storage.local.remove('aiApiKey');
+      document.getElementById('aiApiKeyStatus').textContent = '未設定';
+    }
+
     showMessage('設定を保存しました', 'success');
 
   } catch (error) {
