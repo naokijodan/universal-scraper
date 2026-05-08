@@ -337,84 +337,9 @@
         <input type="text" id="aiOperatorName" placeholder="（任意）インポート用2 シートの B 列に出力されます" style="flex: 1; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; color: #111;">
       </div>
 
-      <!-- サイト有効/無効設定 -->
+      <!-- ハードオフ専用設定（送料） -->
       <div class="section">
-        <h2 class="section-title">対応サイトの設定</h2>
-
-        <div class="setting-item">
-          <label class="setting-label">
-            eBay
-            <span class="site-badge badge-ebay">eBay</span>
-          </label>
-          <div class="setting-description">
-            eBayの商品ページでスクレイパーを有効化します
-          </div>
-          <div class="toggle-container">
-            <label class="toggle-switch">
-              <input type="checkbox" id="enableEbay">
-              <span class="toggle-slider"></span>
-            </label>
-            <span class="toggle-status" id="statusEbay">有効</span>
-          </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="setting-item">
-          <label class="setting-label">
-            楽天市場
-            <span class="site-badge badge-rakuten">楽天</span>
-          </label>
-          <div class="setting-description">
-            楽天市場の商品ページでスクレイパーを有効化します
-          </div>
-          <div class="toggle-container">
-            <label class="toggle-switch">
-              <input type="checkbox" id="enableRakuten">
-              <span class="toggle-slider"></span>
-            </label>
-            <span class="toggle-status" id="statusRakuten">有効</span>
-          </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="setting-item">
-          <label class="setting-label">
-            Amazon
-            <span class="site-badge badge-amazon">Amazon</span>
-          </label>
-          <div class="setting-description">
-            Amazon.co.jpの商品ページでスクレイパーを有効化します
-          </div>
-          <div class="toggle-container">
-            <label class="toggle-switch">
-              <input type="checkbox" id="enableAmazon">
-              <span class="toggle-slider"></span>
-            </label>
-            <span class="toggle-status" id="statusAmazon">有効</span>
-          </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="setting-item">
-          <label class="setting-label">
-            ハードオフ（オフモール）
-            <span class="site-badge badge-hardoff">Hardoff</span>
-          </label>
-          <div class="setting-description">
-            ハードオフ（オフモール）の商品ページでスクレイパーを有効化します
-          </div>
-          <div class="toggle-container">
-            <label class="toggle-switch">
-              <input type="checkbox" id="enableHardoff">
-              <span class="toggle-slider"></span>
-            </label>
-            <span class="toggle-status" id="statusHardoff">有効</span>
-          </div>
-        </div>
-
+        <h2 class="section-title">サイト固有の設定</h2>
         <div class="setting-item">
           <label class="setting-label" for="hardoffShipping">ハードオフの送料（円）</label>
           <div class="setting-description">
@@ -535,12 +460,12 @@
         <div class="divider"></div>
 
         <div class="setting-item">
-          <label class="setting-label">対応プラットフォーム（AI 翻訳）</label>
+          <label class="setting-label">対応プラットフォーム</label>
           <div class="setting-description">
-            プラットフォームごとに AI 翻訳の ON / OFF を選べます。各サイトに適した独自プロンプトが自動で読み込まれます。
+            各サイトについて「サイト有効」（取り込み機能）と「AI 翻訳」を別々に ON/OFF できます。サイトを無効にすると取り込みボタンも AI 翻訳ボタンも出ません。
           </div>
-          <div id="aiPlatformsContainer" style="margin-top: 10px;">
-            <!-- options.js が AI_PLATFORMS から動的生成（id は data-platform=<site> で識別） -->
+          <div id="aiPlatformsContainer" style="margin-top: 10px; max-width: 480px;">
+            <!-- options.js が AI_PLATFORMS から動的生成（行ごとに data-platform / data-kind=enable|ai） -->
           </div>
         </div>
 

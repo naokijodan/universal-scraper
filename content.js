@@ -249,11 +249,14 @@ function isNoiseText(text) {
 
   // 設定を読み込み
   const settings = await chrome.storage.sync.get({
-    enableEbay: true,
+    enableEbay: false,
     enableRakuten: true,
     enableAmazon: true,
     enableMercari: true,
+    // enableMercariShop は defaults から除外（旧 v1.3.x ユーザーが
+    // enableMercari=false 保存している場合に enableMercariShop を引き継ぐマイグレーション用）
     enableYahoo: true,
+    // enableYahooshopping は defaults から除外（同上、enableYahoo を引き継ぐ）
     enablePaypay: true,
     enableFril: true,
     enableHardoff: true,
@@ -302,6 +305,18 @@ function isNoiseText(text) {
   const _defaultAiPlatforms = { mercari: true, mercari_shop: true, ebay: false, rakuten: true, amazon: true, yahuoku: true, paypayfurima: true, yahooshopping: true, hardoff: true, rakuma: true };
   settings.aiPlatforms = Object.assign({}, _defaultAiPlatforms, settings.aiPlatforms || {});
 
+  // 旧共有キーからのマイグレーション（v1.3.x で enableMercari / enableYahoo が
+  // mercari_shop / yahooshopping にも適用されていた時代の保存値を尊重する）
+  // 新独立キーが保存されていない（undefined）場合は旧共有キー → 最終的に default true
+  if (typeof settings.enableMercariShop !== 'boolean') {
+    settings.enableMercariShop = (typeof settings.enableMercari === 'boolean')
+      ? settings.enableMercari : true;
+  }
+  if (typeof settings.enableYahooshopping !== 'boolean') {
+    settings.enableYahooshopping = (typeof settings.enableYahoo === 'boolean')
+      ? settings.enableYahoo : true;
+  }
+
   _log('⚙️ 設定読み込み完了:', settings);
 
   // このサイトが無効化されている場合は終了
@@ -321,15 +336,15 @@ function isNoiseText(text) {
     _log('⚠️ メルカリが無効化されています');
     return;
   }
-  if (currentSite === 'mercari_shop' && !settings.enableMercari) {
-    _log('⚠️ メルカリショップが無効化されています（メルカリ設定を使用）');
+  if (currentSite === 'mercari_shop' && !settings.enableMercariShop) {
+    _log('⚠️ メルカリショップが無効化されています');
     return;
   }
   if (currentSite === 'yahuoku' && !settings.enableYahoo) {
     _log('⚠️ ヤフオクが無効化されています');
     return;
   }
-  if (currentSite === 'yahooshopping' && !settings.enableYahoo) {
+  if (currentSite === 'yahooshopping' && !settings.enableYahooshopping) {
     _log('⚠️ Yahoo!ショッピングが無効化されています');
     return;
   }

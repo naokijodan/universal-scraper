@@ -1,48 +1,70 @@
 // 設定ページのJavaScript - 複数スプレッドシート対応版
 
-// AI 翻訳 対応プラットフォームの一元定義（Single Source of Truth）
-// id: content.js の currentSite と一致させる必要がある
-// default: 既存ユーザーの設定に当該キーが無い場合の初期値
+// 対応プラットフォームの一元定義（Single Source of Truth）
+// id        : content.js の currentSite と一致
+// enableKey : サイト全体の有効化フラグ名（既存 enable* 設定キーに対応）
+// enableDefault : サイト有効化のデフォルト値
+// aiDefault : AI 翻訳のデフォルト値
 const AI_PLATFORMS = [
-  { id: 'mercari',       name: 'メルカリ',           default: true  },
-  { id: 'mercari_shop',  name: 'メルカリショップ',   default: true  },
-  { id: 'ebay',          name: 'eBay',               default: false },
-  { id: 'rakuten',       name: '楽天市場',           default: true  },
-  { id: 'amazon',        name: 'Amazon',             default: true  },
-  { id: 'yahuoku',       name: 'ヤフオク',           default: true  },
-  { id: 'paypayfurima',  name: 'PayPayフリマ',       default: true  },
-  { id: 'yahooshopping', name: 'Yahoo!ショッピング', default: true  },
-  { id: 'hardoff',       name: 'ハードオフ',         default: true  },
-  { id: 'rakuma',        name: 'ラクマ',             default: true  }
+  { id: 'mercari',       name: 'メルカリ',           enableKey: 'enableMercari',       enableDefault: true,  aiDefault: true  },
+  { id: 'mercari_shop',  name: 'メルカリショップ',   enableKey: 'enableMercariShop',   enableDefault: true,  aiDefault: true  },
+  { id: 'ebay',          name: 'eBay',               enableKey: 'enableEbay',          enableDefault: false, aiDefault: false },
+  { id: 'rakuten',       name: '楽天市場',           enableKey: 'enableRakuten',       enableDefault: true,  aiDefault: true  },
+  { id: 'amazon',        name: 'Amazon',             enableKey: 'enableAmazon',        enableDefault: true,  aiDefault: true  },
+  { id: 'yahuoku',       name: 'ヤフオク',           enableKey: 'enableYahoo',         enableDefault: true,  aiDefault: true  },
+  { id: 'paypayfurima',  name: 'PayPayフリマ',       enableKey: 'enablePaypay',        enableDefault: true,  aiDefault: true  },
+  { id: 'yahooshopping', name: 'Yahoo!ショッピング', enableKey: 'enableYahooshopping', enableDefault: true,  aiDefault: true  },
+  { id: 'hardoff',       name: 'ハードオフ',         enableKey: 'enableHardoff',       enableDefault: true,  aiDefault: true  },
+  { id: 'rakuma',        name: 'ラクマ',             enableKey: 'enableFril',          enableDefault: true,  aiDefault: true  }
 ];
 
 // AI_PLATFORMS から { mercari: true, mercari_shop: true, ebay: false, ... } を生成
 function buildDefaultAiPlatforms() {
   const out = {};
-  for (const p of AI_PLATFORMS) out[p.id] = p.default;
+  for (const p of AI_PLATFORMS) out[p.id] = p.aiDefault;
   return out;
 }
 
-// #aiPlatformsContainer に AI_PLATFORMS のチェックボックス UI を動的に挿入
-// data-platform 属性で id 文字列の不整合（snake_case ⇔ PascalCase）を回避
+// #aiPlatformsContainer に AI_PLATFORMS のマトリクス UI を動的に挿入
+// 各サイト 1 行で「サイト有効」と「AI 翻訳」の 2 つのチェックを横並び表示
+// data-platform / data-kind 属性で識別
 function renderAiPlatformsCheckboxes() {
   const container = document.getElementById('aiPlatformsContainer');
   if (!container) return;
-  if (container.dataset.rendered === '1') return; // 二重描画防止
-  const html = AI_PLATFORMS.map(p =>
-    `<label style="display: flex; align-items: center; gap: 8px; padding: 6px 0;">` +
-    `<input type="checkbox" data-platform="${p.id}">` +
-    `<span>${p.name}</span></label>`
-  ).join('');
-  container.innerHTML = html;
+  if (container.dataset.rendered === '1') return;
+  const header = `
+    <div style="display: grid; grid-template-columns: 1fr 90px 90px; gap: 4px; padding: 4px 0; font-size: 12px; color: #666; border-bottom: 1px solid #ddd; margin-bottom: 4px;">
+      <div></div>
+      <div style="text-align: center;">サイト有効</div>
+      <div style="text-align: center;">AI 翻訳</div>
+    </div>`;
+  const rows = AI_PLATFORMS.map(p => `
+    <div style="display: grid; grid-template-columns: 1fr 90px 90px; gap: 4px; padding: 4px 0; align-items: center;">
+      <div>${p.name}</div>
+      <label style="display: flex; justify-content: center; cursor: pointer;">
+        <input type="checkbox" data-platform="${p.id}" data-kind="enable">
+      </label>
+      <label style="display: flex; justify-content: center; cursor: pointer;">
+        <input type="checkbox" data-platform="${p.id}" data-kind="ai">
+      </label>
+    </div>`).join('');
+  container.innerHTML = header + rows;
   container.dataset.rendered = '1';
 }
 
 // デフォルト設定（default_setting_json.jsから関数を使用）
+// 各サイトの enable* キーは AI_PLATFORMS の enableDefault で初期化される
+// enableMercariShop / enableYahooshopping は defaults から除外:
+//   旧 v1.3.x で enableMercari/enableYahoo を OFF にしていたユーザーの意思を
+//   引き継ぐため、保存値が無ければ undefined のまま受け取って後段でマイグレーション
 const defaultSettings = {
-  enableEbay: true,
+  enableEbay: false,
   enableRakuten: true,
   enableAmazon: true,
+  enableMercari: true,
+  enableYahoo: true,
+  enablePaypay: true,
+  enableFril: true,
   enableHardoff: true,
   alertKeywords: defaultAlertKeywords().join('\n'), // 除外キーワード（赤ハイライト）
   popupKeywords: defaultPopupKeywords().join('\n'), // 注目キーワード（黄色ハイライト）
@@ -197,11 +219,8 @@ async function loadSettings() {
       lastUsedSheetId: null
     });
 
-    // チェックボックスの状態を設定
-    document.getElementById('enableEbay').checked = syncSettings.enableEbay;
-    document.getElementById('enableRakuten').checked = syncSettings.enableRakuten;
-    document.getElementById('enableAmazon').checked = syncSettings.enableAmazon;
-    document.getElementById('enableHardoff').checked = syncSettings.enableHardoff;
+    // 旧「対応サイトの設定」のトグル UI は廃止し、「対応プラットフォーム」セクションに統合
+    // （enable* 値は renderAiPlatformsCheckboxes() 経由でマトリクス UI に反映する）
 
     // その他の設定値を設定
     document.getElementById('alertKeywords').value = syncSettings.alertKeywords;
@@ -234,11 +253,7 @@ async function loadSettings() {
     // スプレッドシート一覧を表示（同期設定から）
     renderSpreadsheetList(syncSettings.spreadsheets || []);
 
-    // トグル状態の表示を更新
-    updateToggleStatus('enableEbay', 'statusEbay');
-    updateToggleStatus('enableRakuten', 'statusRakuten');
-    updateToggleStatus('enableAmazon', 'statusAmazon');
-    updateToggleStatus('enableHardoff', 'statusHardoff');
+    // （旧トグルの updateToggleStatus 呼び出しは UI 廃止のため削除）
     updateToggleStatus('enableImageInClipboard', 'statusImageInClipboard');
 
     // AI 翻訳設定を読み込み
@@ -272,15 +287,33 @@ async function loadSettings() {
       imgCountSel.value = '1';
     }
 
-    // プラットフォーム別 ON/OFF（AI_PLATFORMS をループで処理。
-    // 新規追加サイト（既存ユーザーの保存値に当該キーが無い）は p.default を採用）
+    // プラットフォーム別 ON/OFF（AI_PLATFORMS のマトリクス UI: サイト有効 + AI 翻訳）
+    // マイグレーション: 旧 v1.3.x で enableMercari / enableYahoo が共有キーだった
+    // ため、新独立キー (enableMercariShop / enableYahooshopping) が undefined の
+    // 場合は旧共有キーの値を引き継ぐ（ユーザーの「無効化の意思」を尊重）
     renderAiPlatformsCheckboxes();
     const platforms = syncSettings.aiPlatforms || {};
     AI_PLATFORMS.forEach(p => {
-      const el = document.querySelector(`#aiPlatformsContainer input[data-platform="${p.id}"]`);
-      if (!el) return;
-      const saved = platforms[p.id];
-      el.checked = (typeof saved === 'boolean') ? saved : p.default;
+      const enableEl = document.querySelector(`#aiPlatformsContainer input[data-platform="${p.id}"][data-kind="enable"]`);
+      if (enableEl) {
+        let savedEnable = syncSettings[p.enableKey];
+        if (typeof savedEnable !== 'boolean') {
+          // 旧共有キーからのマイグレーション
+          if (p.id === 'mercari_shop' && typeof syncSettings.enableMercari === 'boolean') {
+            savedEnable = syncSettings.enableMercari;
+          } else if (p.id === 'yahooshopping' && typeof syncSettings.enableYahoo === 'boolean') {
+            savedEnable = syncSettings.enableYahoo;
+          } else {
+            savedEnable = p.enableDefault;
+          }
+        }
+        enableEl.checked = savedEnable;
+      }
+      const aiEl = document.querySelector(`#aiPlatformsContainer input[data-platform="${p.id}"][data-kind="ai"]`);
+      if (aiEl) {
+        const savedAi = platforms[p.id];
+        aiEl.checked = (typeof savedAi === 'boolean') ? savedAi : p.aiDefault;
+      }
     });
 
     // ユーザーカスタムプロンプト
@@ -398,22 +431,8 @@ function setupEventListeners() {
     copyScriptBtn.addEventListener('click', copyScript);
   }
 
-  // トグルスイッチの状態変更イベント
-  document.getElementById('enableEbay').addEventListener('change', () => {
-    updateToggleStatus('enableEbay', 'statusEbay');
-  });
-
-  document.getElementById('enableRakuten').addEventListener('change', () => {
-    updateToggleStatus('enableRakuten', 'statusRakuten');
-  });
-
-  document.getElementById('enableAmazon').addEventListener('change', () => {
-    updateToggleStatus('enableAmazon', 'statusAmazon');
-  });
-
-  document.getElementById('enableHardoff').addEventListener('change', () => {
-    updateToggleStatus('enableHardoff', 'statusHardoff');
-  });
+  // （旧 enableEbay/Rakuten/Amazon/Hardoff のトグルイベントは UI 廃止のため削除。
+  //   enable* 値は「対応プラットフォーム」マトリクス UI で扱う）
 
   // 画像出力設定のトグル
   document.getElementById('enableImageInClipboard').addEventListener('change', () => {
@@ -696,10 +715,7 @@ async function deleteSpreadsheet(id) {
 async function saveSettings() {
   try {
     const settings = {
-      enableEbay: document.getElementById('enableEbay').checked,
-      enableRakuten: document.getElementById('enableRakuten').checked,
-      enableAmazon: document.getElementById('enableAmazon').checked,
-      enableHardoff: document.getElementById('enableHardoff').checked,
+      // enable* キーは「対応プラットフォーム」マトリクス UI から後方の spread で保存
       alertKeywords: document.getElementById('alertKeywords').value,
       popupKeywords: document.getElementById('popupKeywords').value,
       buttonPosition: document.getElementById('buttonPosition').value,
@@ -737,8 +753,17 @@ async function saveSettings() {
       aiPlatforms: (() => {
         const out = {};
         AI_PLATFORMS.forEach(p => {
-          const el = document.querySelector(`#aiPlatformsContainer input[data-platform="${p.id}"]`);
-          out[p.id] = el ? el.checked : p.default;
+          const aiEl = document.querySelector(`#aiPlatformsContainer input[data-platform="${p.id}"][data-kind="ai"]`);
+          out[p.id] = aiEl ? aiEl.checked : p.aiDefault;
+        });
+        return out;
+      })(),
+      // サイト有効化フラグ（AI_PLATFORMS の enableKey で個別保存）
+      ...(() => {
+        const out = {};
+        AI_PLATFORMS.forEach(p => {
+          const el = document.querySelector(`#aiPlatformsContainer input[data-platform="${p.id}"][data-kind="enable"]`);
+          out[p.enableKey] = el ? el.checked : p.enableDefault;
         });
         return out;
       })(),
