@@ -272,7 +272,7 @@ function isNoiseText(text) {
     aiCustomModel: '',
     aiWebSearchEnabled: true,
     aiImageCount: 1,
-    aiPlatforms: { mercari: true, mercari_shop: true, ebay: false, rakuten: false, amazon: false, yahuoku: false, paypayfurima: false, yahooshopping: false, hardoff: false, rakuma: false },
+    aiPlatforms: { mercari: true, mercari_shop: true, ebay: false, rakuten: true, amazon: true, yahuoku: true, paypayfurima: true, yahooshopping: true, hardoff: true, rakuma: true },
     aiPromptOverride_common: '',
     aiPromptOverride_mercari: '',
     aiMyTags: '',
@@ -299,7 +299,7 @@ function isNoiseText(text) {
   // aiPlatforms のサブキーマージ（既存ユーザーの保存値に新サイト keys が無い場合に
   // デフォルト値を補完する。chrome.storage.sync.get はオブジェクト全体を置換で返すため、
   // サブキー単位ではフォールバックされない。マイグレーション目的の処理）
-  const _defaultAiPlatforms = { mercari: true, mercari_shop: true, ebay: false, rakuten: false, amazon: false, yahuoku: false, paypayfurima: false, yahooshopping: false, hardoff: false, rakuma: false };
+  const _defaultAiPlatforms = { mercari: true, mercari_shop: true, ebay: false, rakuten: true, amazon: true, yahuoku: true, paypayfurima: true, yahooshopping: true, hardoff: true, rakuma: true };
   settings.aiPlatforms = Object.assign({}, _defaultAiPlatforms, settings.aiPlatforms || {});
 
   _log('⚙️ 設定読み込み完了:', settings);
@@ -4958,11 +4958,20 @@ function isNoiseText(text) {
       return match ? match[1] : url;
     };
 
-    // Amazonの画像URLを高解像度に変換
+    // Amazonの画像URLを高解像度に正規化
+    // パターン例（全て /images/I/<ID> の後ろが変動する）:
+    //   <ID>.jpg                         → そのまま (._AC_SL1500_.jpg を付け直す)
+    //   <ID>._AC_SL1500_.jpg             → そのまま
+    //   <ID>._AC_SR38,50_.jpg            → ._AC_SL1500_.jpg
+    //   <ID>.SX38_SY50_CR                → ._AC_SL1500_.jpg（拡張子なし & _AC_ なし）
+    // 戦略: <ID> 抽出 → "._AC_SL1500_.jpg" に統一する。OpenAI 等の外部 fetch で
+    // 400 が返るパターン（拡張子なし・サムネイル指定）を一律解消する。
     const toHighResUrl = (url) => {
       if (!url) return url;
-      // _AC_SR38,50_ などのサイズ指定を _AC_SL1500_ に変換
-      return url.replace(/\._AC_[A-Z]+\d+[,\d]*_\./, '._AC_SL1500_.');
+      return url.replace(
+        /(\/images\/I\/[^.\/]+)\.[^\/]*$/,
+        '$1._AC_SL1500_.jpg'
+      );
     };
 
     const addUniqueUrl = (url) => {

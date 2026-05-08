@@ -7,13 +7,13 @@ const AI_PLATFORMS = [
   { id: 'mercari',       name: 'メルカリ',           default: true  },
   { id: 'mercari_shop',  name: 'メルカリショップ',   default: true  },
   { id: 'ebay',          name: 'eBay',               default: false },
-  { id: 'rakuten',       name: '楽天市場',           default: false },
-  { id: 'amazon',        name: 'Amazon',             default: false },
-  { id: 'yahuoku',       name: 'ヤフオク',           default: false },
-  { id: 'paypayfurima',  name: 'PayPayフリマ',       default: false },
-  { id: 'yahooshopping', name: 'Yahoo!ショッピング', default: false },
-  { id: 'hardoff',       name: 'ハードオフ',         default: false },
-  { id: 'rakuma',        name: 'ラクマ',             default: false }
+  { id: 'rakuten',       name: '楽天市場',           default: true  },
+  { id: 'amazon',        name: 'Amazon',             default: true  },
+  { id: 'yahuoku',       name: 'ヤフオク',           default: true  },
+  { id: 'paypayfurima',  name: 'PayPayフリマ',       default: true  },
+  { id: 'yahooshopping', name: 'Yahoo!ショッピング', default: true  },
+  { id: 'hardoff',       name: 'ハードオフ',         default: true  },
+  { id: 'rakuma',        name: 'ラクマ',             default: true  }
 ];
 
 // AI_PLATFORMS から { mercari: true, mercari_shop: true, ebay: false, ... } を生成
@@ -76,7 +76,8 @@ const defaultSettings = {
   aiDailyLimit: 1000,
   aiImageCount: 1,
   // aiPlatforms のデフォルト値は AI_PLATFORMS 配列から派生（buildDefaultAiPlatforms()）
-  aiPlatforms: { mercari: true, mercari_shop: true, ebay: false, rakuten: false, amazon: false, yahuoku: false, paypayfurima: false, yahooshopping: false, hardoff: false, rakuma: false },
+  // ebay 以外は default true（椛島さん指示 2026-05-08）
+  aiPlatforms: { mercari: true, mercari_shop: true, ebay: false, rakuten: true, amazon: true, yahuoku: true, paypayfurima: true, yahooshopping: true, hardoff: true, rakuma: true },
   aiPromptOverride_common: '',
   aiPromptOverride_mercari: '',
   // マイタグ（タブ区切り形式の文字列で保存。各行: tagName\tkeyword1,keyword2,...）
