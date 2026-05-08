@@ -272,7 +272,7 @@ function isNoiseText(text) {
     aiCustomModel: '',
     aiWebSearchEnabled: true,
     aiImageCount: 1,
-    aiPlatforms: { mercari: true, rakuten: false, yahooshopping: false, hardoff: false },
+    aiPlatforms: { mercari: true, mercari_shop: true, ebay: false, rakuten: false, amazon: false, yahuoku: false, paypayfurima: false, yahooshopping: false, hardoff: false, rakuma: false },
     aiPromptOverride_common: '',
     aiPromptOverride_mercari: '',
     aiMyTags: '',
@@ -295,6 +295,12 @@ function isNoiseText(text) {
     alertDaysFromUpdate: 90,
     alertHandlingDays: false
   });
+
+  // aiPlatforms のサブキーマージ（既存ユーザーの保存値に新サイト keys が無い場合に
+  // デフォルト値を補完する。chrome.storage.sync.get はオブジェクト全体を置換で返すため、
+  // サブキー単位ではフォールバックされない。マイグレーション目的の処理）
+  const _defaultAiPlatforms = { mercari: true, mercari_shop: true, ebay: false, rakuten: false, amazon: false, yahuoku: false, paypayfurima: false, yahooshopping: false, hardoff: false, rakuma: false };
+  settings.aiPlatforms = Object.assign({}, _defaultAiPlatforms, settings.aiPlatforms || {});
 
   _log('⚙️ 設定読み込み完了:', settings);
 
@@ -1592,10 +1598,10 @@ function isNoiseText(text) {
   buttonContainer.appendChild(exportButton);
 
   // ==========================================
-  // AI 翻訳ボタン（メルカリのみ・AI翻訳ON時）
+  // AI 翻訳ボタン（aiPlatforms[currentSite] = true のサイトで表示）
   // ==========================================
   const aiPlatformOn = settings.aiPlatforms && settings.aiPlatforms[currentSite];
-  if (settings.aiTranslationEnabled && aiPlatformOn && currentSite === 'mercari' && extractedData && !extractedData.error) {
+  if (settings.aiTranslationEnabled && aiPlatformOn && extractedData && !extractedData.error) {
     const aiButton = document.createElement('button');
     aiButton.id = 'unified-scraper-ai-btn';
     aiButton.innerHTML = '🤖 AI 翻訳（eBay 出品データ生成）';
@@ -7154,7 +7160,7 @@ function isNoiseText(text) {
     // プロンプト取得（ユーザーカスタム > 公式）
     const commonPrompt = (settings.aiPromptOverride_common || '').trim()
       || await fetchOfficialPrompt('common');
-    const platformPrompt = (settings.aiPromptOverride_mercari || '').trim()
+    const platformPrompt = ((settings && settings['aiPromptOverride_' + site]) || '').trim()
       || await fetchOfficialPrompt(site);
 
     if (!commonPrompt || !platformPrompt) {
@@ -7209,7 +7215,7 @@ function isNoiseText(text) {
     // プロンプト取得（同じく user override > 公式）
     const commonPrompt = (settings.aiPromptOverride_common || '').trim()
       || await fetchOfficialPrompt('common');
-    const platformPrompt = (settings.aiPromptOverride_mercari || '').trim()
+    const platformPrompt = ((settings && settings['aiPromptOverride_' + site]) || '').trim()
       || await fetchOfficialPrompt(site);
     if (!commonPrompt || !platformPrompt) {
       throw new Error('プロンプトの取得に失敗しました');

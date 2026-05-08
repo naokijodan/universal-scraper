@@ -537,25 +537,10 @@
         <div class="setting-item">
           <label class="setting-label">対応プラットフォーム（AI 翻訳）</label>
           <div class="setting-description">
-            プラットフォームごとに AI 翻訳の ON / OFF を選べます。Phase 1 ではメルカリのみ対応。他は順次追加予定です。
+            プラットフォームごとに AI 翻訳の ON / OFF を選べます。各サイトに適した独自プロンプトが自動で読み込まれます。
           </div>
-          <div style="margin-top: 10px;">
-            <label style="display: flex; align-items: center; gap: 8px; padding: 6px 0;">
-              <input type="checkbox" id="aiPlatformMercari" checked>
-              <span>メルカリ</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; padding: 6px 0; color: #aaa;">
-              <input type="checkbox" id="aiPlatformRakuten" disabled>
-              <span>楽天市場（Phase 3 で対応予定）</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; padding: 6px 0; color: #aaa;">
-              <input type="checkbox" id="aiPlatformYahooshopping" disabled>
-              <span>Yahoo!ショッピング（Phase 3 で対応予定）</span>
-            </label>
-            <label style="display: flex; align-items: center; gap: 8px; padding: 6px 0; color: #aaa;">
-              <input type="checkbox" id="aiPlatformHardoff" disabled>
-              <span>ハードオフ（Phase 3 で対応予定）</span>
-            </label>
+          <div id="aiPlatformsContainer" style="margin-top: 10px;">
+            <!-- options.js が AI_PLATFORMS から動的生成（id は data-platform=<site> で識別） -->
           </div>
         </div>
 

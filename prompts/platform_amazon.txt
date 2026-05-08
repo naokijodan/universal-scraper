@@ -1,0 +1,88 @@
+# プラットフォーム情報
+- 商品ページの取得元: Amazon（https://www.amazon.co.jp）
+- 商品データ内の `platform` フィールドが "amazon" の場合、以下の指示が適用されます。
+
+# Item Specifics に必ず含めるべき項目（メルカリ → eBay 共通必須）
+以下は商品カテゴリに関わらず eBay 出品で重要なので、可能な限り出力に含めること。値が不明な場合のみ省略してよい（その場合は warnings に記載）。
+
+- **Country/Region of Manufacture**: 商品の製造国。メルカリは日本のフリマサイトなので、日本ブランド・日本製・国内中古品の場合は `Japan` を入れる。海外ブランドの並行輸入品など明確に他国製の場合はその国（例: Switzerland, USA, China）。判断つかない場合は `Japan`(日本のフリマからの出品である事実を優先)にしつつ warnings に「製造国を画像から確認できず、メルカリ出品から推定して Japan と記載」のように明記。
+- **Brand**: ブランド名・メーカー名（タイトル / 説明文 / 画像のロゴから判明する場合）。確認できない・ノーブランドの場合は `Unbranded` か省略 + warnings 記載。
+- **Type**: 商品の種類（例: Wristwatch, Action Figure, Trading Card, Handbag, Sneakers）。
+- **Country of Origin**: 上記 Country/Region of Manufacture と同義として扱う。両方を別キーで出すのではなく `Country/Region of Manufacture` 1 つに統一する。
+
+# 商品カテゴリ別の推奨必須項目（該当カテゴリでは積極的に含める）
+- 時計: Brand / Department (Men/Women/Unisex) / Movement / Display / Case Material / Band Material / Dial Color / Case Size / **Wrist Size（腕周り。説明文に「腕周り○○cm」「ベルト長」等の記載があれば必ず Item Specifics に含める。形式は **"○○cm / ○○in"**（cm と inch 併記）。例: "17.5cm / 6.9in"。インチは cm ÷ 2.54、小数1位）** / Water Resistance / Reference Number (型番) / Model
+- 衣類・バッグ・靴: Brand / Department / Size / Color / Material / Style
+- フィギュア: Brand / Character / Franchise / Material / Size / Year of Manufacture
+- カードゲーム（ポケモン等）: Game / Character / Set / Card Number / Language / Manufacturer / Card Condition / Rarity
+- 電化製品: Brand / Model / MPN / Type / Color / Power Source / Connectivity
+- 本・雑誌: Author / Publisher / Language / Format / Publication Year
+- アンティーク・骨董: Original/Reproduction / Vintage / Material / Style / Period
+
+# Amazon特有のノイズ除外（必ず除外）
+日本語の商品説明には、Amazon の販売UI、レビュー、販促表現が混在します。これらは eBay の Title / Description / Item Specifics に含めず、無視してください。
+
+## Amazon UI・配送・販売条件の文言（除外）
+- 「Amazon発送」
+- 「Amazon.co.jp が発送します」
+- 「プライム対象」「Prime」
+- 「定期おトク便」
+- 「カートに入れる」
+- 「今すぐ買う」
+- 「ほしい物リストに追加」
+- 「返品無料」
+- 「通常配送無料」
+- 「残り○点」
+- 「この商品は○○が販売し、Amazonが発送します」
+- 「出荷元」「販売元」
+- 「おすすめ」「ベストセラー」
+
+## レビュー・販促・商品紹介のノイズ（除外）
+- 「カスタマーレビュー」
+- 「星5つ中○」
+- 「○件の評価」
+- 「よく一緒に購入されている商品」
+- 「この商品を見た後に買っているのは？」
+- 「スポンサー」
+- 「累計○万個販売」
+- 「SNSで話題」
+- 「メーカー希望小売価格」
+- 「タイムセール」
+- 「ASIN」単体の記載（商品識別の補助として参考にしてよいが Description には原則出さない）
+
+# 商品本体の情報（保持・翻訳対象）
+- ブランド・型番・モデル名
+- 素材・材質
+- サイズ・寸法・重量
+- 状態（傷・汚れ・付属品の有無）
+- 色・柄
+- 生産国・製造元
+- セット内容
+- 動作確認の有無（電化製品の場合）
+- ジャンク品・現状品・未確認品などの注意書きは Condition として翻訳する（"Junk", "As-is", "Untested" など）
+
+# Amazonの「商品の状態」マッピング（参考）
+- 「新品」 → "Brand New" / "New"
+- 「中古 - ほぼ新品」 → "New (Other)" / "Like New"
+- 「中古 - 非常に良い」 → "Used - Excellent"
+- 「中古 - 良い」 → "Used - Good"
+- 「中古 - 可」 → "Used - Fair"
+- 「コレクター商品 - ほぼ新品」 → "New (Other)" / "Like New"
+- 「コレクター商品 - 非常に良い」 → "Used - Excellent"
+- 「コレクター商品 - 良い」 → "Used - Good"
+- 「コレクター商品 - 可」 → "Used - Fair"
+
+# 画像の活用
+- Amazonは商品画像が複数枚あり、1 枚目がメイン。
+- メイン画像から判断してよいもの:
+  - キャラクター名・シリーズ名（説明文にない場合）
+  - ブランドロゴの確認
+  - 状態の確認（傷・汚れ・付属品の有無）
+  - 色・素材感
+- 画像で確認できない情報を推測した場合は warnings に明記する。
+
+# Description 構成のメルカリ特化テンプレート（参考、共通プロンプトと同じ構造）
+# 注: <p>、<ul>、<li> 等は使わない。カンマ区切り 1 段落で。Item Details と Condition の 2 ブロックのみ。
+# From Japan などの配送常套句は出力しない。
+
+<strong>Item Details:</strong> Brand: ..., Model: ..., (主要スペックをカンマ区切りで列挙).<br><strong>Condition:</strong> {Pre-owned 等の客観語} + {傷・付属品・動作確認等の客観的事実 1〜3 文}. Please check the photos carefully for details.

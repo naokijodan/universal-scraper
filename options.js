@@ -1,5 +1,43 @@
 // 設定ページのJavaScript - 複数スプレッドシート対応版
 
+// AI 翻訳 対応プラットフォームの一元定義（Single Source of Truth）
+// id: content.js の currentSite と一致させる必要がある
+// default: 既存ユーザーの設定に当該キーが無い場合の初期値
+const AI_PLATFORMS = [
+  { id: 'mercari',       name: 'メルカリ',           default: true  },
+  { id: 'mercari_shop',  name: 'メルカリショップ',   default: true  },
+  { id: 'ebay',          name: 'eBay',               default: false },
+  { id: 'rakuten',       name: '楽天市場',           default: false },
+  { id: 'amazon',        name: 'Amazon',             default: false },
+  { id: 'yahuoku',       name: 'ヤフオク',           default: false },
+  { id: 'paypayfurima',  name: 'PayPayフリマ',       default: false },
+  { id: 'yahooshopping', name: 'Yahoo!ショッピング', default: false },
+  { id: 'hardoff',       name: 'ハードオフ',         default: false },
+  { id: 'rakuma',        name: 'ラクマ',             default: false }
+];
+
+// AI_PLATFORMS から { mercari: true, mercari_shop: true, ebay: false, ... } を生成
+function buildDefaultAiPlatforms() {
+  const out = {};
+  for (const p of AI_PLATFORMS) out[p.id] = p.default;
+  return out;
+}
+
+// #aiPlatformsContainer に AI_PLATFORMS のチェックボックス UI を動的に挿入
+// data-platform 属性で id 文字列の不整合（snake_case ⇔ PascalCase）を回避
+function renderAiPlatformsCheckboxes() {
+  const container = document.getElementById('aiPlatformsContainer');
+  if (!container) return;
+  if (container.dataset.rendered === '1') return; // 二重描画防止
+  const html = AI_PLATFORMS.map(p =>
+    `<label style="display: flex; align-items: center; gap: 8px; padding: 6px 0;">` +
+    `<input type="checkbox" data-platform="${p.id}">` +
+    `<span>${p.name}</span></label>`
+  ).join('');
+  container.innerHTML = html;
+  container.dataset.rendered = '1';
+}
+
 // デフォルト設定（default_setting_json.jsから関数を使用）
 const defaultSettings = {
   enableEbay: true,
@@ -37,7 +75,8 @@ const defaultSettings = {
   aiWebSearchEnabled: true,
   aiDailyLimit: 1000,
   aiImageCount: 1,
-  aiPlatforms: { mercari: true, rakuten: false, yahooshopping: false, hardoff: false },
+  // aiPlatforms のデフォルト値は AI_PLATFORMS 配列から派生（buildDefaultAiPlatforms()）
+  aiPlatforms: { mercari: true, mercari_shop: true, ebay: false, rakuten: false, amazon: false, yahuoku: false, paypayfurima: false, yahooshopping: false, hardoff: false, rakuma: false },
   aiPromptOverride_common: '',
   aiPromptOverride_mercari: '',
   // マイタグ（タブ区切り形式の文字列で保存。各行: tagName\tkeyword1,keyword2,...）
@@ -232,12 +271,16 @@ async function loadSettings() {
       imgCountSel.value = '1';
     }
 
-    // プラットフォーム別 ON/OFF
+    // プラットフォーム別 ON/OFF（AI_PLATFORMS をループで処理。
+    // 新規追加サイト（既存ユーザーの保存値に当該キーが無い）は p.default を採用）
+    renderAiPlatformsCheckboxes();
     const platforms = syncSettings.aiPlatforms || {};
-    document.getElementById('aiPlatformMercari').checked = platforms.mercari !== false;
-    document.getElementById('aiPlatformRakuten').checked = !!platforms.rakuten;
-    document.getElementById('aiPlatformYahooshopping').checked = !!platforms.yahooshopping;
-    document.getElementById('aiPlatformHardoff').checked = !!platforms.hardoff;
+    AI_PLATFORMS.forEach(p => {
+      const el = document.querySelector(`#aiPlatformsContainer input[data-platform="${p.id}"]`);
+      if (!el) return;
+      const saved = platforms[p.id];
+      el.checked = (typeof saved === 'boolean') ? saved : p.default;
+    });
 
     // ユーザーカスタムプロンプト
     document.getElementById('aiPromptOverrideCommon').value = syncSettings.aiPromptOverride_common || '';
@@ -690,12 +733,14 @@ async function saveSettings() {
       aiCustomModel: (document.getElementById('aiCustomModel').value || '').trim(),
       aiDailyLimit: Math.max(1, parseInt(document.getElementById('aiDailyLimit').value, 10) || 1000),
       aiImageCount: Math.max(0, Math.min(10, parseInt(document.getElementById('aiImageCount').value, 10) || 1)),
-      aiPlatforms: {
-        mercari: document.getElementById('aiPlatformMercari').checked,
-        rakuten: document.getElementById('aiPlatformRakuten').checked,
-        yahooshopping: document.getElementById('aiPlatformYahooshopping').checked,
-        hardoff: document.getElementById('aiPlatformHardoff').checked
-      },
+      aiPlatforms: (() => {
+        const out = {};
+        AI_PLATFORMS.forEach(p => {
+          const el = document.querySelector(`#aiPlatformsContainer input[data-platform="${p.id}"]`);
+          out[p.id] = el ? el.checked : p.default;
+        });
+        return out;
+      })(),
       aiPromptOverride_common: (document.getElementById('aiPromptOverrideCommon').value || '').trim(),
       aiPromptOverride_mercari: (document.getElementById('aiPromptOverrideMercari').value || '').trim(),
       aiMyTags: (document.getElementById('aiMyTags').value || ''),
