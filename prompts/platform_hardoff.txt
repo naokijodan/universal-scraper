@@ -60,14 +60,14 @@
 - ジャンク品・現状品・未確認品などの注意書きは Condition として翻訳する（"Junk", "As-is", "Untested" など）
 
 # ハードオフの「商品の状態」マッピング（参考）
-- 「Sランク」「Sランク（未使用に近い）」 → "New (Other)" / "Like New"
-- 「Aランク」「Aランク（使用感少ない）」 → "Used - Excellent"
-- 「Bランク」「Bランク（一般的な中古）」 → "Used - Good"
-- 「Cランク」「Cランク（傷・使用感あり）」 → "Used - Fair"
+- 「Sランク」「Sランク（未使用に近い）」 → "Used (very minimal signs of use)"
+- 「Aランク」「Aランク（使用感少ない）」 → "Used (minimal signs of use)"
+- 「Bランク」「Bランク（一般的な中古）」 → "Used (light signs of use)"
+- 「Cランク」「Cランク（傷・使用感あり）」 → "Used (visible signs of use)"
 - 「Dランク」「Dランク（ジャンク）」 → "For parts or not working"
 - 「ジャンク品」 → "For parts or not working"
-- 「現状品」 → "Used - Fair" / "As-is"
-- 「動作未確認」 → "For parts or not working" / "Untested"
+- 「現状品」 → "Used (visible signs of use)" / "As-is"
+- 「動作未確認」 → "Untested" / "For parts or not working"
 
 # 画像の活用
 - ハードオフは商品画像が複数枚あり、1 枚目がメイン。

@@ -64,12 +64,12 @@
 - ジャンク品・現状品・未確認品などの注意書きは Condition として翻訳する（"Junk", "As-is", "Untested" など）
 
 # Yahoo!ショッピングの「商品の状態」マッピング（参考）
-- 「新品」 → "Brand New" / "New"
-- 「未使用品」 → "New (Other)" / "Like New"
+- 「新品」 → "Unused"
+- 「未使用品」 → "Used (very minimal signs of use)"
 - 「中古」 → "Used"
-- 「中古美品」 → "Used - Excellent"
-- 「中古良品」 → "Used - Good"
-- 「中古訳あり」 → "Used - Fair"
+- 「中古美品」 → "Used (minimal signs of use)"
+- 「中古良品」 → "Used (light signs of use)"
+- 「中古訳あり」 → "Used (visible signs of use)"
 - 「ジャンク」 → "For parts or not working"
 
 # 画像の活用

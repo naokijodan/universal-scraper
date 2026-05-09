@@ -50,12 +50,12 @@
 - ジャンク品・現状品・未確認品などの注意書きは Condition として翻訳する（"Junk", "As-is", "Untested" など）
 
 # メルカリの「商品の状態」マッピング（参考）
-- 「新品、未使用」 → "Brand New" / "New"
-- 「未使用に近い」 → "New (Other)" / "Like New"
-- 「目立った傷や汚れなし」 → "Used - Excellent"
-- 「やや傷や汚れあり」 → "Used - Good"
-- 「傷や汚れあり」 → "Used - Fair"
-- 「全体的に状態が悪い」 → "For parts or not working" / "Used - Poor"
+- 「新品、未使用」 → "Unused"
+- 「未使用に近い」 → "Used (very minimal signs of use)"
+- 「目立った傷や汚れなし」 → "Used (minimal signs of use)"
+- 「やや傷や汚れあり」 → "Used (light signs of use)"
+- 「傷や汚れあり」 → "Used (visible signs of use)"
+- 「全体的に状態が悪い」 → "Used (heavy wear)" / "For parts or not working"
 
 # 画像の活用
 - メルカリは商品画像が複数枚あり、1 枚目がメイン。

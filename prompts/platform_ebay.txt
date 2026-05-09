@@ -65,12 +65,13 @@
 - ジャンク品・現状品・未確認品などの注意書きは Condition として翻訳する（"Junk", "As-is", "Untested" など）
 
 # eBayの「商品の状態」マッピング（参考）
-- "New" → "Brand New" / "New"
-- "New with tags" → "New with tags"
-- "New without tags" → "New without tags"
-- "New other" / "Open Box" → "Open Box" / "New (Other)"
+（出力時は主観評価語 "Brand New", "Like New", "Mint", "Near Mint", "Excellent" を含めない。eBay 元データに「New」とあっても "Unused" に置き換える）
+- "New" → "Unused"
+- "New with tags" → "Unused with tags"
+- "New without tags" → "Unused without tags"
+- "New other" / "Open Box" → "Open Box (Used, very minimal signs of use)"
 - "Certified refurbished" → "Certified Refurbished"
-- "Seller refurbished" / "Excellent - Refurbished" → "Seller Refurbished"
+- "Seller refurbished" → "Seller Refurbished"
 - "Used" / "Pre-owned" → "Used"
 - "For parts or not working" → "For parts or not working"
 

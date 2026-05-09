@@ -29,12 +29,18 @@
 2. 商品名 + 特徴 + ブランドの順で組み立てる。
 3. メインキーワード + 複合キーワードはタイトルの左側に配置。
 4. 以下は使用禁止:
-   - "free shipping", "New", "used"（SEO 効果を下げる）
+   - "free shipping", "New", "Brand New", "Like New", "Mint", "Near Mint", "Excellent", "used"（主観評価語 / SEO 効果低下）
    - コンマ ","、ハイフン "-" などの記号
 5. キャラクター名・シリーズ名・型番は積極的に含める。
 6. タイトルや説明文にキャラクター名がない場合は画像から推測してよいが、warnings に記載する。
 7. 不要なスペースは詰める。
-8. **カテゴリ別の追加要件**:
+8. **ネガティブ情報の Title 必須記載**（クレーム防止のため意図的な省略禁止）:
+   - 動作不良: 末尾に "(Junk)" / "(For Parts - Not Working)" / "(Untested)"
+   - 破損: "(Cracked Crystal)" / "(Damaged Dial)" / "(Broken <part>)" 等
+   - 欠品: "(Missing Crown)" / "(No Box)" / "(Without <item>)" 等
+   - 不動: "(Inoperative)" / "(Not Functional)"
+   - 例: "Casio G-Shock DW-6900 Vintage Watch (Junk - Not Working)"
+9. **カテゴリ別の追加要件**:
    - **時計**:
      - **Wrist Size を最優先**で含める（バイヤーは自分の腕周りで検索することが多いため）。
      - 次に Case Size を含める。
@@ -56,13 +62,13 @@
    - 禁止例: "great choice for collectors", "stunning", "beautiful", "perfect for", "must-have", "eye-catching", "rare find", "amazing", "looking for X"
    - 「This item appears to...」「This is...」「A wonderful...」のような導入文も禁止。
 6. **Condition は必ず出力する。主観評価語は禁止だが、客観的事実は 1〜3 文で記載**:
-   - 開始語（必須、いずれか 1 つ）: "Brand New" / "Pre-owned" / "Used" / "Untested" / "For parts or not working" / "Junk"
+   - 開始語（必須、いずれか 1 つ）: "Unused" / "Pre-owned" / "Used" / "Untested" / "For parts or not working" / "Junk"
    - その後に **客観的事実** を簡潔に記載してよい。例:
      - 傷・スレ・汚れの場所と程度（"Minor scratches on the case back."）
      - 付属品の有無（"Includes original wooden box."、"Watch body only, no box or papers."）
      - 動作確認の状態（"Currently operating normally."、"Battery not included; not tested."）
      - 年代感・経年劣化（"Shows signs of age and storage."、"Vintage condition."）
-   - **禁止語**（主観評価、クレームの元）: "Excellent", "Like New", "Mint", "great condition", "beautiful", "in good shape", "perfect", "amazing", "stunning"
+   - **禁止語**（主観評価、クレームの元）: "New", "Brand New", "Like New", "Mint", "Near Mint", "Excellent", "great condition", "beautiful", "in good shape", "perfect", "amazing", "stunning"
    - 最後に必ず "Please check the photos carefully for details." を添える。
    - Condition セクションを省略しないこと。
 
@@ -115,9 +121,23 @@ Condition: Pre-owned. Minor scratches and wear are visible. Currently operating 
 - 「画像から確認できないため推測しました」のような注意書きを箇条書きで入れる。
 - 推測がない場合は空配列 []。
 
+# 「新品」由来の英訳禁止
+- 元データに「新品」「新品同様」とあっても、英訳に "New" / "Brand New" は使わない（中古保管品でも「新品未使用」表記があるが、eBay では中古扱い。"New" を入れると登録できないケースがある）。
+- 「未使用」 = `Unused` は使用 OK（客観表現）。
+
+# パーツ交換の表現
+- 「新品ベルトに交換済み」 → `Replaced belt`
+- 「新品○○に交換」 → `Replaced <part>` （例: Replaced strap, Replaced battery）
+- "new" を含む英語表現は一切使わない（"new strap" / "newly installed" も禁止）。
+
+# 翻訳精度（日本語残存防止）
+- **出力に日本語を混入させてはいけない**。固有名詞・和製漢字も英訳する。
+- 訳に迷う用語は **web_search で正式な英語表記を確認** してから出力する。
+- 例: 「腕周り」→ "Wrist size"、「文字盤」→ "Dial"、「ベゼル」→ "Bezel"、「真鍮」→ "Brass"、「文鎮」→ "Paperweight"
+
 # Web 検索ツール
 - 必要に応じて web_search ツールを使用してよい。
-- 用途: eBay カテゴリ ID の確認、英語の専門用語の確認、ブランド名の正式表記。
+- 用途: eBay カテゴリ ID の確認、英語の専門用語の確認、ブランド名・キャラクター名・モデル名の正式英語表記、日本語残存を防ぐための英訳確認。
 
 # 一般禁則
 - ユーザーや出品者個人の都合（即購入OK、専用、コメント不要、値下げ不可、土日のみ発送 等）は翻訳対象から除外する。eBay の Description には含めない。

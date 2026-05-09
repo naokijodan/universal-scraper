@@ -62,15 +62,15 @@
 - ジャンク品・現状品・未確認品などの注意書きは Condition として翻訳する（"Junk", "As-is", "Untested" など）
 
 # Amazonの「商品の状態」マッピング（参考）
-- 「新品」 → "Brand New" / "New"
-- 「中古 - ほぼ新品」 → "New (Other)" / "Like New"
-- 「中古 - 非常に良い」 → "Used - Excellent"
-- 「中古 - 良い」 → "Used - Good"
-- 「中古 - 可」 → "Used - Fair"
-- 「コレクター商品 - ほぼ新品」 → "New (Other)" / "Like New"
-- 「コレクター商品 - 非常に良い」 → "Used - Excellent"
-- 「コレクター商品 - 良い」 → "Used - Good"
-- 「コレクター商品 - 可」 → "Used - Fair"
+- 「新品」 → "Unused"
+- 「中古 - ほぼ新品」 → "Used (very minimal signs of use)"
+- 「中古 - 非常に良い」 → "Used (minimal signs of use)"
+- 「中古 - 良い」 → "Used (light signs of use)"
+- 「中古 - 可」 → "Used (visible signs of use)"
+- 「コレクター商品 - ほぼ新品」 → "Used (very minimal signs of use)"
+- 「コレクター商品 - 非常に良い」 → "Used (minimal signs of use)"
+- 「コレクター商品 - 良い」 → "Used (light signs of use)"
+- 「コレクター商品 - 可」 → "Used (visible signs of use)"
 
 # 画像の活用
 - Amazonは商品画像が複数枚あり、1 枚目がメイン。
