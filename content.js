@@ -4551,37 +4551,51 @@ function isNoiseText(text) {
   }
 
   function extractPrice() {
-    const priceSelectors = [
-      '.a-price.a-text-price.a-size-medium.a-color-base .a-offscreen',
-      '.a-price .a-offscreen',
-      '#corePrice_feature_div .a-offscreen',
-      '#priceblock_dealprice',
-      '#priceblock_ourprice',
-      '#priceblock_saleprice',
-      '.a-price-whole',
-      '[data-testid="price-value"]'
+    // 価格抽出のポリシー:
+    // ページ全体を querySelector すると、画像検索や広告エリアの価格を先に拾ってしまう
+    // ことがある（左上に anan 雑誌の広告が出るケース等）。
+    // そのため、商品本体エリア（centerCol / corePrice_feature_div / apex_desktop 等）
+    // を優先的に走査する。
+
+    // 1. 商品本体エリア内で最初にヒットした価格を採用
+    const productContainers = [
+      '#corePriceDisplay_desktop_feature_div',
+      '#corePrice_feature_div',
+      '#apex_desktop',
+      '#dp_corePrice',
+      '#centerCol'
     ];
-
-    for (const selector of priceSelectors) {
-      const priceElement = document.querySelector(selector);
-      if (priceElement) {
-        let priceText = priceElement.textContent.trim();
-
-        priceText = priceText.replace(/[￥¥,]/g, '');
-
-        const priceMatch = priceText.match(/[\d,]+/);
-        if (priceMatch) {
-          return priceMatch[0].replace(/,/g, '');
-        }
+    const innerSelectors = [
+      '.priceToPay .a-offscreen',
+      '.a-price .a-offscreen',
+      '.a-price-whole'
+    ];
+    for (const containerSel of productContainers) {
+      const container = document.querySelector(containerSel);
+      if (!container) continue;
+      for (const innerSel of innerSelectors) {
+        const el = container.querySelector(innerSel);
+        if (!el) continue;
+        const priceText = el.textContent.trim().replace(/[￥¥,]/g, '');
+        const m = priceText.match(/[\d,]+/);
+        if (m) return m[0].replace(/,/g, '');
       }
     }
 
-    const priceRange = document.querySelector('#price_inside_buybox');
-    if (priceRange) {
-      const priceText = priceRange.textContent;
-      const priceMatch = priceText.match(/￥?([\d,]+)/);
-      if (priceMatch) {
-        return priceMatch[1].replace(/,/g, '');
+    // 2. 旧仕様の固定 ID（古い Amazon UI、サブセクションでも商品本体特定が可能）
+    const fallbackSelectors = [
+      '#priceblock_dealprice',
+      '#priceblock_ourprice',
+      '#priceblock_saleprice',
+      '#price_inside_buybox',
+      '[data-testid="price-value"]'
+    ];
+    for (const selector of fallbackSelectors) {
+      const priceElement = document.querySelector(selector);
+      if (priceElement) {
+        const priceText = priceElement.textContent.trim().replace(/[￥¥,]/g, '');
+        const priceMatch = priceText.match(/[\d,]+/);
+        if (priceMatch) return priceMatch[0].replace(/,/g, '');
       }
     }
 
