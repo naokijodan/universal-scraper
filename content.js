@@ -7436,7 +7436,7 @@ function isNoiseText(text) {
       <!-- Action buttons -->
       <div style="display:flex; gap:10px; justify-content:flex-end; padding-top:12px; border-top:1px solid #e0e0e0; flex-wrap:wrap;">
         <button type="button" id="ai-rerun" style="padding:10px 14px; background:#ff9800; color:white; border:none; border-radius:6px; cursor:pointer;">🔄 再翻訳</button>
-        <button type="button" id="ai-export-both" style="padding:10px 16px; background:#26a69a; color:white; border:none; border-radius:6px; cursor:pointer;">⏩ 両方へ一括エクスポート（インポート用 + v5インポート）</button>
+        <button type="button" id="ai-export-both" style="padding:10px 16px; background:#26a69a; color:white; border:none; border-radius:6px; cursor:pointer;">⏩ v5インポートへエクスポート</button>
         <button type="button" id="ai-modal-close" style="padding:10px 16px; background:#9e9e9e; color:white; border:none; border-radius:6px; cursor:pointer;">閉じる</button>
       </div>
     `;
@@ -7724,8 +7724,8 @@ function isNoiseText(text) {
       console.error('[ai-sheet-selector] init error:', err);
     });
 
-    // 両方へ一括エクスポート（fire-and-forget）
-    // 1 回の sendMessage で background.js が両方を順次送信する。
+    // v5インポート へエクスポート（fire-and-forget、v1.4.1 で「両方一括」から変更）
+    // 1 回の sendMessage で background.js が送信する。
     // content.js 側は応答を待たずに即「送信受付」と返すので、ユーザーがタブを閉じても背後で完走する。
     content.querySelector('#ai-export-both').addEventListener('click', async (e) => {
       const btn = e.currentTarget;
@@ -7751,17 +7751,16 @@ function isNoiseText(text) {
         if (!target && spreadsheets.length > 0) target = spreadsheets[0];
         if (!target) throw new Error('スプレッドシートが登録されていません');
 
-        // 両方の values を作る（content.js 側で同期的に確定）
-        const import1Values = buildImport1Values_(extractedData);
+        // v5インポート 用 values を作る
+        // (v1.4.1: 「インポート用」への送信は廃止、v5インポート 単独に変更)
         const v5Values = await buildV5ImportValues_(ai, extractedData);
 
-        // 1 回の sendMessage で両方の送信を background.js に依頼（fire-and-forget）
+        // 1 回の sendMessage で v5インポート 送信を background.js に依頼（fire-and-forget）
         // タブを閉じても background.js は service worker として fetch を完走する
         chrome.runtime.sendMessage({
           action: 'exportBoth',
           webhookUrl: target.webhookUrl,
           payloads: [
-            { sheetName: 'インポート用', values: import1Values },
             { sheetName: 'v5インポート', values: v5Values }
           ]
         }).catch((err) => {
