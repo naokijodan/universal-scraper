@@ -7349,9 +7349,15 @@ function isNoiseText(text) {
     `;
 
     content.innerHTML = `
-      <h2 style="margin:0 0 16px 0; color:#222; font-size:20px; border-bottom:2px solid #6a1b9a; padding-bottom:10px;">
-        🤖 AI 翻訳結果（eBay 出品データ・編集可能）
-      </h2>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin:0 0 16px 0; border-bottom:2px solid #6a1b9a; padding-bottom:10px; gap:10px; flex-wrap:wrap;">
+        <h2 style="margin:0; color:#222; font-size:20px;">
+          🤖 AI 翻訳結果（eBay 出品データ・編集可能）
+        </h2>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button type="button" class="ai-export-both-btn" title="両方へ一括エクスポート（インポート用 + v5インポート）" style="padding:6px 10px; background:#26a69a; color:white; border:none; border-radius:5px; cursor:pointer; font-size:12px;">⏩ 両方へエクスポート</button>
+          <button type="button" class="ai-export-v5-only-btn" title="v5インポートのみ（翻訳データのみ）" style="padding:6px 10px; background:#00897b; color:white; border:none; border-radius:5px; cursor:pointer; font-size:12px;">📋 v5のみ</button>
+        </div>
+      </div>
 
       <!-- Title -->
       <section style="margin-bottom:20px;">
@@ -7450,8 +7456,8 @@ function isNoiseText(text) {
       <!-- Action buttons -->
       <div style="display:flex; gap:10px; justify-content:flex-end; padding-top:12px; border-top:1px solid #e0e0e0; flex-wrap:wrap;">
         <button type="button" id="ai-rerun" style="padding:10px 14px; background:#ff9800; color:white; border:none; border-radius:6px; cursor:pointer;">🔄 再翻訳</button>
-        <button type="button" id="ai-export-both" style="padding:10px 16px; background:#26a69a; color:white; border:none; border-radius:6px; cursor:pointer;">⏩ 両方へ一括エクスポート（インポート用 + v5インポート）</button>
-        <button type="button" id="ai-export-v5-only" style="padding:10px 16px; background:#00897b; color:white; border:none; border-radius:6px; cursor:pointer;">📋 v5インポートのみ（翻訳データのみ）</button>
+        <button type="button" id="ai-export-both" class="ai-export-both-btn" style="padding:10px 16px; background:#26a69a; color:white; border:none; border-radius:6px; cursor:pointer;">⏩ 両方へ一括エクスポート（インポート用 + v5インポート）</button>
+        <button type="button" id="ai-export-v5-only" class="ai-export-v5-only-btn" style="padding:10px 16px; background:#00897b; color:white; border:none; border-radius:6px; cursor:pointer;">📋 v5インポートのみ（翻訳データのみ）</button>
         <button type="button" id="ai-modal-close" style="padding:10px 16px; background:#9e9e9e; color:white; border:none; border-radius:6px; cursor:pointer;">閉じる</button>
       </div>
     `;
@@ -7737,6 +7743,21 @@ function isNoiseText(text) {
     // 出力先スプレッドシートのドロップダウンを初期化（登録済みの全シートを表示・選択可）
     initAiSheetSelector_(content).catch((err) => {
       console.error('[ai-sheet-selector] init error:', err);
+    });
+
+    // 上部のコンパクトエクスポートボタンを下部のメインボタンへプロキシ
+    // （クリック挙動・送信中表示・disable 制御を下部ボタンに一本化、UI重複を回避）
+    const _bottomExportBoth = content.querySelector('#ai-export-both');
+    content.querySelectorAll('.ai-export-both-btn').forEach((btn) => {
+      if (btn !== _bottomExportBoth) {
+        btn.addEventListener('click', () => _bottomExportBoth?.click());
+      }
+    });
+    const _bottomExportV5 = content.querySelector('#ai-export-v5-only');
+    content.querySelectorAll('.ai-export-v5-only-btn').forEach((btn) => {
+      if (btn !== _bottomExportV5) {
+        btn.addEventListener('click', () => _bottomExportV5?.click());
+      }
     });
 
     // 両方へ一括エクスポート（fire-and-forget）
