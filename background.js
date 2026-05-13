@@ -1,5 +1,14 @@
 // Universal Product Scraper (AI 版) - Background Script (Service Worker)
 // Webhook 送信、AI 翻訳呼び出し、API キー保護を担当
+//
+// 送信キュー実装（enqueueExport / processQueue / acquireLock 等）は
+// background-queue.js に分離して importScripts で読み込む。
+// MV3 service worker は classic スクリプトなので importScripts() が使える（Fact: MDN）。
+try {
+  importScripts('background-queue.js');
+} catch (e) {
+  console.error('[boot] failed to load background-queue.js:', e?.message || e);
+}
 
 console.log('Background script loaded (とりこみ君AI)');
 
@@ -43,11 +52,96 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === 'exportBoth') {
-    // content.js から fire-and-forget で呼ばれる。
-    // タブが閉じられても service worker としてここの async 処理は最後まで完走する。
-    handleExportBoth(request)
+    // 旧 API（直接バルク送信）— Phase 1 ではキュー方式へ転送するブリッジ。
+    // 互換性のため残しているが、新しい呼び出しは enqueueExport を使うこと。
+    handleExportBothBridgeToQueue(request)
       .then(response => sendResponse(response))
       .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+
+  if (request.action === 'enqueueExport') {
+    // 新 API: キューに積むだけ。実際の送信は processQueue が alarms で実行する。
+    handleEnqueueExport(request)
+      .then(response => sendResponse(response))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+
+  if (request.action === 'kickQueue') {
+    // 設定画面の「今すぐ送信」から呼ばれる。
+    // processQueue は background-queue.js の global function。
+    // withStorageLock で直列化されているので、並行発火でも安全。
+    Promise.resolve()
+      .then(() => (typeof processQueue === 'function' ? processQueue() : Promise.reject(new Error('processQueue 未定義'))))
+      .then(() => sendResponse({ success: true }))
+      .catch((e) => sendResponse({ success: false, error: e?.message || 'キュー処理に失敗しました' }));
+    return true;
+  }
+
+  // Phase 3 修正（指摘 8 対応）: options 画面からの書き込みは
+  // background 側で withStorageLock を通して安全に処理する。
+  if (request.action === 'queueRetryFailed') {
+    Promise.resolve()
+      .then(() => (typeof queueRetryFailed === 'function' ? queueRetryFailed() : Promise.reject(new Error('queueRetryFailed 未定義'))))
+      .then((res) => sendResponse(res))
+      .catch((e) => sendResponse({ success: false, error: e?.message || 'queueRetryFailed 失敗' }));
+    return true;
+  }
+
+  if (request.action === 'queueClearFailed') {
+    Promise.resolve()
+      .then(() => (typeof queueClearFailed === 'function' ? queueClearFailed() : Promise.reject(new Error('queueClearFailed 未定義'))))
+      .then((res) => sendResponse(res))
+      .catch((e) => sendResponse({ success: false, error: e?.message || 'queueClearFailed 失敗' }));
+    return true;
+  }
+
+  if (request.action === 'queueClearSent') {
+    Promise.resolve()
+      .then(() => (typeof queueClearSent === 'function' ? queueClearSent() : Promise.reject(new Error('queueClearSent 未定義'))))
+      .then((res) => sendResponse(res))
+      .catch((e) => sendResponse({ success: false, error: e?.message || 'queueClearSent 失敗' }));
+    return true;
+  }
+
+  if (request.action === 'queueClearWaiting') {
+    Promise.resolve()
+      .then(() => (typeof queueClearWaiting === 'function' ? queueClearWaiting() : Promise.reject(new Error('queueClearWaiting 未定義'))))
+      .then((res) => sendResponse(res))
+      .catch((e) => sendResponse({ success: false, error: e?.message || 'queueClearWaiting 失敗' }));
+    return true;
+  }
+
+  if (request.action === 'queueRequeueOne') {
+    Promise.resolve()
+      .then(() => (typeof queueRequeueOne === 'function' ? queueRequeueOne(request.itemId) : Promise.reject(new Error('queueRequeueOne 未定義'))))
+      .then((res) => sendResponse(res))
+      .catch((e) => sendResponse({ success: false, error: e?.message || 'queueRequeueOne 失敗' }));
+    return true;
+  }
+
+  if (request.action === 'queueDeleteOne') {
+    Promise.resolve()
+      .then(() => (typeof queueDeleteOne === 'function' ? queueDeleteOne(request.itemId) : Promise.reject(new Error('queueDeleteOne 未定義'))))
+      .then((res) => sendResponse(res))
+      .catch((e) => sendResponse({ success: false, error: e?.message || 'queueDeleteOne 失敗' }));
+    return true;
+  }
+
+  if (request.action === 'queueTogglePause') {
+    Promise.resolve()
+      .then(() => (typeof queueTogglePause === 'function' ? queueTogglePause() : Promise.reject(new Error('queueTogglePause 未定義'))))
+      .then((res) => sendResponse(res))
+      .catch((e) => sendResponse({ success: false, error: e?.message || 'queueTogglePause 失敗' }));
+    return true;
+  }
+
+  if (request.action === 'queueSaveConfig') {
+    Promise.resolve()
+      .then(() => (typeof queueSaveConfig === 'function' ? queueSaveConfig(request.updates) : Promise.reject(new Error('queueSaveConfig 未定義'))))
+      .then((res) => sendResponse(res))
+      .catch((e) => sendResponse({ success: false, error: e?.message || 'queueSaveConfig 失敗' }));
     return true;
   }
 

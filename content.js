@@ -7791,22 +7791,33 @@ function isNoiseText(text) {
         const import1Values = buildImport1Values_(extractedData);
         const v5Values = await buildV5ImportValues_(ai, extractedData);
 
-        // 1 回の sendMessage で両方の送信を background.js に依頼（fire-and-forget）
-        // タブを閉じても background.js は service worker として fetch を完走する
-        chrome.runtime.sendMessage({
-          action: 'exportBoth',
+        // キューに積む（Phase 1: バルク送信 + alarms で順次処理）
+        // background.js が 15 秒ごとに最大 20 件まとめて送信する
+        const enqueueRes = await chrome.runtime.sendMessage({
+          action: 'enqueueExport',
           webhookUrl: target.webhookUrl,
-          payloads: [
+          sourceLabel: (document?.title || '').slice(0, 120),
+          items: [
             { sheetName: 'インポート用', values: import1Values },
             { sheetName: 'v5インポート', values: v5Values }
           ]
         }).catch((err) => {
           console.error('[ai-export-both] sendMessage error:', err);
+          return { success: false, error: err?.message || '送信依頼に失敗しました' };
         });
 
+        if (!enqueueRes || enqueueRes.success !== true) {
+          throw new Error(enqueueRes?.error || 'キューへの追加に失敗しました');
+        }
+
+        const waitingCount = (enqueueRes && typeof enqueueRes.waiting === 'number')
+          ? enqueueRes.waiting
+          : null;
         showNotification(
-          '送信受付',
-          'バックグラウンドで送信中です。タブを閉じても続行します。',
+          'キューに追加しました',
+          waitingCount !== null
+            ? `待機 ${waitingCount} 件。バックグラウンドで順次送信します。`
+            : 'バックグラウンドで順次送信します。',
           'success',
           colors
         );
@@ -7853,19 +7864,30 @@ function isNoiseText(text) {
 
         const v5Values = await buildV5ImportValues_(ai, extractedData);
 
-        chrome.runtime.sendMessage({
-          action: 'exportBoth',
+        const enqueueRes = await chrome.runtime.sendMessage({
+          action: 'enqueueExport',
           webhookUrl: target.webhookUrl,
-          payloads: [
+          sourceLabel: (document?.title || '').slice(0, 120),
+          items: [
             { sheetName: 'v5インポート', values: v5Values }
           ]
         }).catch((err) => {
           console.error('[ai-export-v5-only] sendMessage error:', err);
+          return { success: false, error: err?.message || '送信依頼に失敗しました' };
         });
 
+        if (!enqueueRes || enqueueRes.success !== true) {
+          throw new Error(enqueueRes?.error || 'キューへの追加に失敗しました');
+        }
+
+        const waitingCount = (enqueueRes && typeof enqueueRes.waiting === 'number')
+          ? enqueueRes.waiting
+          : null;
         showNotification(
-          '送信受付（v5インポートのみ）',
-          'AI 翻訳データを v5インポート へ送信中。タブを閉じても続行します。',
+          'キューに追加しました（v5インポート）',
+          waitingCount !== null
+            ? `待機 ${waitingCount} 件。バックグラウンドで順次送信します。`
+            : 'バックグラウンドで順次送信します。',
           'success',
           colors
         );

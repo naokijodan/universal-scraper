@@ -341,6 +341,317 @@
       color: #c62828;
       border: 1px solid #ef9a9a;
     }
+
+    /* ==========================================
+       送信キュー進捗パネル（Phase 3: queue-design.md §5-1）
+       ========================================== */
+    .queue-panel {
+      margin: 0 0 24px 0;
+      padding: 18px 20px;
+      background: #ffffff;
+      border: 1px solid #e3e6f3;
+      border-left: 4px solid #667eea;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.06);
+    }
+
+    .queue-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .queue-header h2 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #4527a0;
+      letter-spacing: 0.5px;
+    }
+
+    .queue-header .queue-meta {
+      font-size: 11px;
+      color: #888;
+    }
+
+    .queue-stats {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .queue-stat-item {
+      background: #f7f8fc;
+      border-radius: 8px;
+      padding: 10px 8px;
+      text-align: center;
+      border: 1px solid #ecedf5;
+    }
+
+    .queue-stat-item .queue-stat-label {
+      display: block;
+      font-size: 11px;
+      color: #777;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    .queue-stat-item .queue-stat-value {
+      display: block;
+      font-size: 22px;
+      font-weight: 700;
+      color: #333;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .queue-stat-item.queue-stat-retry .queue-stat-value { color: #f57c00; }
+    .queue-stat-item.queue-stat-success .queue-stat-value { color: #2e7d32; }
+    .queue-stat-item.queue-stat-failed .queue-stat-value { color: #c62828; }
+    .queue-stat-item.queue-stat-sending .queue-stat-value { color: #1976d2; }
+
+    .queue-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .queue-actions button {
+      padding: 8px 14px;
+      border: 1px solid #d6daec;
+      background: #ffffff;
+      color: #4527a0;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .queue-actions button:hover {
+      background: #f0f1fa;
+      border-color: #a1a8d6;
+    }
+
+    .queue-actions button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .queue-actions .queue-btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff;
+      border-color: transparent;
+    }
+
+    .queue-actions .queue-btn-primary:hover {
+      filter: brightness(1.05);
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .queue-btn-pause {
+      padding: 6px 12px;
+      border: 1px solid #d6daec;
+      background: #ffffff;
+      color: #555;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .queue-btn-pause:hover { background: #f0f1fa; }
+
+    .queue-btn-pause.queue-paused {
+      background: #fff3e0;
+      color: #e65100;
+      border-color: #ffcc80;
+    }
+
+    .queue-details,
+    .queue-config {
+      margin-top: 8px;
+      border-top: 1px dashed #e3e6f3;
+      padding-top: 8px;
+    }
+
+    .queue-details summary,
+    .queue-config summary {
+      cursor: pointer;
+      font-size: 12px;
+      color: #555;
+      font-weight: 600;
+      padding: 4px 0;
+      list-style: none;
+    }
+
+    .queue-details summary::before,
+    .queue-config summary::before {
+      content: '▸ ';
+      font-size: 10px;
+      color: #888;
+    }
+
+    .queue-details[open] summary::before,
+    .queue-config[open] summary::before {
+      content: '▾ ';
+    }
+
+    #queue-list {
+      margin-top: 8px;
+      max-height: 320px;
+      overflow-y: auto;
+      border: 1px solid #ecedf5;
+      border-radius: 6px;
+      background: #fafbff;
+    }
+
+    #queue-list .queue-empty {
+      padding: 12px;
+      font-size: 12px;
+      color: #999;
+      text-align: center;
+    }
+
+    .queue-item {
+      display: grid;
+      grid-template-columns: 24px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 10px;
+      border-bottom: 1px solid #ecedf5;
+      font-size: 12px;
+    }
+
+    .queue-item:last-child { border-bottom: none; }
+
+    .queue-item .queue-item-icon {
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .queue-item .queue-item-body {
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .queue-item .queue-item-line1 {
+      color: #333;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .queue-item .queue-item-line2 {
+      color: #888;
+      font-size: 11px;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .queue-item .queue-item-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .queue-item .queue-item-actions button {
+      padding: 4px 8px;
+      border: 1px solid #d6daec;
+      background: #ffffff;
+      color: #555;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .queue-item .queue-item-actions button:hover { background: #f0f1fa; }
+
+    .queue-config-body {
+      margin-top: 10px;
+      padding: 12px;
+      background: #fafbff;
+      border: 1px solid #ecedf5;
+      border-radius: 6px;
+    }
+
+    .queue-config-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #ecedf5;
+    }
+
+    .queue-config-row:last-child { border-bottom: none; }
+
+    .queue-config-row .queue-config-label {
+      font-size: 12px;
+      color: #555;
+    }
+
+    .queue-config-row .queue-config-label .queue-config-desc {
+      display: block;
+      font-size: 11px;
+      color: #888;
+      margin-top: 2px;
+    }
+
+    .queue-config-row input[type="number"],
+    .queue-config-row input[type="range"] {
+      width: 140px;
+    }
+
+    .queue-config-row .queue-config-readonly {
+      font-size: 12px;
+      color: #999;
+      padding: 4px 8px;
+      background: #ecedf5;
+      border-radius: 4px;
+    }
+
+    #queue-config-bulksize-value {
+      display: inline-block;
+      min-width: 28px;
+      text-align: right;
+      font-weight: 700;
+      color: #4527a0;
+      margin-left: 6px;
+    }
+
+    .queue-config-save-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .queue-config-save-row button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .queue-config-save-row .queue-config-save {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff;
+    }
+
+    .queue-config-save-row .queue-config-save:hover { filter: brightness(1.05); }
+
+    .queue-config-save-row .queue-config-save-status {
+      align-self: center;
+      font-size: 12px;
+      color: #2e7d32;
+    }
   </style>
 </head>
 <body>
@@ -351,6 +662,101 @@
     </div>
 
     <div class="content">
+      <!-- 送信キュー進捗パネル（Phase 3: docs/queue-design.md §5-1） -->
+      <section class="queue-panel" id="queue-panel">
+        <div class="queue-header">
+          <h2>📤 送信キュー</h2>
+          <button type="button" id="queue-pause-btn" class="queue-btn-pause" title="一時停止 / 再開">⏸ 一時停止</button>
+        </div>
+
+        <div class="queue-stats">
+          <div class="queue-stat-item">
+            <span class="queue-stat-label">待機</span>
+            <span class="queue-stat-value" id="queue-stat-waiting">0</span>
+          </div>
+          <div class="queue-stat-item queue-stat-sending">
+            <span class="queue-stat-label">送信中</span>
+            <span class="queue-stat-value" id="queue-stat-sending">0</span>
+          </div>
+          <div class="queue-stat-item queue-stat-retry">
+            <span class="queue-stat-label">リトライ</span>
+            <span class="queue-stat-value" id="queue-stat-retry">0</span>
+          </div>
+          <div class="queue-stat-item queue-stat-success">
+            <span class="queue-stat-label">成功</span>
+            <span class="queue-stat-value" id="queue-stat-sent">0</span>
+          </div>
+          <div class="queue-stat-item queue-stat-failed">
+            <span class="queue-stat-label">失敗</span>
+            <span class="queue-stat-value" id="queue-stat-failed">0</span>
+          </div>
+        </div>
+
+        <div class="queue-actions">
+          <button type="button" id="queue-kick-btn" class="queue-btn-primary">▶ 今すぐ送信</button>
+          <button type="button" id="queue-retry-btn">↻ 失敗をリトライ</button>
+          <button type="button" id="queue-clear-failed-btn">🗑 失敗をクリア</button>
+          <button type="button" id="queue-clear-sent-btn">🧹 成功をクリア</button>
+          <button type="button" id="queue-clear-waiting-btn">⏹ 待機をクリア</button>
+          <span class="queue-meta" id="queue-last-sync" style="align-self: center; margin-left: auto;"></span>
+        </div>
+
+        <details class="queue-details" id="queue-details">
+          <summary>個別の項目を表示（最大 50 件）</summary>
+          <div id="queue-list">
+            <div class="queue-empty">キューは空です</div>
+          </div>
+        </details>
+
+        <details class="queue-config" id="queue-config">
+          <summary>詳細設定</summary>
+          <div class="queue-config-body">
+            <div class="queue-config-row">
+              <div class="queue-config-label">
+                バルクサイズ
+                <span class="queue-config-desc">1 POST にまとめる件数（1〜50）。GAS の上限は 50 件。V5 データは 5 件がデフォルト（lock_timeout 回避のため）。</span>
+              </div>
+              <div>
+                <input type="range" id="queue-config-bulksize" min="1" max="50" step="1" value="5">
+                <span id="queue-config-bulksize-value">5</span>
+              </div>
+            </div>
+            <div class="queue-config-row">
+              <div class="queue-config-label">
+                送信間隔（自動サイクル）
+                <span class="queue-config-desc">Chrome の制約で公開拡張は最小 1 分。ボタン押下時は即送信されます。</span>
+              </div>
+              <div>
+                <span class="queue-config-readonly">1 分（固定）</span>
+              </div>
+            </div>
+            <div class="queue-config-row">
+              <div class="queue-config-label">
+                リトライ上限
+                <span class="queue-config-desc">失敗時に自動再送する回数（1〜5）。これを超えると「失敗」状態で停止します。</span>
+              </div>
+              <div>
+                <input type="number" id="queue-config-maxretry" min="1" max="5" step="1" value="3">
+              </div>
+            </div>
+            <div class="queue-config-row">
+              <div class="queue-config-label">
+                fetch タイムアウト
+                <span class="queue-config-desc">1 回の送信を打ち切るまでの秒数（10〜120）。通信遅延の保険。</span>
+              </div>
+              <div>
+                <input type="number" id="queue-config-fetch-timeout" min="10" max="120" step="1" value="60">
+                <span style="font-size: 12px; color: #555;">秒</span>
+              </div>
+            </div>
+            <div class="queue-config-save-row">
+              <span class="queue-config-save-status" id="queue-config-save-status"></span>
+              <button type="button" class="queue-config-save" id="queue-config-save-btn">保存</button>
+            </div>
+          </div>
+        </details>
+      </section>
+
       <!-- 担当者名（最上部に小さく配置：インポート用2 シートの B 列に出力） -->
       <div style="margin-bottom: 24px; padding: 10px 14px; background: #f5f7fa; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
         <label for="aiOperatorName" style="font-size: 13px; color: #555; font-weight: 600; white-space: nowrap;">担当者名:</label>
@@ -793,5 +1199,6 @@ function doPost(e) {
 
   <script src="default_setting_json.js"></script>
   <script src="options.js"></script>
+  <script src="options-queue.js"></script>
 </body>
 </html>
