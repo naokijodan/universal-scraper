@@ -10,6 +10,13 @@ try {
   console.error('[boot] failed to load background-queue.js:', e?.message || e);
 }
 
+// サイドパネル: アクションアイコンクリックで開く
+if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
+  chrome.sidePanel
+    .setPanelBehavior({ openPanelOnActionClick: true })
+    .catch((err) => console.warn('sidePanel.setPanelBehavior failed:', err));
+}
+
 console.log('Background script loaded (とりこみ君AI)');
 
 // 起動時にアクセスレベルを明示的にデフォルトに戻す。

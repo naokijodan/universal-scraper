@@ -2,12 +2,13 @@
   "manifest_version": 3,
   "name": "とりこみ君",
   "short_name": "とりこみ君",
-  "version": "1.4.5",
+  "version": "1.4.6",
   "description": "ECサイト・フリマサイトの商品情報を取得し、スプレッドシートへのエクスポートやクリップボードへのコピーができます。AI 翻訳で eBay 出品用データの生成にも対応。",
   "permissions": [
     "clipboardWrite",
     "storage",
-    "alarms"
+    "alarms",
+    "sidePanel"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'self'"
@@ -16,7 +17,6 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_popup": "popup.html",
     "default_icon": {
       "16": "icon128.png",
       "48": "icon128.png",
@@ -24,6 +24,9 @@
     }
   },
   "options_page": "options.html",
+  "side_panel": {
+    "default_path": "options.html"
+  },
   "content_scripts": [
     {
       "matches": [

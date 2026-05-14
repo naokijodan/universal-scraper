@@ -15,11 +15,11 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       min-height: 100vh;
-      padding: 40px 20px;
+      padding: 16px;
     }
 
     .container {
-      max-width: 800px;
+      max-width: 100%;
       margin: 0 auto;
       background: white;
       border-radius: 12px;
@@ -45,7 +45,7 @@
     }
 
     .content {
-      padding: 40px;
+      padding: 20px;
     }
 
     .section {
@@ -376,7 +376,7 @@
 
     .queue-stats {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
       gap: 8px;
       margin-bottom: 12px;
     }
@@ -500,7 +500,7 @@
 
     #queue-list {
       margin-top: 8px;
-      max-height: 320px;
+      max-height: min(320px, 40vh);
       overflow-y: auto;
       border: 1px solid #ecedf5;
       border-radius: 6px;
