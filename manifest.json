@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "とりこみ君",
   "short_name": "とりこみ君",
-  "version": "1.4.7",
+  "version": "1.4.8",
   "description": "ECサイト・フリマサイトの商品情報を取得し、スプレッドシートへのエクスポートやクリップボードへのコピーができます。AI 翻訳で eBay 出品用データの生成にも対応。",
   "permissions": [
     "clipboardWrite",

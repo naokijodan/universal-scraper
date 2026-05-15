@@ -1,6 +1,7 @@
 // Universal Product Scraper (AI 版) - 送信キュー実装
 // Phase 1+2 統合: 最小キュー + バルク20送信 + 任意の指数バックオフ自動リトライ（Gemini 再レビュー反映版）
 // + §15 (2026-05-13) 並列 fetch バグ修正: processQueue の single-flight 化 + sendingStartedAt
+// + §17 (v1.4.8) reviveOrphanedSending を failed(unknown_remote_state) 固定 + payload に clientItemId 布石
 //
 // 仕様: docs/queue-design.md §9 Phase 1+2 統合
 //   - chrome.storage.local.queue に積む
@@ -11,7 +12,7 @@
 //   - 並行制御はメモリ内 Promise チェーン（withStorageLock）で直列化
 //   - processQueue は single-flight (in-progress + rerunRequested) で複数呼び出しを統合
 //   - withStorageLock のエラー時は一貫したエラーオブジェクトを返してクラッシュ防止
-//   - 起動時に「2 分以上 sending のまま」の item のみ waiting に戻して孤児を回収
+//   - 起動時に「2 分以上 sending のまま」の item は failed(unknown_remote_state) に固定
 //   - UI は Phase 3 で追加
 //
 // このファイルは background.js から importScripts で読み込まれる。
@@ -121,37 +122,43 @@ async function initQueueState() {
 }
 
 // §7-4 Service Worker 起動時の孤児リカバリ
-// processQueue 中に SW が停止すると sending マークが永久に残るため、起動時に waiting へ戻す
+// processQueue 中に SW が停止すると sending マークが永久に残るため、起動時に処理する。
 // §15 (2026-05-13): 2 分以内に sending マークされた item は「Step B fetch 進行中の可能性」が
-//                    あるため触らない（並列 fetch / 二重送信を避ける）。STALE_SENDING_MS 超のみ復帰。
+//                    あるため触らない（並列 fetch / 二重送信を避ける）。
+// §17 (v1.4.8): 2 分超 sending は「GAS で書き込み成功した可能性がある不明状態」のため、
+//               waiting に戻さず failed(unknown_remote_state) 固定にする。
+//               これで二重送信を構造的に防ぐ。ユーザーは UI で Sheets を確認してから手動再送する。
+//               3者協議 (2026-05-16) 結論。
 async function reviveOrphanedSending() {
   return withStorageLock(async () => {
     try {
       const stored = await chrome.storage.local.get([QUEUE_KEYS.queue]);
       const queue = Array.isArray(stored[QUEUE_KEYS.queue]) ? stored[QUEUE_KEYS.queue] : [];
       const now = Date.now();
-      let revivedCount = 0;
+      let quarantinedCount = 0;
       let skippedCount = 0;
-      const revived = queue.map((q) => {
+      const quarantined = queue.map((q) => {
         if (q?.status !== 'sending') return q;
         const startedAt = Number(q.sendingStartedAt) || 0;
-        // sendingStartedAt 未記録（旧データ）or 2 分超 経過 → 孤児とみなして waiting に戻す
+        // §17 (v1.4.8) sendingStartedAt 未記録（旧データ）or 2 分超経過 → failed(unknown) 固定
+        //              waiting に戻すと二重送信になるため、必ず手動確認を強制する
         if (!startedAt || now - startedAt > STALE_SENDING_MS) {
-          revivedCount++;
+          quarantinedCount++;
           return {
             ...q,
-            status: 'waiting',
+            status: 'failed',
             sendingStartedAt: null,
-            lastError: 'service worker reboot'
+            lastError: 'unknown_remote_state',
+            completedAt: now
           };
         }
         // 2 分未満 = Step B fetch が進行中の可能性 → 触らない
         skippedCount++;
         return q;
       });
-      if (revivedCount > 0) {
-        await chrome.storage.local.set({ [QUEUE_KEYS.queue]: revived });
-        console.log('[queue] revived', revivedCount, 'orphaned sending items, skipped', skippedCount, 'in-flight');
+      if (quarantinedCount > 0) {
+        await chrome.storage.local.set({ [QUEUE_KEYS.queue]: quarantined });
+        console.log('[queue] quarantined', quarantinedCount, 'orphaned sending items as failed(unknown_remote_state), skipped', skippedCount, 'in-flight');
       } else if (skippedCount > 0) {
         console.log('[queue] reviveOrphanedSending: skipped', skippedCount, 'in-flight sending items (within 2min)');
       }
@@ -382,7 +389,8 @@ async function processQueueOnce() {
   const { firstUrl, batch, config } = prepared;
 
   // Step B: 長時間 fetch は lock の外で実行
-  const rows = batch.map((b) => ({ values: b.values, sheetName: b.sheetName }));
+  // §17 (v1.4.8) GAS 側 idempotency（v2.0 実装予定）への布石として id を含める
+  const rows = batch.map((b) => ({ id: b.id, values: b.values, sheetName: b.sheetName }));
   console.log('[queue:proc]', cycleId, 'Step B fetch start, rows=', rows.length);
   const sendResult = await sendBatch(firstUrl, rows);
   console.log('[queue:proc]', cycleId, 'Step B fetch end, ok=', sendResult.ok,
@@ -602,12 +610,21 @@ async function queueRetryFailed() {
   return withStorageLock(async () => {
     const stored = await chrome.storage.local.get([QUEUE_KEYS.queue]);
     const queue = Array.isArray(stored[QUEUE_KEYS.queue]) ? stored[QUEUE_KEYS.queue] : [];
-    const next = queue.map((q) => q?.status === 'failed'
-      ? { ...q, status: 'waiting', retryCount: 0, nextRetryAt: 0, lastError: null, completedAt: null }
-      : q);
+    // §17 (v1.4.8) unknown_remote_state は一括リトライ対象から除外する。
+    let retriedCount = 0;
+    let excludedUnknownCount = 0;
+    const next = queue.map((q) => {
+      if (q?.status !== 'failed') return q;
+      if (q?.lastError === 'unknown_remote_state') {
+        excludedUnknownCount++;
+        return q;
+      }
+      retriedCount++;
+      return { ...q, status: 'waiting', retryCount: 0, nextRetryAt: 0, lastError: null, completedAt: null };
+    });
     await chrome.storage.local.set({ [QUEUE_KEYS.queue]: next });
     await writeStats(next);
-    return { success: true };
+    return { success: true, retried: retriedCount, excludedUnknown: excludedUnknownCount };
   });
 }
 
@@ -615,10 +632,21 @@ async function queueClearFailed() {
   return withStorageLock(async () => {
     const stored = await chrome.storage.local.get([QUEUE_KEYS.queue]);
     const queue = Array.isArray(stored[QUEUE_KEYS.queue]) ? stored[QUEUE_KEYS.queue] : [];
-    const next = queue.filter((q) => q?.status !== 'failed');
+    // §17 (v1.4.8) unknown_remote_state は確認待ちリストとして一括削除対象外にする。
+    let clearedCount = 0;
+    let keptUnknownCount = 0;
+    const next = queue.filter((q) => {
+      if (q?.status !== 'failed') return true;
+      if (q?.lastError === 'unknown_remote_state') {
+        keptUnknownCount++;
+        return true;
+      }
+      clearedCount++;
+      return false;
+    });
     await chrome.storage.local.set({ [QUEUE_KEYS.queue]: next });
     await writeStats(next);
-    return { success: true };
+    return { success: true, cleared: clearedCount, keptUnknown: keptUnknownCount };
   });
 }
 

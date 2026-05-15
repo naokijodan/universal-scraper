@@ -1,4 +1,5 @@
 // とりこみ君 設定画面 - 送信キュー進捗パネル制御
+// + §17 (v1.4.8) unknown_remote_state を通常失敗と分けて表示
 //
 // 仕様: docs/queue-design.md §5-1 / §4 / §15 Phase 3 指摘 8 修正
 // 役割:
@@ -85,7 +86,11 @@
   function getStatusIcon(status, item) {
     if (status === 'sending') return '📡';
     if (status === 'sent') return '✅';
-    if (status === 'failed') return '❌';
+    if (status === 'failed') {
+      // §17 (v1.4.8) GAS に届いた可能性がある不明状態は別アイコンで明示
+      if (item?.lastError === 'unknown_remote_state') return '⚠️';
+      return '❌';
+    }
     if (status === 'waiting') {
       const now = getNow();
       if ((item?.nextRetryAt || 0) > now) return '⏳';
@@ -97,7 +102,11 @@
   function getStatusLabel(status, item) {
     if (status === 'sending') return '送信中';
     if (status === 'sent') return '成功';
-    if (status === 'failed') return '失敗' + (item?.retryCount ? '（' + item.retryCount + '回）' : '');
+    if (status === 'failed') {
+      // §17 (v1.4.8) 「失敗」と「不明（Sheets 要確認）」を文言で区別
+      if (item?.lastError === 'unknown_remote_state') return '要確認（書込み済み可能性）';
+      return '失敗' + (item?.retryCount ? '（' + item.retryCount + '回）' : '');
+    }
     if (status === 'waiting') {
       const now = getNow();
       if ((item?.nextRetryAt || 0) > now) return 'リトライ待ち';
@@ -255,7 +264,12 @@
       parts.push(formatCountdown(item.nextRetryAt));
     }
     if (item.lastError) {
-      parts.push('理由: ' + truncate(item.lastError, 80));
+      // §17 (v1.4.8) unknown_remote_state は再送判断を慎重にするための案内文に置換
+      if (item.lastError === 'unknown_remote_state') {
+        parts.push('Sheets を確認してから再送してください（既に書き込まれている可能性あり）');
+      } else {
+        parts.push('理由: ' + truncate(item.lastError, 80));
+      }
     }
     line2.textContent = parts.join(' / ');
     body.appendChild(line2);
@@ -421,6 +435,17 @@
         console.warn('[options-queue] retryFailed failed:', res?.error);
         return;
       }
+      // §17 (v1.4.8) retried 件数を明記して「0件リトライなのに開始メッセージが出る」違和感を解消
+      if (res.excludedUnknown && res.excludedUnknown > 0) {
+        const head = (res.retried && res.retried > 0)
+          ? 'リトライを開始しました（' + res.retried + ' 件）。\n'
+          : 'リトライ対象の通常失敗はありませんでした。\n';
+        window.alert(
+          head +
+          '⚠️ 「要確認」(' + res.excludedUnknown + ' 件) は対象外です。\n' +
+          'Sheets を確認の上、個別に「↻ 再送」ボタンから操作してください。'
+        );
+      }
       // リトライ後すぐ送信を始めるためキック
       await sendMessageSafely({ action: 'kickQueue' });
     } catch (e) {
@@ -432,7 +457,24 @@
   // アクション: 失敗をクリア
   // ==========================================
   async function clearFailed() {
-    if (!confirmAction('失敗した項目をすべて削除しますか？\n（待機・送信中・成功の項目はそのまま残ります）')) return;
+    // §17 (v1.4.8) 通常失敗 0 件 + unknown のみ → 削除対象なしで早期通知
+    const normalFailedCount = state.queue.filter((q) =>
+      q?.status === 'failed' && q?.lastError !== 'unknown_remote_state'
+    ).length;
+    const unknownCount = state.queue.filter((q) =>
+      q?.status === 'failed' && q?.lastError === 'unknown_remote_state'
+    ).length;
+    if (normalFailedCount === 0 && unknownCount > 0) {
+      window.alert(
+        '通常の失敗項目はありません。\n' +
+        '「要確認」(' + unknownCount + ' 件) は個別に対応してください。'
+      );
+      return;
+    }
+    const msg = unknownCount > 0
+      ? '通常の失敗項目を削除しますか？\n\n⚠️ 「要確認」(' + unknownCount + ' 件) は削除されません。\nSheets 確認後、個別に削除してください。'
+      : '失敗した項目をすべて削除しますか？\n（待機・送信中・成功の項目はそのまま残ります）';
+    if (!confirmAction(msg)) return;
     try {
       const res = await sendMessageSafely({ action: 'queueClearFailed' });
       if (!res || res.success === false) {
@@ -503,6 +545,22 @@
   // ==========================================
   async function requeueOne(itemId) {
     if (!itemId) return;
+    // §17 (v1.4.8) state.queue race を考慮: 取得できないときは早期警告して中断
+    const item = (Array.isArray(state.queue) ? state.queue : []).find((q) => q?.id === itemId);
+    if (!item) {
+      console.warn('[options-queue] requeueOne: item not found in state.queue, aborting', itemId);
+      return;
+    }
+    if (item?.lastError === 'unknown_remote_state') {
+      const ok = confirmAction(
+        '⚠️ この項目は Sheets に書き込まれている可能性があります。\n\n' +
+        '再送する前に Sheets を確認しましたか？\n' +
+        '未確認のまま再送すると重複出品の原因になります。\n\n' +
+        '[OK] 確認済み・再送する\n' +
+        '[キャンセル] まだ確認していない'
+      );
+      if (!ok) return;
+    }
     try {
       const res = await sendMessageSafely({ action: 'queueRequeueOne', itemId });
       if (!res || res.success === false) {

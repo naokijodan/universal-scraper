@@ -1,8 +1,8 @@
 # とりこみ君 送信キュー方式 設計書
 
 **作成日**: 2026-05-13
-**対象バージョン**: v1.4.4（予定）
-**ステータス**: 設計レビュー中
+**対象バージョン**: v1.4.8
+**ステータス**: v1.4.8 実装反映済み
 
 ---
 
@@ -124,7 +124,7 @@
     ↓
     同一 webhookUrl ごとにグループ化（複数のシートを使っている場合のため）
     ↓
-    { rows: [{ values, sheetName }, …] } を組み立てて1 POST
+    { rows: [{ id, values, sheetName }, …] } を組み立てて1 POST
     ↓
     [成功] → 各 item を status='sent' に。一定時間後にクリーンアップ
     [失敗] → maxRetry=0 なら status='failed'。maxRetry>0 なら retryCount++、nextRetryAt = 現在+待機時間、status='waiting' に戻す
@@ -287,7 +287,8 @@ async function processQueue() {
     const byUrl = groupBy(eligible, q => q.webhookUrl);
     for (const [url, items] of Object.entries(byUrl)) {
       const batch = items.slice(0, queueConfig.batchSize);   // 最大20件
-      const rows = batch.map(i => ({ values: i.values, sheetName: i.sheetName }));
+      // §17 (v1.4.8) GAS 側 idempotency v2.0 の布石として item.id を同梱
+      const rows = batch.map(i => ({ id: i.id, values: i.values, sheetName: i.sheetName }));
 
       // 送信中マーク
       await markAs(batch, 'sending');
@@ -338,23 +339,27 @@ function withStorageLock(work) {
 - `acquireLock` / `releaseLock` は **削除**（不要になる）
 - `isSending` / `isSendingAt` キーも削除（Service Worker は単一インスタンスなので不要）
 
-### 7-4. Service Worker 起動時の孤児リカバリ — Gemini レビュー反映で追加
+### 7-4. Service Worker 起動時の孤児リカバリ — §17 (v1.4.8) 反映
 
 **問題（Fact）**: Service Worker は ~30 秒のアイドルや突然のクラッシュで停止する。`sending` マーク中に停止すると、データが永遠に `sending` のまま放置される（ゾンビ化、ブラックホール現象）。
 
 **対策**:
-- `initQueueState()` 内で、起動時に **`sending` → `waiting` に戻す**
-- 二度書きリスク: GAS Main.js は H 列マッチで上書きする設計 → 万一二度送信されても同内容で上書きされるだけで実害が小さい
+- `reviveOrphanedSending()` で、2 分未満の `sending` は Step B fetch 進行中の可能性があるため触らない
+- §17 (v1.4.8): 2 分超または `sendingStartedAt` 未記録の `sending` は **`failed(unknown_remote_state)` に固定**
+- `waiting` に戻すと、GAS で書き込み成功済みの可能性がある item を二重送信するため、ユーザーに Sheets 確認を強制する
+- POST payload の rows には `{ id, values, sheetName }` を含め、GAS 側 idempotency v2.0 の準備を行う
 
 ```javascript
-// 起動時クリーンアップ
+// §17 (v1.4.8) 起動時クリーンアップ
 async function reviveOrphanedSending() {
   const stored = await chrome.storage.local.get([QUEUE_KEYS.queue]);
   const queue = Array.isArray(stored[QUEUE_KEYS.queue]) ? stored[QUEUE_KEYS.queue] : [];
-  const revived = queue.map((q) => q?.status === 'sending'
-    ? { ...q, status: 'waiting', lastError: 'service worker reboot' }
+  const now = Date.now();
+  const quarantined = queue.map((q) => q?.status === 'sending'
+    && (!(Number(q.sendingStartedAt) || 0) || now - Number(q.sendingStartedAt) > STALE_SENDING_MS)
+    ? { ...q, status: 'failed', lastError: 'unknown_remote_state', completedAt: now, sendingStartedAt: null }
     : q);
-  await chrome.storage.local.set({ [QUEUE_KEYS.queue]: revived });
+  await chrome.storage.local.set({ [QUEUE_KEYS.queue]: quarantined });
 }
 ```
 
@@ -420,7 +425,7 @@ async function reviveOrphanedSending() {
 |---|---|
 | Service Worker のアイドル化 | `chrome.alarms` で 30 秒ごとに強制起動 |
 | mutex が解放されずスタック | メモリ内 Promise チェーンに変更したため、Service Worker 再起動で自動解消 |
-| sending 状態の孤児化（Gemini 指摘） | 起動時に sending → waiting に戻す `reviveOrphanedSending()` を実装 |
+| sending 状態の孤児化（§17 v1.4.8） | 2 分超 sending を failed(unknown_remote_state) に固定し、Sheets 確認後の手動再送にする |
 | chrome.storage.local の 5MB 上限 | 1 件 ~5KB と仮定 → 1000 件で 5MB。上限を 500 件にして、超えたら新規 enqueue を拒否＋ユーザー通知 |
 | sent 状態の item が溜まる | 24 時間経った sent はクリーンアップ |
 | no-cors → cors への変更で GAS 側のレスポンス問題 | GAS の WebApp デプロイ設定で CORS 許可が必要。doPost は `ContentService.createTextOutput(JSON.stringify(...)).setMimeType('JSON')` を返しているので OK のはず（要確認） |
@@ -487,7 +492,7 @@ async function reviveOrphanedSending() {
 
 - 問題 1: Race condition（enqueue vs processQueue の get/set 割り込み） → Promise チェーン直列化で解決
 - 問題 2: `chrome.alarms` の 15 秒は公開拡張で 1 分に強制される → 1 分間隔 + 即時キックに変更
-- 問題 3: sending 状態の孤児化（SW 停止でゾンビ化） → 起動時 sending → waiting リカバリで解決
+- 問題 3: sending 状態の孤児化（SW 停止でゾンビ化） → §17 (v1.4.8) で 2 分超 sending を failed(unknown_remote_state) に固定
 - 問題 4: `acquireLock` 自体の race condition → 問題 1 と同時解決（Promise チェーン）
 
 ### Phase 1 再レビュー結果（2026-05-13）— Gemini 4問題は完全解決と認定、新規3点指摘
@@ -569,13 +574,15 @@ async function processQueue() {
 
 対策:
 - Step A で sending マーク時に `sendingStartedAt: now` を記録
-- `reviveOrphanedSending` は `STALE_SENDING_MS = 2 * 60 * 1000`（2 分）を超えた item のみ復帰
+- §17 (v1.4.8): `reviveOrphanedSending` は `STALE_SENDING_MS = 2 * 60 * 1000`（2 分）を超えた item を `failed(unknown_remote_state)` に固定
 - 2 分未満は「Step B fetch 進行中の可能性」として触らない
-- `sendingStartedAt` 未記録（旧データ）は孤児とみなして復帰
+- `sendingStartedAt` 未記録（旧データ）は孤児とみなして `failed(unknown_remote_state)` に固定
+- UI では ⚠️ + 「要確認（書込み済み可能性）」を表示し、通常の ❌ + 「失敗」と区別する
 
 #### 変更ファイル
 
-- `background-queue.js`: `processQueue` 分割 + `processQueueOnce` 新設 + `sendingStartedAt` + `reviveOrphanedSending` 改修
+- `background-queue.js`: `processQueue` 分割 + `processQueueOnce` 新設 + `sendingStartedAt` + `reviveOrphanedSending` 改修 + rows.id 追加
+- `options-queue.js`: §17 (v1.4.8) unknown_remote_state を通常失敗と区別
 
 #### 動作の変化
 
@@ -584,7 +591,7 @@ async function processQueue() {
 | ボタン連打 (N 件) | 並列 fetch が N 本同時に走る | 1 つの processQueue が rerun で連続処理 |
 | alarms と即時キックが重複 | 並列 fetch 2 本 | 1 本目走行中、2 本目は rerun 予約 |
 | GAS の `lock_timeout` | 多発 | 単一 fetch 経路なので発生しない |
-| SW 再起動時の sending | 全件 waiting に戻す（二重送信リスク） | 2 分超のみ復帰、進行中は触らない |
+| SW 再起動時の sending | 全件 waiting に戻す（二重送信リスク） | 2 分超は failed(unknown_remote_state)、2 分未満は触らない |
 
 #### 触らなかった箇所（既存ロジック維持）
 
