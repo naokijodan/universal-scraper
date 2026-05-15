@@ -23,7 +23,7 @@
   const CONFIG_DEFAULTS = Object.freeze({
     batchSize: 5,
     intervalSec: 60,
-    maxRetry: 3,
+    maxRetry: 0, // §16 (v1.4.7) 既定では自動リトライしない
     retryBackoffMs: [5000, 15000, 45000],
     cleanupAfterMs: 24 * 60 * 60 * 1000,
     paused: false
@@ -39,7 +39,8 @@
     queue: [],
     config: { ...CONFIG_DEFAULTS },
     stats: { waiting: 0, sending: 0, sent: 0, failed: 0, lastSyncAt: 0 },
-    refreshTimer: null
+    refreshTimer: null,
+    filterStatus: 'all' // §16 (v1.4.7) 'all' | 'failed'
   };
 
   // ==========================================
@@ -175,17 +176,48 @@
     // textContent でクリア
     container.textContent = '';
 
-    const items = Array.isArray(state.queue) ? state.queue.slice(0, LIST_LIMIT) : [];
+    // §16 (v1.4.7) 失敗カードクリック時は failed のみ表示する
+    const rawQueue = Array.isArray(state.queue) ? state.queue : [];
+    const filtered = state.filterStatus === 'failed'
+      ? rawQueue.filter((q) => q?.status === 'failed')
+      : rawQueue;
+    const items = filtered.slice(0, LIST_LIMIT);
+    renderFilterBadge();
+
     if (items.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'queue-empty';
-      empty.textContent = 'キューは空です';
+      empty.textContent = state.filterStatus === 'failed'
+        ? '失敗した項目はありません'
+        : 'キューは空です';
       container.appendChild(empty);
       return;
     }
 
     for (const item of items) {
       container.appendChild(buildQueueItemRow(item));
+    }
+
+    // §16 (v1.4.7) 50件超えがある場合のヒント表示
+    if (filtered.length > LIST_LIMIT) {
+      const hint = document.createElement('div');
+      hint.className = 'queue-list-hint';
+      hint.textContent = state.filterStatus === 'failed'
+        ? `失敗 ${filtered.length} 件のうち先頭 ${LIST_LIMIT} 件を表示中`
+        : `${filtered.length} 件のうち先頭 ${LIST_LIMIT} 件を表示中`;
+      container.appendChild(hint);
+    }
+  }
+
+  function renderFilterBadge() {
+    const isFiltering = state.filterStatus === 'failed';
+    const badge = $('queue-filter-badge');
+    if (badge) {
+      badge.style.display = isFiltering ? 'block' : 'none';
+    }
+    const failedCard = $('queue-stat-failed-card');
+    if (failedCard) {
+      failedCard.classList.toggle('active', isFiltering);
     }
   }
 
@@ -254,7 +286,7 @@
   function renderConfigForm() {
     const cfg = state.config || CONFIG_DEFAULTS;
     const batch = clamp(safeNumber(cfg.batchSize, CONFIG_DEFAULTS.batchSize), 1, 50);
-    const maxRetry = clamp(safeNumber(cfg.maxRetry, CONFIG_DEFAULTS.maxRetry), 1, 5);
+    const maxRetry = clamp(safeNumber(cfg.maxRetry, CONFIG_DEFAULTS.maxRetry), 0, 3); // §16 (v1.4.7)
     const fetchTimeoutSec = clamp(
       Math.round(safeNumber(cfg.fetchTimeoutMs, FETCH_TIMEOUT_DEFAULT_SEC * 1000) / 1000),
       10, 120
@@ -308,6 +340,11 @@
         state.queue = Array.isArray(changes[QUEUE_KEYS.queue].newValue)
           ? changes[QUEUE_KEYS.queue].newValue
           : [];
+        // §16 (v1.4.7) 失敗が消えたら「失敗のみ表示」を自動解除する
+        if (state.filterStatus === 'failed') {
+          const failedCount = state.queue.filter((q) => q?.status === 'failed').length;
+          if (failedCount === 0) state.filterStatus = 'all';
+        }
         touched = true;
       }
       if (changes[QUEUE_KEYS.config]) {
@@ -505,7 +542,7 @@
       const ft = $('queue-config-fetch-timeout');
 
       const batchSize = clamp(safeNumber(bs?.value, CONFIG_DEFAULTS.batchSize), 1, 50);
-      const maxRetry = clamp(safeNumber(mr?.value, CONFIG_DEFAULTS.maxRetry), 1, 5);
+      const maxRetry = clamp(safeNumber(mr?.value, CONFIG_DEFAULTS.maxRetry), 0, 3); // §16 (v1.4.7)
       const fetchTimeoutSec = clamp(safeNumber(ft?.value, FETCH_TIMEOUT_DEFAULT_SEC), 10, 120);
 
       const res = await sendMessageSafely({
@@ -547,6 +584,29 @@
 
     const clear = $('queue-clear-failed-btn');
     if (clear) clear.addEventListener('click', clearFailed);
+
+    const failedCard = $('queue-stat-failed-card');
+    if (failedCard) {
+      failedCard.addEventListener('click', () => {
+        // §16 (v1.4.7) 失敗 0 件の全件表示中は無反応にする
+        const failedCount = computeStats(state.queue).failed;
+        if (failedCount === 0 && state.filterStatus !== 'failed') return;
+        state.filterStatus = state.filterStatus === 'failed' ? 'all' : 'failed';
+        // §16 (v1.4.7) フィルタ ON 切替時は details を必ず開く（閉じていたらバッジもリストも見えないため）
+        if (state.filterStatus === 'failed') {
+          const details = document.getElementById('queue-details');
+          if (details && !details.open) details.open = true;
+        }
+        renderAll();
+      });
+      // §16 (v1.4.7) role="button" tabindex="0" を宣言しているため、Enter/Space でも反応させる
+      failedCard.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          failedCard.click();
+        }
+      });
+    }
 
     const clearSentBtn = $('queue-clear-sent-btn');
     if (clearSentBtn) clearSentBtn.addEventListener('click', clearSent);

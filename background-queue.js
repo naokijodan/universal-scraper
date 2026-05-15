@@ -1,5 +1,5 @@
 // Universal Product Scraper (AI 版) - 送信キュー実装
-// Phase 1+2 統合: 最小キュー + バルク20送信 + 指数バックオフ自動リトライ（Gemini 再レビュー反映版）
+// Phase 1+2 統合: 最小キュー + バルク20送信 + 任意の指数バックオフ自動リトライ（Gemini 再レビュー反映版）
 // + §15 (2026-05-13) 並列 fetch バグ修正: processQueue の single-flight 化 + sendingStartedAt
 //
 // 仕様: docs/queue-design.md §9 Phase 1+2 統合
@@ -7,7 +7,7 @@
 //   - chrome.alarms で 1 分ごとに processQueue を起動（公開拡張の最小周期、Fact）
 //   - enqueue 時に即時キックで体感の待ちはゼロ
 //   - 最大 20 件をまとめて 1 POST で送信
-//   - 失敗時は指数バックオフ自動リトライ（5s → 15s → 45s、3回失敗で failed 固定）
+//   - 失敗時は既定で即 failed 固定。設定時のみ指数バックオフ自動リトライ（§16 (v1.4.7)）
 //   - 並行制御はメモリ内 Promise チェーン（withStorageLock）で直列化
 //   - processQueue は single-flight (in-progress + rerunRequested) で複数呼び出しを統合
 //   - withStorageLock のエラー時は一貫したエラーオブジェクトを返してクラッシュ防止
@@ -27,7 +27,7 @@ const QUEUE_KEYS = Object.freeze({
 const QUEUE_CONFIG_DEFAULTS = Object.freeze({
   batchSize: 5,                             // §2 デフォルト 5（GAS LockService 競合回避のため、椛島さん判断 2026-05-13）
   intervalSec: 60,                          // §2-2 公開拡張の alarms 制約により 1 分
-  maxRetry: 3,                              // Phase 2 で使用
+  maxRetry: 0,                              // §16 (v1.4.7) 二重送信防止のため既定で自動リトライしない
   retryBackoffMs: [5000, 15000, 45000],     // Phase 2 で使用
   cleanupAfterMs: 24 * 60 * 60 * 1000,      // sent を消すまでの時間
   paused: false
@@ -94,7 +94,14 @@ async function initQueueState() {
         patch[QUEUE_KEYS.config] = { ...QUEUE_CONFIG_DEFAULTS };
       } else {
         // 既存設定を尊重しつつ、欠けているキーだけデフォルトで補う
-        patch[QUEUE_KEYS.config] = { ...QUEUE_CONFIG_DEFAULTS, ...stored[QUEUE_KEYS.config] };
+        const merged = { ...QUEUE_CONFIG_DEFAULTS, ...stored[QUEUE_KEYS.config] };
+        // §16 (v1.4.7) 旧範囲 (1〜5) からのマイグレーション: 0〜3 に clamp
+        if (typeof merged.maxRetry === 'number') {
+          merged.maxRetry = Math.max(0, Math.min(3, Math.round(merged.maxRetry)));
+        } else {
+          merged.maxRetry = QUEUE_CONFIG_DEFAULTS.maxRetry;
+        }
+        patch[QUEUE_KEYS.config] = merged;
       }
       if (!stored[QUEUE_KEYS.stats] || typeof stored[QUEUE_KEYS.stats] !== 'object') {
         patch[QUEUE_KEYS.stats] = { waiting: 0, sending: 0, sent: 0, failed: 0, lastSyncAt: 0 };
@@ -444,12 +451,14 @@ async function sendBatch(webhookUrl, rows) {
 
 // ------------------------------------------
 // markFailedOrRetry: 失敗 item を「リトライ待機」または「永久失敗」に振り分けるヘルパー
-// §9 Phase 1+2 統合: retryCount < maxRetry なら waiting に戻し、retryBackoffMs[retryCount] 後に再試行
-//                     retryCount >= maxRetry なら failed 固定
+// §9 Phase 1+2 統合 + §16 (v1.4.7): nextRetryCount <= maxRetry なら waiting に戻し、
+//                     retryBackoffMs[nextRetryCount - 1] 後に再試行。上限超過なら failed 固定。
 // Immutability: 必ず新しいオブジェクトを返す
 // ------------------------------------------
 function markFailedOrRetry(item, errorMessage, config, now) {
-  const maxRetry = Number.isInteger(config?.maxRetry) ? config.maxRetry : 3;
+  // §16 (v1.4.7) 多層防御: 想定外の値が入っても安全側に倒す
+  const rawMaxRetry = Number.isInteger(config?.maxRetry) ? config.maxRetry : QUEUE_CONFIG_DEFAULTS.maxRetry;
+  const maxRetry = Math.max(0, Math.min(3, rawMaxRetry));
   const nextRetryCount = (item.retryCount || 0) + 1;
   if (nextRetryCount > maxRetry) {
     console.log('[queue:retry] id=', item.id?.slice(0, 8), 'FAILED (max retry exceeded)', 'nextRetryCount=', nextRetryCount, 'err=', errorMessage);
@@ -478,7 +487,7 @@ function markFailedOrRetry(item, errorMessage, config, now) {
 
 // ------------------------------------------
 // applyResults: GAS の results[] を見て個別の sent/failed/retry を反映
-// §9 Phase 1+2 統合: 失敗時は markFailedOrRetry で指数バックオフによる自動リトライへ
+// §9 Phase 1+2 統合 + §16 (v1.4.7): 失敗時は markFailedOrRetry で failed または任意リトライへ
 // ------------------------------------------
 function applyResults(queue, batch, sendResult, config) {
   const batchIds = new Set(batch.map((b) => b.id));
@@ -689,7 +698,7 @@ async function queueSaveConfig(updates) {
       allowed.batchSize = Math.max(1, Math.min(50, Math.round(updates.batchSize)));
     }
     if (typeof updates.maxRetry === 'number') {
-      allowed.maxRetry = Math.max(1, Math.min(5, Math.round(updates.maxRetry)));
+      allowed.maxRetry = Math.max(0, Math.min(3, Math.round(updates.maxRetry))); // §16 (v1.4.7)
     }
     if (typeof updates.fetchTimeoutMs === 'number') {
       const sec = Math.max(10, Math.min(120, Math.round(updates.fetchTimeoutMs / 1000)));

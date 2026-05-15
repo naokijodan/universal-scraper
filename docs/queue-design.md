@@ -64,7 +64,7 @@
 | ワーカー | `background.js` の Service Worker + `chrome.alarms` | — | — |
 | **バルクサイズ** | **20 件 / POST** | **1〜50** | GAS 側 MAX_ROWS_PER_REQUEST=50 が上限（Fact） |
 | **送信間隔** | **1 分（chrome.alarms 制約）** | **1〜120 秒**（alarms 用 / 内部キック用は別管理） | 公開拡張は alarms 最小 1 分（公式制約、Fact）。即時キックで体感は維持 |
-| リトライ上限 | 3 回 | 1〜5 回 | 4 回目で `failed` 固定 |
+| リトライ上限 | 0 回 | 0〜3 回 | §16 (v1.4.7): 既定では自動リトライせず、1回目の失敗で `failed` 固定 |
 | リトライ間隔 | 5 → 15 → 45 秒（指数バックオフ） | 倍率 1.5〜5 倍 | — |
 | fetch タイムアウト | 60 秒 | 10〜120 秒 | 通信遅延への保険 |
 | 可視化 | 設定画面（options.html）のヘッダー直下にキュー進捗パネル | — | — |
@@ -127,8 +127,8 @@
     { rows: [{ values, sheetName }, …] } を組み立てて1 POST
     ↓
     [成功] → 各 item を status='sent' に。一定時間後にクリーンアップ
-    [失敗] → retryCount++、nextRetryAt = 現在+待機時間、status='waiting' に戻す
-    [3回失敗] → status='failed' に。ユーザーが手動リトライするまで再送しない
+    [失敗] → maxRetry=0 なら status='failed'。maxRetry>0 なら retryCount++、nextRetryAt = 現在+待機時間、status='waiting' に戻す
+    [上限超過] → status='failed' に。ユーザーが手動リトライするまで再送しない
     ↓
     isSending フラグを解除
 ```
@@ -177,7 +177,7 @@ queueStats: {
 queueConfig: {
   batchSize: 20,            // バルクサイズ（変更可、デフォルト 20）
   intervalSec: 30,          // 送信サイクル（変更可、デフォルト 30 秒）
-  maxRetry: 3,              // リトライ上限
+  maxRetry: 0,              // §16 (v1.4.7) リトライ上限。既定では自動リトライしない
   retryBackoffMs: [5000, 15000, 45000],  // 指数バックオフ
   cleanupAfterMs: 24 * 60 * 60 * 1000,   // sent を消すまでの時間（24時間）
   paused: false             // true なら送信を一時停止（手動制御）
@@ -246,10 +246,11 @@ queueConfig: {
 
 | 失敗回数 | 次回送信までの待機 | 状態 |
 |---|---|---|
-| 1回目 | 5 秒 | `waiting`（nextRetryAt 設定） |
-| 2回目 | 15 秒 | 同上 |
-| 3回目 | 45 秒 | 同上 |
-| 4回目（限界） | — | `failed` 固定。手動操作待ち |
+| 1回目（maxRetry=0 の既定） | — | `failed` 固定。手動操作待ち |
+| 1回目（maxRetry>=1） | 5 秒 | `waiting`（nextRetryAt 設定） |
+| 2回目（maxRetry>=2） | 15 秒 | 同上 |
+| 3回目（maxRetry=3） | 45 秒 | 同上 |
+| 上限超過 | — | `failed` 固定。手動操作待ち |
 
 **指数バックオフの根拠**: Google 公式の rate limit エラー対処の推奨パターン（「Service invoked too many times in a short time」発生時は `Utilities.sleep` を挟んでリトライ）に倣う。
 
@@ -376,7 +377,7 @@ async function reviveOrphanedSending() {
 
 | Phase | 内容 | 確認方法 |
 |---|---|---|
-| **1+2 統合: キュー + バルク20 + 自動リトライ** | enqueue / processQueue / withStorageLock / fetch bulk + **指数バックオフ自動リトライ**（5s→15s→45s、3回失敗で failed）+ クラッシュ防止 | 10件押しても詰まらない / 故意に失敗させて自動リトライ確認 |
+| **1+2 統合: キュー + バルク20 + 任意の自動リトライ** | enqueue / processQueue / withStorageLock / fetch bulk + **指数バックオフ自動リトライ**（§16 (v1.4.7): 既定 0 回、設定時 5s→15s→45s）+ クラッシュ防止 | 10件押しても詰まらない / 故意に失敗させて failed 遷移を確認 |
 | **3. 設定画面に進捗パネル** | options.html / options.js のキューUI | 設定画面に正しい数値が出ること、各ボタンの動作確認 |
 
 ### 統合の理由
@@ -388,8 +389,9 @@ async function reviveOrphanedSending() {
 ### リトライ仕様
 
 - `applyResults` での失敗判定:
-  - `retryCount < maxRetry` なら status='waiting' に戻して `nextRetryAt = now + retryBackoffMs[retryCount]`
-  - `retryCount >= maxRetry` なら status='failed' に固定
+  - §16 (v1.4.7): `maxRetry=0` なら1回目の失敗で status='failed' に固定
+  - `nextRetryCount <= maxRetry` なら status='waiting' に戻して `nextRetryAt = now + retryBackoffMs[nextRetryCount - 1]`
+  - `nextRetryCount > maxRetry` なら status='failed' に固定
 - `processQueue` の eligible フィルタを「`status==='waiting' && (nextRetryAt || 0) <= now`」に変更
 - 「全件失敗」と「個別行失敗」の両方でリトライ対象
 
@@ -402,8 +404,8 @@ async function reviveOrphanedSending() {
 | 1 | 1 件だけ送信 | 30秒以内に GAS に書き込まれる |
 | 2 | 10 件連打 | 1 POST にまとまり、1 サイクルで全件成功 |
 | 3 | 25 件連打 | 20 件 + 5 件 の 2 サイクルで全件成功 |
-| 4 | GAS を止めた状態で 5 件送信 → 復活させる | 自動リトライで全件成功 |
-| 5 | GAS が常に失敗を返す | 3 回リトライ後に failed 固定。失敗通知が出る |
+| 4 | GAS を止めた状態で 5 件送信（maxRetry=0） | 1回目の失敗で failed 固定。重複送信しない |
+| 5 | GAS が常に失敗を返す（maxRetry=3） | 3 回リトライ後に failed 固定。失敗通知が出る |
 | 6 | failed 状態の item を「リトライ」ボタン | retryCount=0 でリトライ再開、成功すれば sent |
 | 7 | タブを閉じて再起動 | キューは残っており、自動送信が再開 |
 | 8 | 「一時停止」ボタン | サイクルが止まり、再開ボタンで戻る |
