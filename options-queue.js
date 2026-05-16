@@ -120,18 +120,22 @@
   // ==========================================
   function computeStats(queue) {
     const now = getNow();
-    let waiting = 0, sending = 0, sent = 0, failed = 0, retrying = 0;
+    let waiting = 0, sending = 0, sent = 0, failed = 0, unknown = 0, retrying = 0;
     for (const q of (Array.isArray(queue) ? queue : [])) {
       if (!q || typeof q !== 'object') continue;
       if (q.status === 'sending') sending++;
       else if (q.status === 'sent') sent++;
-      else if (q.status === 'failed') failed++;
+      else if (q.status === 'failed') {
+        // §18 (v1.4.9) unknown_remote_state は failed と別カウント
+        if (q.lastError === 'unknown_remote_state') unknown++;
+        else failed++;
+      }
       else if (q.status === 'waiting') {
         if ((q.nextRetryAt || 0) > now) retrying++;
         else waiting++;
       }
     }
-    return { waiting, sending, sent, failed, retrying };
+    return { waiting, sending, sent, failed, unknown, retrying };
   }
 
   // ==========================================
@@ -149,13 +153,24 @@
       sending: $('queue-stat-sending'),
       retry: $('queue-stat-retry'),
       sent: $('queue-stat-sent'),
-      failed: $('queue-stat-failed')
+      failed: $('queue-stat-failed'),
+      unknown: $('queue-stat-unknown')
     };
     if (el.waiting) el.waiting.textContent = String(s.waiting);
     if (el.sending) el.sending.textContent = String(s.sending);
     if (el.retry) el.retry.textContent = String(s.retrying);
     if (el.sent) el.sent.textContent = String(s.sent);
     if (el.failed) el.failed.textContent = String(s.failed);
+    if (el.unknown) el.unknown.textContent = String(s.unknown);
+
+    // §18 (v1.4.9) 通常失敗が 0 件のときクリアボタンを無効化
+    const clearBtn = $('queue-clear-failed-btn');
+    if (clearBtn) {
+      clearBtn.disabled = (s.failed === 0);
+      clearBtn.title = (s.failed === 0 && s.unknown > 0)
+        ? '通常失敗はありません。「要確認」' + s.unknown + ' 件は個別対応してください'
+        : '';
+    }
 
     const sync = $('queue-last-sync');
     if (sync) {
@@ -438,12 +453,13 @@
       // §17 (v1.4.8) retried 件数を明記して「0件リトライなのに開始メッセージが出る」違和感を解消
       if (res.excludedUnknown && res.excludedUnknown > 0) {
         const head = (res.retried && res.retried > 0)
-          ? 'リトライを開始しました（' + res.retried + ' 件）。\n'
-          : 'リトライ対象の通常失敗はありませんでした。\n';
+          ? '【リトライを開始しました（' + res.retried + ' 件）】\n\n'
+          : '【⚠️ リトライ対象の通常失敗はありません（0 件）】\n\n';
         window.alert(
           head +
-          '⚠️ 「要確認」(' + res.excludedUnknown + ' 件) は対象外です。\n' +
-          'Sheets を確認の上、個別に「↻ 再送」ボタンから操作してください。'
+          '「要確認」(' + res.excludedUnknown + ' 件) は対象外です。\n' +
+          'Sheets に書込み済みの可能性があるため、自動再送できません。\n' +
+          'Sheets を確認の上、各行の「↻ 再送」ボタンで個別に操作してください。'
         );
       }
       // リトライ後すぐ送信を始めるためキック
@@ -466,8 +482,11 @@
     ).length;
     if (normalFailedCount === 0 && unknownCount > 0) {
       window.alert(
-        '通常の失敗項目はありません。\n' +
-        '「要確認」(' + unknownCount + ' 件) は個別に対応してください。'
+        '【⚠️ 通常の失敗項目はありません（0 件）】\n\n' +
+        '「失敗」と表示されている ' + unknownCount + ' 件は\n' +
+        '「要確認（Sheets に書込み済みの可能性あり）」項目です。\n' +
+        '安全のため一括削除はできません。\n\n' +
+        'Sheets を確認の上、各行の「🗑 削除」ボタンで個別に削除してください。'
       );
       return;
     }

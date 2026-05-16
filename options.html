@@ -409,6 +409,8 @@
     .queue-stat-item.queue-stat-success .queue-stat-value { color: #2e7d32; }
     .queue-stat-item.queue-stat-failed .queue-stat-value { color: #c62828; }
     .queue-stat-item.queue-stat-sending .queue-stat-value { color: #1976d2; }
+    /* §18 (v1.4.9) 要確認カード */
+    .queue-stat-item.queue-stat-unknown .queue-stat-value { color: #ef6c00; }
 
     /* §16 (v1.4.7): 失敗カードクリックで失敗のみ表示を切り替える */
     .queue-stat-item.queue-stat-failed {
@@ -724,6 +726,11 @@
           <div class="queue-stat-item queue-stat-failed" id="queue-stat-failed-card" role="button" tabindex="0" title="クリックで失敗のみ表示／全件表示を切り替え">
             <span class="queue-stat-label">失敗</span>
             <span class="queue-stat-value" id="queue-stat-failed">0</span>
+          </div>
+          <!-- §18 (v1.4.9) 要確認カード（unknown_remote_state のみ） -->
+          <div class="queue-stat-item queue-stat-unknown">
+            <span class="queue-stat-label">要確認</span>
+            <span class="queue-stat-value" id="queue-stat-unknown">0</span>
           </div>
         </div>
 

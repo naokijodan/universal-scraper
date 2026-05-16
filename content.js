@@ -4080,7 +4080,14 @@ function isNoiseText(text) {
               if (/^(HOME|TOP|トップ|ホーム|買い物かご|カート|お気に入り)/i.test(trimmed)) return false;
               return true;
             })
-            .join('\n');
+            .join(' | ');
+          // §18 (v1.4.9) 全プラットフォーム段落統一
+          text = text
+            .replace(/\r\n/g, ' ').replace(/\r/g, ' ').replace(/\n/g, ' ')
+            .replace(/\u2028/g, ' ').replace(/\u2029/g, ' ')
+            .replace(/\t/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
 
           // 適切な長さの説明文を選択（50〜2000文字に緩和）
           if (text.length >= 50 && text.length < 2000 && text.length > longestDesc.length) {
@@ -6073,21 +6080,27 @@ function isNoiseText(text) {
       // カテゴリを追加
       if (itemJson.category && itemJson.category.path) {
         const categoryPath = itemJson.category.path.map(item => item.name).join(' > ');
-        description += `\nカテゴリ: ${categoryPath}`;
+        description += ` | カテゴリ: ${categoryPath}`;
       }
 
       // コンディションを追加
       if (itemJson.conditionName) {
-        description += `\nコンディション: ${itemJson.conditionName}`;
+        description += ` | コンディション: ${itemJson.conditionName}`;
       }
 
       // ブランドを追加
       if (itemJson.brand && itemJson.brand.path) {
         const brandPath = itemJson.brand.path.map(item => item.name).join(' > ');
-        description += `\nブランド: ${brandPath}`;
+        description += ` | ブランド: ${brandPath}`;
       }
 
-      description = description.replace(/\t/g, '  '); // タブを空白に変換
+      // §18 (v1.4.9) 全プラットフォーム段落統一
+      description = description
+        .replace(/\r\n/g, ' ').replace(/\r/g, ' ').replace(/\n/g, ' ')
+        .replace(/\u2028/g, ' ').replace(/\u2029/g, ' ')
+        .replace(/\t/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 
       // 出品者ID
       const seller = itemJson.seller?.aucUserId || '';
@@ -7152,7 +7165,13 @@ function isNoiseText(text) {
       addImageUrl(document.querySelector('meta[property="og:image"]')?.content || '');
 
       const imageUrl = imageUrls.join(',');
-      const description = descriptionLines.join('\n');
+      // §18 (v1.4.9) 全プラットフォーム段落統一
+      const description = descriptionLines.join(' | ')
+        .replace(/\r\n/g, ' ').replace(/\r/g, ' ').replace(/\n/g, ' ')
+        .replace(/\u2028/g, ' ').replace(/\u2029/g, ' ')
+        .replace(/\t/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 
       _log('=== Hardoff抽出結果 ===');
       _log('商品名:', name);
@@ -8462,7 +8481,13 @@ function isNoiseText(text) {
           });
 
           if (infoLines.length > 0) {
-            productInfoText = infoLines.join('\n');
+            // §18 (v1.4.9) 全プラットフォーム段落統一
+            productInfoText = infoLines.join(' | ')
+              .replace(/\r\n/g, ' ').replace(/\r/g, ' ').replace(/\n/g, ' ')
+              .replace(/\u2028/g, ' ').replace(/\u2029/g, ' ')
+              .replace(/\t/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim();
             _log(`✅ 商品情報を${infoLines.length}行取得しました`);
             _log('取得内容:', productInfoText.substring(0, 300));
             break;
@@ -8519,7 +8544,13 @@ function isNoiseText(text) {
         }
 
         if (collectedText.length > 0) {
-          description = collectedText.join('\n');
+          // §18 (v1.4.9) 全プラットフォーム段落統一
+          description = collectedText.join(' | ')
+            .replace(/\r\n/g, ' ').replace(/\r/g, ' ').replace(/\n/g, ' ')
+            .replace(/\u2028/g, ' ').replace(/\u2029/g, ' ')
+            .replace(/\t/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
           _log(`✅ テキストブロックから${collectedText.length}個の要素を取得:`, description.substring(0, 200));
         }
       }
@@ -8590,7 +8621,13 @@ function isNoiseText(text) {
         }
 
         if (relevantLines.length > 0) {
-          description = relevantLines.join('\n');
+          // §18 (v1.4.9) 全プラットフォーム段落統一
+          description = relevantLines.join(' | ')
+            .replace(/\r\n/g, ' ').replace(/\r/g, ' ').replace(/\n/g, ' ')
+            .replace(/\u2028/g, ' ').replace(/\u2029/g, ' ')
+            .replace(/\t/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
           _log(`✅ ページ全体から${relevantLines.length}行の商品情報を抽出`);
         }
       }
