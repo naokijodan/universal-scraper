@@ -239,6 +239,9 @@ async function enqueueExport(items, webhookUrl, sourceLabel) {
       webhookUrl,
       sheetName: String(it.sheetName),
       values: it.values.slice(),  // 浅いコピー（行配列の中身は string/number のみと想定）
+      topImageUrls: Array.isArray(it.topImageUrls)
+        ? it.topImageUrls.slice()
+        : (typeof it.topImageUrl === 'string' && it.topImageUrl ? [it.topImageUrl] : []),
       status: 'waiting',
       retryCount: 0,
       nextRetryAt: 0,
@@ -390,7 +393,35 @@ async function processQueueOnce() {
 
   // Step B: 長時間 fetch は lock の外で実行
   // §17 (v1.4.8) GAS 側 idempotency（v2.0 実装予定）への布石として id を含める
-  const rows = batch.map((b) => ({ id: b.id, values: b.values, sheetName: b.sheetName }));
+  const rows = [];
+  for (const b of batch) {
+    const row = { id: b.id, values: b.values, sheetName: b.sheetName };
+    const topImageUrls = Array.isArray(b.topImageUrls)
+      ? b.topImageUrls
+      : (typeof b.topImageUrl === 'string' && b.topImageUrl ? [b.topImageUrl] : []);
+    const topImagesBase64 = [];
+    for (const url of topImageUrls) {
+      try {
+        if (
+          typeof url === 'string' &&
+          url.startsWith('https://static.mercdn.net/') &&
+          typeof fetchImageAsBase64 === 'function'
+        ) {
+          const dataUrl = await fetchImageAsBase64(url);
+          topImagesBase64.push(dataUrl || null);
+        } else {
+          topImagesBase64.push(null);
+        }
+      } catch (e) {
+        console.error('[queue:proc] top image base64 failed:', e?.message || e);
+        topImagesBase64.push(null);
+      }
+    }
+    if (topImagesBase64.length > 0) {
+      row.topImagesBase64 = topImagesBase64;
+    }
+    rows.push(row);
+  }
   console.log('[queue:proc]', cycleId, 'Step B fetch start, rows=', rows.length);
   const sendResult = await sendBatch(firstUrl, rows);
   console.log('[queue:proc]', cycleId, 'Step B fetch end, ok=', sendResult.ok,

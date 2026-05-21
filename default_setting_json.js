@@ -216,6 +216,7 @@ const default_setting_json = {
 
   // 画像設定
   imageOutputCount: 999, // 全ての画像（最大20枚）
+  imageBase64Count: 1, // セル内画像にする枚数（メルカリ非経由）
   enableImageInClipboard: false,
 
   // サイト別読み込み待機時間（秒）

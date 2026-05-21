@@ -19,6 +19,28 @@ if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
 
 console.log('Background script loaded (とりこみ君AI)');
 
+async function fetchImageAsBase64(url) {
+  try {
+    const res = await fetch(url, { method: 'GET' });
+    if (!res.ok) return null;
+
+    const buf = await res.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    const chunkSize = 32 * 1024;
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.slice(i, i + chunkSize));
+    }
+
+    const base64 = btoa(binary);
+    const mime = res.headers.get('content-type') || 'image/jpeg';
+    return 'data:' + mime + ';base64,' + base64;
+  } catch (e) {
+    console.error('[image-base64] failed:', e?.message || e);
+    return null;
+  }
+}
+
 // 起動時にアクセスレベルを明示的にデフォルトに戻す。
 // 過去のバージョンで chrome.storage.local.setAccessLevel({TRUSTED_CONTEXTS}) を
 // 呼んでおり、これは Chrome 内部に永続化されるため、コードから呼び出しを
@@ -186,11 +208,37 @@ async function handleExportToSheet(request) {
 
     console.log('📤 データ送信開始: sheet=', sheetName, 'values.len=', values?.length);
 
+    const body = { values, sheetName: sheetName || 'インポート用' };
+    const topImageUrls = Array.isArray(request.topImageUrls)
+      ? request.topImageUrls
+      : (typeof request.topImageUrl === 'string' && request.topImageUrl ? [request.topImageUrl] : []);
+    const topImagesBase64 = [];
+    for (const url of topImageUrls) {
+      try {
+        if (
+          typeof url === 'string' &&
+          url.startsWith('https://static.mercdn.net/') &&
+          typeof fetchImageAsBase64 === 'function'
+        ) {
+          const dataUrl = await fetchImageAsBase64(url);
+          topImagesBase64.push(dataUrl || null);
+        } else {
+          topImagesBase64.push(null);
+        }
+      } catch (e) {
+        console.error('[handleExportToSheet] top image base64 failed:', e && e.message ? e.message : e);
+        topImagesBase64.push(null);
+      }
+    }
+    if (topImagesBase64.some(Boolean)) {
+      body.topImagesBase64 = topImagesBase64;
+    }
+
     await fetch(webhookUrl, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ values, sheetName: sheetName || 'インポート用' })
+      body: JSON.stringify(body)
     });
 
     console.log('✅ データ送信成功');

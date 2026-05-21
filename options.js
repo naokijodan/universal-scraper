@@ -73,6 +73,7 @@ const defaultSettings = {
   lastUsedSheetId: null, // 最後に使ったシートID
   maxSheets: 10, // 最大登録数
   imageOutputCount: 999, // 出力する画像枚数（全ての画像、最大20枚）
+  imageBase64Count: 1, // セル内画像にする枚数（メルカリ非経由）
   enableImageInClipboard: true, // クリップボードコピー時に画像URLを含める（デフォルト有効）
   // 画像読み込み待機時間（秒）
   amazonLoadDelay: 3,
@@ -229,6 +230,7 @@ async function loadSettings() {
 
     // 画像出力設定を設定
     document.getElementById('imageOutputCount').value = syncSettings.imageOutputCount;
+    document.getElementById('imageBase64Count').value = (syncSettings.imageBase64Count || 1);
     document.getElementById('enableImageInClipboard').checked = syncSettings.enableImageInClipboard;
 
     // 画像読み込み待機時間を設定
@@ -437,6 +439,12 @@ function setupEventListeners() {
   // 画像出力設定のトグル
   document.getElementById('enableImageInClipboard').addEventListener('change', () => {
     updateToggleStatus('enableImageInClipboard', 'statusImageInClipboard');
+  });
+  document.getElementById('imageBase64Count').addEventListener('change', (event) => {
+    const count = parseInt(event.target.value, 10);
+    if (count >= 2) {
+      alert('画像を増やすほど取り込みに時間がかかり、1日に処理できる件数が減ります（1枚あたり約1.4秒、Googleの実行枠は1アカウント1日90分）。通常は1枚で十分です。');
+    }
   });
 
   // AI 翻訳トグル
@@ -720,6 +728,7 @@ async function saveSettings() {
       popupKeywords: document.getElementById('popupKeywords').value,
       buttonPosition: document.getElementById('buttonPosition').value,
       imageOutputCount: (() => { const v = parseInt(document.getElementById('imageOutputCount').value); return isNaN(v) ? 999 : v; })(),
+      imageBase64Count: (() => { const v = parseInt(document.getElementById('imageBase64Count').value, 10); return isNaN(v) ? 1 : Math.min(Math.max(v, 1), 10); })(),
       enableImageInClipboard: document.getElementById('enableImageInClipboard').checked,
       // 画像読み込み待機時間（秒）
       amazonLoadDelay: parseFloat(document.getElementById('amazonLoadDelay').value) || 0,

@@ -39,6 +39,12 @@ const _normalizeImageOutputCount = (value) => {
   return parsedCount === IMAGE_OUTPUT_ALL ? IMAGE_OUTPUT_ALL : Math.min(parsedCount, HARD_IMAGE_CAP);
 };
 
+const _normalizeImageBase64Count = (value) => {
+  const n = parseInt(value, 10);
+  if (!Number.isFinite(n)) return 1;
+  return Math.min(Math.max(n, 1), 10);
+};
+
 const _getMaxImageCount = (imageUrls, value) => {
   const effectiveCount = _normalizeImageOutputCount(value);
   const requestedCount = effectiveCount === IMAGE_OUTPUT_ALL ? HARD_IMAGE_CAP : effectiveCount;
@@ -288,6 +294,7 @@ function isNoiseText(text) {
     skipDaysFromListing: null,
     buttonPosition: 'top-right',
     imageOutputCount: 999,
+    imageBase64Count: 1,
     enableImageInClipboard: true,
     spreadsheets: [],
     lastUsedSheetId: null,
@@ -5266,10 +5273,11 @@ function isNoiseText(text) {
   async function exportToSpreadsheet(data, site, colors) {
     try {
       // 同期設定（スプレッドシート、画像枚数）を取得
-      const syncSettings = await chrome.storage.sync.get(['spreadsheets', 'imageOutputCount']);
+      const syncSettings = await chrome.storage.sync.get(['spreadsheets', 'imageOutputCount', 'imageBase64Count']);
       const localSettings = await chrome.storage.local.get(['lastUsedSheetId']);
       const spreadsheets = syncSettings.spreadsheets || [];
       const imageOutputCount = _normalizeImageOutputCount(syncSettings.imageOutputCount);
+      const imageBase64Count = _normalizeImageBase64Count(syncSettings.imageBase64Count);
 
       // スプレッドシートが未登録の場合
       if (spreadsheets.length === 0) {
@@ -5313,6 +5321,7 @@ function isNoiseText(text) {
 
       // データを配列形式に変換（サイト別に対応）
       let values;
+      let topImageUrls = [];
 
       // フリマサイト（39フィールド: 基本6 + ページURL1 + 画像20 + フリマ12）
       if (site === 'mercari' || site === 'mercari_shop' || site === 'yahuoku' || site === 'paypayfurima' || site === 'rakuma') {
@@ -5332,9 +5341,12 @@ function isNoiseText(text) {
         // 画像20フィールド（imageOutputCount設定に従う）
         const imageUrls = Array.isArray(data.imageUrl) ? data.imageUrl :
                           typeof data.imageUrl === 'string' ? _splitImageUrls(data.imageUrl) : [];
-
         // imageOutputCount設定を20枚上限で統一
         const maxImages = _getMaxImageCount(imageUrls, imageOutputCount);
+        if (imageOutputCount > 0) {
+          const base64N = Math.min(imageBase64Count, maxImages, 10);
+          topImageUrls = imageUrls.slice(0, base64N);
+        }
 
         for (let i = 0; i < HARD_IMAGE_CAP; i++) {
           const url = (i < maxImages) ? (imageUrls[i] || '') : '';
@@ -5364,10 +5376,14 @@ function isNoiseText(text) {
       } else if (site === 'ebay') {
         // eBay（7フィールド + 画像: 基本6 + ページURL1 + 画像）
         let imageFormulas = [];
-        if (data.imageUrl && imageOutputCount > 0) {
+        if (data.imageUrl) {
           const imageUrls = _splitImageUrls(data.imageUrl);
-          const maxImages = _getMaxImageCount(imageUrls, imageOutputCount);
-          imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
+          if (imageOutputCount > 0) {
+            const maxImages = _getMaxImageCount(imageUrls, imageOutputCount);
+            const base64N = Math.min(imageBase64Count, maxImages, 10);
+            topImageUrls = imageUrls.slice(0, base64N);
+            imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
+          }
         }
 
         values = [
@@ -5384,10 +5400,14 @@ function isNoiseText(text) {
       } else if (site === 'rakuten' || site === 'yahooshopping' || site === 'hardoff') {
         // 楽天, Yahoo!ショッピング, ハードオフ（7フィールド + 画像: 基本6 + ページURL1 + 画像）
         let imageFormulas = [];
-        if (data.imageUrl && imageOutputCount > 0) {
+        if (data.imageUrl) {
           const imageUrls = _splitImageUrls(data.imageUrl);
-          const maxImages = _getMaxImageCount(imageUrls, imageOutputCount);
-          imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
+          if (imageOutputCount > 0) {
+            const maxImages = _getMaxImageCount(imageUrls, imageOutputCount);
+            const base64N = Math.min(imageBase64Count, maxImages, 10);
+            topImageUrls = imageUrls.slice(0, base64N);
+            imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
+          }
         }
 
         // ハードオフは送料込みの total を price として出力する
@@ -5409,10 +5429,14 @@ function isNoiseText(text) {
       } else if (site === 'amazon') {
         // Amazon（7フィールド + 画像: 基本6 + ページURL1 + 画像）
         let imageFormulas = [];
-        if (data.imageUrl && imageOutputCount > 0) {
+        if (data.imageUrl) {
           const imageUrls = _splitImageUrls(data.imageUrl);
-          const maxImages = _getMaxImageCount(imageUrls, imageOutputCount);
-          imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
+          if (imageOutputCount > 0) {
+            const maxImages = _getMaxImageCount(imageUrls, imageOutputCount);
+            const base64N = Math.min(imageBase64Count, maxImages, 10);
+            topImageUrls = imageUrls.slice(0, base64N);
+            imageFormulas = imageUrls.slice(0, maxImages).map(url => `=IMAGE("${url}")`);
+          }
         }
 
         values = [
@@ -5456,6 +5480,7 @@ function isNoiseText(text) {
         webhookUrl: selectedSheet.webhookUrl,
         sheetName: selectedSheet.sheetName,
         values: values,
+        topImageUrls: topImageUrls,
         imageOutputCount: imageOutputCount
       });
 
@@ -7797,7 +7822,7 @@ function isNoiseText(text) {
         // ドロップダウンから target 解決（無ければ spreadsheets[0] にフォールバック）
         let target = null;
         const sel = content.querySelector('#ai-sheet-selector');
-        const sync = await chrome.storage.sync.get(['spreadsheets']);
+        const sync = await chrome.storage.sync.get(['spreadsheets', 'imageBase64Count']);
         const spreadsheets = sync.spreadsheets || [];
         if (sel && sel.value) {
           target = spreadsheets.find(s => s.id === sel.value) || null;
@@ -7808,6 +7833,10 @@ function isNoiseText(text) {
 
         // 両方の values を作る（content.js 側で同期的に確定）
         const import1Values = buildImport1Values_(extractedData);
+        const _imgs = Array.isArray(extractedData.imageUrl) ? extractedData.imageUrl.filter(u => u) : (typeof extractedData.imageUrl === 'string' ? _splitImageUrls(extractedData.imageUrl) : []);
+        const imageBase64Count = _normalizeImageBase64Count(sync.imageBase64Count);
+        const base64N = Math.min(imageBase64Count, _getMaxImageCount(_imgs, IMAGE_OUTPUT_ALL), 10);
+        const topImageUrls = _imgs.slice(0, base64N);
         const v5Values = await buildV5ImportValues_(ai, extractedData);
 
         // キューに積む（Phase 1: バルク送信 + alarms で順次処理）
@@ -7817,7 +7846,7 @@ function isNoiseText(text) {
           webhookUrl: target.webhookUrl,
           sourceLabel: (document?.title || '').slice(0, 120),
           items: [
-            { sheetName: 'インポート用', values: import1Values },
+            { sheetName: 'インポート用', values: import1Values, topImageUrls },
             { sheetName: 'v5インポート', values: v5Values }
           ]
         }).catch((err) => {
@@ -8122,12 +8151,12 @@ function isNoiseText(text) {
   // ==========================================
   async function exportToImport1Direct(extractedData, colors, target) {
     const values = buildImport1Values_(extractedData);
+    const sync = await chrome.storage.sync.get(['spreadsheets', 'imageBase64Count']);
 
     // target が指定されていればそれを使う（AI 翻訳モーダルのドロップダウン選択結果）
     // 未指定なら従来どおり spreadsheets[0] にフォールバック
     let resolvedTarget = target;
     if (!resolvedTarget) {
-      const sync = await chrome.storage.sync.get(['spreadsheets']);
       const spreadsheets = sync.spreadsheets || [];
       if (!spreadsheets.length) {
         throw new Error('スプレッドシートが登録されていません');
@@ -8138,7 +8167,13 @@ function isNoiseText(text) {
       action: 'exportToSheet',
       webhookUrl: resolvedTarget.webhookUrl,
       sheetName: 'インポート用',
-      values
+      values,
+      topImageUrls: (() => {
+        const imageUrls = Array.isArray(extractedData.imageUrl) ? extractedData.imageUrl.filter(u => u) : (typeof extractedData.imageUrl === 'string' ? _splitImageUrls(extractedData.imageUrl) : []);
+        const imageBase64Count = _normalizeImageBase64Count(sync.imageBase64Count);
+        const base64N = Math.min(imageBase64Count, _getMaxImageCount(imageUrls, IMAGE_OUTPUT_ALL), 10);
+        return imageUrls.slice(0, base64N);
+      })()
     });
     if (!response || !response.success) {
       throw new Error(response?.error || '送信失敗');
