@@ -6351,22 +6351,52 @@ function isNoiseText(text) {
       const itemId = location.pathname.split("/").pop();
 
       // ld+jsonから基本データを取得
+      // PayPayフリマは ld+json を複数出力する（BreadcrumbList が先・Product が後 等）。
+      // 「最初の1つ」ではなく、全 ld+json から @type が Product のものを選ぶ。
       let dataJson = {};
-      const ldjsonTag = document.querySelector('script[type="application/ld+json"]');
-
-      if (ldjsonTag) {
+      const ldjsonTags = document.querySelectorAll('script[type="application/ld+json"]');
+      for (const tag of ldjsonTags) {
         try {
-          const tmpJson = JSON.parse(ldjsonTag.textContent);
-          // 配列なら最初の要素、そうでなければそのまま
-          dataJson = Array.isArray(tmpJson) ? tmpJson[0] : tmpJson;
-          _log('📦 ld+json取得成功');
+          const tmpJson = JSON.parse(tag.textContent);
+          // 配列なら各要素、そうでなければ単体を候補にする
+          const candidates = Array.isArray(tmpJson) ? tmpJson : [tmpJson];
+          // @type は文字列のほか配列（例 ["Product","Thing"]）の場合もある
+          const product = candidates.find(o => {
+            const t = o && o['@type'];
+            return Array.isArray(t) ? t.includes('Product') : t === 'Product';
+          });
+          if (product) {
+            dataJson = product;
+            _log('📦 ld+json(Product)取得成功');
+            break;
+          }
         } catch (e) {
           console.warn('⚠️ ld+jsonのパースに失敗しました', e);
         }
       }
+      // Product が見つからない場合の保険（旧来動作: 最初の ld+json を使う）
+      if (!dataJson || Object.keys(dataJson).length === 0) {
+        const firstTag = ldjsonTags[0];
+        if (firstTag) {
+          try {
+            const tmpJson = JSON.parse(firstTag.textContent);
+            dataJson = Array.isArray(tmpJson) ? tmpJson[0] : tmpJson;
+          } catch (e) { /* 既に警告済み */ }
+        }
+      }
 
-      // タイトル
+      // タイトル（ld+json → h1 → og:title の順でフォールバック）
       let title = (dataJson.name || '').replace(/\t/g, '  ');
+      if (!title) {
+        const h1Text = document.querySelector('h1')?.textContent?.trim() || '';
+        if (h1Text) {
+          title = h1Text.replace(/\t/g, '  ');
+        } else {
+          const ogTitle = document.querySelector('meta[property="og:title"]')?.content || '';
+          // og:title は末尾に「｜Yahoo!フリマ（旧PayPayフリマ）」が付くため除去
+          title = ogTitle.split('｜')[0].trim().replace(/\t/g, '  ');
+        }
+      }
 
       // 価格
       const price = String(dataJson.offers?.price || '');
