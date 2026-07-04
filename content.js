@@ -88,7 +88,8 @@ const _searchRatingText = () => {
 
   // 「評価」だけで合計が取れた場合
   if (good === null && bad === null) {
-    const totalMatch = bodyText.match(/評価[^\d]*([0-9,]+)/);
+    // 「評価」と数字が近接している場合のみ合計とみなす（間に文章を挟んで別の数字＝出品者名等を誤取得しない）
+    const totalMatch = bodyText.match(/評価[^\d]{0,4}([0-9,]+)/);
     if (totalMatch) {
       const total = parseInt(totalMatch[1].replace(/,/g, ''));
       if (!Number.isNaN(total) && total > 0) {
@@ -6557,6 +6558,23 @@ function isNoiseText(text) {
         _log('[PayPay getSellerRating] 評価情報取得開始');
         let good = null, bad = null, normal = null;
 
+        // 方法0: 出品者リンク内の「（N）」評価件数を直接取得（reviewCountの上書き用）
+        // 出品者名(bababobo2003等)の数字を誤取得しないよう、括弧付きの件数のみを対象にする。
+        // 早期returnせず最後に件数だけ上書きし、方法1のgood/bad(badRate算出)は温存する
+        let reviewCountOverride = null;
+        if (sellerAnchor) {
+          const countEl = [...sellerAnchor.querySelectorAll('span, div')]
+            .find(el => /^[（(]\s*[\d,]+\s*[）)]$/.test((el.textContent || '').trim()));
+          if (countEl) {
+            const m = (countEl.textContent || '').match(/([\d,]+)/);
+            const n = m ? parseInt(m[1].replace(/,/g, ''), 10) : NaN;
+            if (!Number.isNaN(n)) {
+              reviewCountOverride = String(n);
+              _log('[PayPay getSellerRating] 出品者リンク内（N）から評価件数取得:', n);
+            }
+          }
+        }
+
         // 方法1: フリマアシストから取得
         const assistResult = _parseAssistRatings();
         if (assistResult) {
@@ -6591,14 +6609,17 @@ function isNoiseText(text) {
           if (textResult) {
             if (textResult.totalOnly) {
               _log('[PayPay getSellerRating] 評価合計のみ取得:', textResult.totalOnly);
-              return { reviewCount: String(textResult.totalOnly), badRate: '' };
+              return { reviewCount: reviewCountOverride !== null ? reviewCountOverride : String(textResult.totalOnly), badRate: '' };
             }
             ({ good, bad, normal } = { good: textResult.good ?? good, bad: textResult.bad ?? bad, normal: textResult.normal ?? normal });
             _log('[PayPay getSellerRating] テキスト検索:', { good, bad, normal });
           }
         }
 
-        return _calcRatingResult(good, bad, normal, 0, 'PayPay');
+        const result = _calcRatingResult(good, bad, normal, 0, 'PayPay');
+        // 方法0で確実な件数が取れていれば、reviewCountだけ上書き（badRateは通常経路の算出を維持）
+        if (reviewCountOverride !== null) result.reviewCount = reviewCountOverride;
+        return result;
       };
 
       const rating = getSellerRating();
