@@ -1591,7 +1591,7 @@ function isNoiseText(text) {
       <path d="M10 2L2 6V10C2 14.5 5 18.5 10 20C15 18.5 18 14.5 18 10V6L10 2Z" fill="white"/>
       <path d="M6 10L10 14L10 6M10 14L14 10" stroke="${colors.primary}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
-    直接エクスポート
+    直接送信
   `;
 
   const exportButtonStyles = {
@@ -1610,15 +1610,46 @@ function isNoiseText(text) {
     boxShadow: '0 4px 12px #2196F34d',
     transition: 'all 0.2s',
     userSelect: 'none',
-    width: '100%',
+    flex: '1',
     whiteSpace: 'nowrap'
   };
 
   Object.assign(exportButton.style, exportButtonStyles);
 
+  // 選択送信ボタン
+  const multiExportBtn = document.createElement('button');
+  multiExportBtn.id = 'unified-scraper-multi-export-btn';
+  multiExportBtn.textContent = '選択送信';
+  Object.assign(multiExportBtn.style, {
+    padding: '8px 10px',
+    backgroundColor: '#2196F3',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '11px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    flexShrink: '0',
+    transition: 'all 0.2s',
+    boxShadow: '0 4px 12px #2196F34d',
+    userSelect: 'none'
+  });
+
+  // 下段ラッパー
+  const bottomRow = document.createElement('div');
+  Object.assign(bottomRow.style, {
+    display: 'flex',
+    gap: '6px',
+    width: '100%',
+    position: 'relative'
+  });
+  bottomRow.appendChild(exportButton);
+  bottomRow.appendChild(multiExportBtn);
+
   // コンテナにボタンを追加
   buttonContainer.appendChild(topRow);
-  buttonContainer.appendChild(exportButton);
+  buttonContainer.appendChild(bottomRow);
 
   // ==========================================
   // AI 翻訳ボタン（aiPlatforms[currentSite] = true のサイトで表示）
@@ -1956,6 +1987,194 @@ function isNoiseText(text) {
     exportButton.style.transform = 'translateY(0)';
     exportButton.style.boxShadow = '0 4px 12px #2196F34d';
   });
+
+  // 選択送信ボタンのホバーエフェクト
+  multiExportBtn.addEventListener('mouseenter', () => {
+    multiExportBtn.style.backgroundColor = '#1976D2';
+    multiExportBtn.style.transform = 'translateY(-2px)';
+    multiExportBtn.style.boxShadow = '0 6px 16px rgba(33, 150, 243, 0.4)';
+  });
+
+  multiExportBtn.addEventListener('mouseleave', () => {
+    multiExportBtn.style.backgroundColor = '#2196F3';
+    multiExportBtn.style.transform = 'translateY(0)';
+    multiExportBtn.style.boxShadow = '0 4px 12px #2196F34d';
+  });
+
+  // 選択送信ポップアップ
+  let multiExportPopup = null;
+
+  function closeMultiExportPopup_() {
+    if (multiExportPopup) {
+      multiExportPopup.remove();
+      multiExportPopup = null;
+    }
+  }
+
+  multiExportBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+
+    // 既に開いている場合は閉じる
+    if (multiExportPopup) {
+      closeMultiExportPopup_();
+      return;
+    }
+
+    // シートリスト取得
+    const syncData = await chrome.storage.sync.get(['spreadsheets']);
+    const spreadsheets = syncData.spreadsheets || [];
+
+    // ポップアップ生成
+    multiExportPopup = document.createElement('div');
+    Object.assign(multiExportPopup.style, {
+      position: 'absolute',
+      bottom: '100%',
+      right: '0',
+      marginBottom: '6px',
+      backgroundColor: 'white',
+      border: '1px solid #ddd',
+      borderRadius: '8px',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+      zIndex: '2147483647',
+      minWidth: '260px',
+      fontFamily: 'sans-serif',
+      fontSize: '13px',
+      color: '#333',
+      overflow: 'hidden'
+    });
+
+    // タイトル行
+    const popupTitle = document.createElement('div');
+    popupTitle.textContent = '送信先を選択';
+    Object.assign(popupTitle.style, {
+      padding: '10px 14px',
+      fontWeight: 'bold',
+      borderBottom: '1px solid #eee',
+      backgroundColor: '#f5f5f5'
+    });
+    multiExportPopup.appendChild(popupTitle);
+
+    if (spreadsheets.length === 0) {
+      const emptyMsg = document.createElement('div');
+      emptyMsg.textContent = 'スプレッドシートが登録されていません';
+      Object.assign(emptyMsg.style, {
+        padding: '12px 14px',
+        color: '#888'
+      });
+      multiExportPopup.appendChild(emptyMsg);
+    } else {
+      // シートリスト
+      const listDiv = document.createElement('div');
+      Object.assign(listDiv.style, { borderBottom: '1px solid #eee' });
+
+      spreadsheets.forEach((sheet) => {
+        const row = document.createElement('div');
+        Object.assign(row.style, {
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '8px 14px',
+          cursor: 'pointer',
+          borderBottom: '1px solid #f0f0f0'
+        });
+        row.addEventListener('mouseenter', () => { row.style.backgroundColor = '#f5f9ff'; });
+        row.addEventListener('mouseleave', () => { row.style.backgroundColor = ''; });
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.dataset.sheetId = sheet.id;
+        cb.style.flexShrink = '0';
+        cb.addEventListener('click', (ev) => { ev.stopPropagation(); });
+
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = sheet.name || sheet.id;
+        Object.assign(nameSpan.style, { flex: '1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' });
+
+        const arrowBtn = document.createElement('button');
+        arrowBtn.textContent = '→';
+        Object.assign(arrowBtn.style, {
+          padding: '2px 8px',
+          backgroundColor: '#2196F3',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          flexShrink: '0',
+          fontSize: '12px'
+        });
+
+        // → ボタンで即送信
+        arrowBtn.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          closeMultiExportPopup_();
+          await exportToSingleTarget_(sheet);
+        });
+
+        // 行クリックで即送信（チェックボックス・→ボタン以外）
+        nameSpan.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          closeMultiExportPopup_();
+          await exportToSingleTarget_(sheet);
+        });
+
+        row.appendChild(cb);
+        row.appendChild(nameSpan);
+        row.appendChild(arrowBtn);
+        listDiv.appendChild(row);
+      });
+
+      multiExportPopup.appendChild(listDiv);
+
+      // 一括送信ボタン
+      const bulkRow = document.createElement('div');
+      Object.assign(bulkRow.style, { padding: '8px 14px', textAlign: 'right' });
+
+      const bulkBtn = document.createElement('button');
+      bulkBtn.textContent = 'チェックして一括送信';
+      Object.assign(bulkBtn.style, {
+        padding: '6px 12px',
+        backgroundColor: '#4CAF50',
+        color: 'white',
+        border: 'none',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: '12px',
+        fontWeight: 'bold'
+      });
+
+      bulkBtn.addEventListener('click', async (ev) => {
+        ev.stopPropagation();
+        const checked = Array.from(multiExportPopup.querySelectorAll('input[type=checkbox]:checked'));
+        if (checked.length === 0) return;
+        const targets = checked.map(cb => spreadsheets.find(s => s.id === cb.dataset.sheetId)).filter(Boolean);
+        closeMultiExportPopup_();
+        await exportToMultipleTargets_(targets);
+      });
+
+      bulkRow.appendChild(bulkBtn);
+      multiExportPopup.appendChild(bulkRow);
+    }
+
+    bottomRow.appendChild(multiExportPopup);
+
+    // ポップアップ内クリックはバブリングを止める
+    multiExportPopup.addEventListener('click', (ev) => { ev.stopPropagation(); });
+  });
+
+  // 外側クリックでポップアップを閉じる
+  document.addEventListener('click', () => { closeMultiExportPopup_(); });
+
+  // 単一シート送信（exportToSpreadsheet が内部で成否通知を出す）
+  async function exportToSingleTarget_(target) {
+    await exportToSpreadsheet(extractedData, currentSite, colors, target);
+  }
+
+  // 複数シート一括送信（各シートの成否通知は exportToSpreadsheet 側が出す）
+  async function exportToMultipleTargets_(targets) {
+    for (const target of targets) {
+      await exportToSpreadsheet(extractedData, currentSite, colors, target);
+    }
+  }
 
   // エクスポートボタンクリック（直接エクスポート）
   exportButton.addEventListener('click', async (e) => {
@@ -5271,7 +5490,7 @@ function isNoiseText(text) {
    * @param {string} site - サイト名 ('ebay', 'rakuten', 'amazon')
    * @param {Object} colors - サイトカラー
    */
-  async function exportToSpreadsheet(data, site, colors) {
+  async function exportToSpreadsheet(data, site, colors, overrideTarget) {
     try {
       // 同期設定（スプレッドシート、画像枚数）を取得
       const syncSettings = await chrome.storage.sync.get(['spreadsheets', 'imageOutputCount', 'imageBase64Count']);
@@ -5292,33 +5511,39 @@ function isNoiseText(text) {
       }
 
       // 選択されたスプレッドシートを取得
-      // モーダル内のセレクタがあればそれを使用、なければ最後に使ったシートIDを使用
-      const selector = document.getElementById('sheet-selector');
-      const selectedSheetId = selector ? selector.value : localSettings.lastUsedSheetId;
+      let selectedSheet;
+      if (overrideTarget) {
+        // ポップアップからの選択（overrideTarget を直接使用）
+        selectedSheet = overrideTarget;
+      } else {
+        // モーダル内のセレクタがあればそれを使用、なければ最後に使ったシートIDを使用
+        const selector = document.getElementById('sheet-selector');
+        const selectedSheetId = selector ? selector.value : localSettings.lastUsedSheetId;
 
-      if (!selectedSheetId) {
-        showNotification(
-          'エラー',
-          '出力先スプレッドシートを選択してください。\n最初に「内容確認・コピー」ボタンから出力先を選択してください。',
-          'error',
-          colors
-        );
-        return;
+        if (!selectedSheetId) {
+          showNotification(
+            'エラー',
+            '出力先スプレッドシートを選択してください。\n最初に「内容確認・コピー」ボタンから出力先を選択してください。',
+            'error',
+            colors
+          );
+          return;
+        }
+
+        selectedSheet = spreadsheets.find(s => s.id === selectedSheetId);
+        if (!selectedSheet) {
+          showNotification(
+            'エラー',
+            '選択されたスプレッドシートが見つかりません',
+            'error',
+            colors
+          );
+          return;
+        }
+
+        // 最後に使ったシートIDを保存（ローカルストレージ）
+        await chrome.storage.local.set({ lastUsedSheetId: selectedSheetId });
       }
-
-      const selectedSheet = spreadsheets.find(s => s.id === selectedSheetId);
-      if (!selectedSheet) {
-        showNotification(
-          'エラー',
-          '選択されたスプレッドシートが見つかりません',
-          'error',
-          colors
-        );
-        return;
-      }
-
-      // 最後に使ったシートIDを保存（ローカルストレージ）
-      await chrome.storage.local.set({ lastUsedSheetId: selectedSheetId });
 
       // データを配列形式に変換（サイト別に対応）
       let values;
