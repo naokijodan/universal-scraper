@@ -1531,6 +1531,7 @@ function isNoiseText(text) {
     border: 'none',
     borderRadius: '8px',
     fontSize: '13px',
+    lineHeight: '1',
     fontWeight: 'bold',
     cursor: 'move',
     display: 'flex',
@@ -1564,6 +1565,7 @@ function isNoiseText(text) {
     border: 'none',
     borderRadius: '8px',
     fontSize: '13px',
+    lineHeight: '1',
     fontWeight: 'bold',
     cursor: 'pointer',
     display: 'flex',
@@ -1595,12 +1597,13 @@ function isNoiseText(text) {
   `;
 
   const exportButtonStyles = {
-    padding: '10px 16px',
+    padding: '10px 12px',
     backgroundColor: '#2196F3',
     color: 'white',
     border: 'none',
     borderRadius: '8px',
     fontSize: '13px',
+    lineHeight: '1',
     fontWeight: 'bold',
     cursor: 'pointer',
     display: 'flex',
@@ -1621,16 +1624,20 @@ function isNoiseText(text) {
   multiExportBtn.id = 'unified-scraper-multi-export-btn';
   multiExportBtn.textContent = '選択送信';
   Object.assign(multiExportBtn.style, {
-    padding: '8px 10px',
+    padding: '10px 10px',
     backgroundColor: '#2196F3',
     color: 'white',
     border: 'none',
     borderRadius: '8px',
     fontSize: '11px',
+    lineHeight: '1',
     fontWeight: 'bold',
     cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     whiteSpace: 'nowrap',
-    flexShrink: '0',
+    flex: '1',
     transition: 'all 0.2s',
     boxShadow: '0 4px 12px #2196F34d',
     userSelect: 'none'
