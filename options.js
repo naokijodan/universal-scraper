@@ -1504,7 +1504,12 @@ function michattaUpdateUnsavedNotice() {
   const notice = document.getElementById('michattaUnsavedNotice');
   if (!toggle || !notice) return;
   const shouldShow = toggle.checked && !michattaSavedEnabled;
-  notice.style.display = shouldShow ? '' : 'none';
+  // 注: #michattaUnsavedNotice は class="status-message" を持ち、CSS側で
+  // .status-message { display: none; } が定義されているため、空文字('')に
+  // すると inline style が外れてCSSのdisplay:noneにフォールバックし、
+  // 表示されない不具合があった。michattaShowMessage()と同じく 'block' を
+  // 明示する（独立レビュー指摘、jsdomでのCSSカスケード実測により発覚）。
+  notice.style.display = shouldShow ? 'block' : 'none';
 }
 
 // 閲覧履歴セクションの初期化（件数・アラート設定・会員状態の読み込み。元 popup.js の init() 相当）
