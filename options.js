@@ -262,6 +262,10 @@ async function loadSettings() {
 
     document.getElementById('enableMichatta').checked = !!syncSettings.enableMichatta;
     updateToggleStatus('enableMichatta', 'statusEnableMichatta');
+    michattaUpdateSectionVisibility();
+    if (syncSettings.enableMichatta) {
+      michattaInitHistorySection();
+    }
 
     // AI 翻訳設定を読み込み
     document.getElementById('aiTranslationEnabled').checked = !!syncSettings.aiTranslationEnabled;
@@ -447,9 +451,24 @@ function setupEventListeners() {
   });
 
   // みちゃった君機能トグル
-  document.getElementById('enableMichatta').addEventListener('change', () => {
+  document.getElementById('enableMichatta').addEventListener('change', (event) => {
     updateToggleStatus('enableMichatta', 'statusEnableMichatta');
+    michattaUpdateSectionVisibility();
+    if (event.target.checked) {
+      // OFF→ON時、閲覧履歴セクションを表示するのと同時にデータを読み込む
+      // （enableMichattaのsync保存はsaveSettings実行後だが、background.js側の
+      // chrome.storage.onChangedリスナーがSW生存中は即時初期化するため、通常はこの時点で
+      // 読み込み可能。保存前でもUI表示だけは切り替える）
+      michattaInitHistorySection();
+    }
   });
+
+  // みちゃった君: 閲覧履歴管理セクションのボタン（元 popup.js のイベント登録と同一）
+  document.getElementById('michattaRegisterBtn').addEventListener('click', michattaRegisterItems);
+  document.getElementById('michattaClearAllBtn').addEventListener('click', michattaClearAllItems);
+  document.getElementById('michattaExportBtn').addEventListener('click', michattaExportItems);
+  document.getElementById('michattaSaveAlertBtn').addEventListener('click', michattaSaveAlertSettings);
+  document.getElementById('michattaUnlockBtn').addEventListener('click', michattaUnlockPremium);
   document.getElementById('imageBase64Count').addEventListener('change', (event) => {
     const count = parseInt(event.target.value, 10);
     if (count >= 2) {
@@ -943,4 +962,344 @@ function adjustSelectedRowHeights() {
     console.error('コピーエラー:', err);
     showMessage('コピーに失敗しました。手動でコピーしてください。', 'error');
   });
+}
+
+// ==============================================================
+// みちゃった君: 閲覧履歴管理（フェーズ2 移植, 2026-07-18）
+// 元: /Users/naokijodan/Desktop/みちゃった君/popup.js を忠実移植（読み取り専用参照。
+// ロジックは変更しない）。DOM id は options.html 既存の alertBadRate 等と衝突しない
+// よう michatta* プレフィックスを付与しただけで、判定ロジック・保存キー名は元のまま。
+// データアクセスは window.MichattaStorage（michatta/storage.js）経由で
+// chrome.runtime.sendMessage({action:'storage', ...}) → michatta/background.js。
+// enableMichatta=OFF のときはこのセクション自体が非表示（display:none）になり、
+// かつ background.js 側も無効応答を返すため二重に安全。
+// ==============================================================
+
+// 商品IDをURLまたはIDから抽出（元 popup.js:17-101 と同一ロジック）
+function michattaExtractItemId(input) {
+  input = input.trim();
+
+  // PayPayフリマ: paypayfleamarket.yahoo.co.jp/item/z491889774
+  // ※メルカリより先に判定
+  const paypayMatch = input.match(/paypayfleamarket\.yahoo\.co\.jp\/item\/([a-zA-Z0-9]+)/);
+  if (paypayMatch) return 'paypay_' + paypayMatch[1];
+
+  // メルカリ通常: /item/m12345678901（IDのみ）
+  const mercariMatch = input.match(/jp\.mercari\.com\/item\/([a-zA-Z0-9]+)/);
+  if (mercariMatch) return mercariMatch[1];
+
+  // メルカリショップ: /shops/product/xxxxx（shop_プレフィックス）
+  const mercariShopMatch = input.match(/jp\.mercari\.com\/shops\/product\/([a-zA-Z0-9]+)/);
+  if (mercariShopMatch) return 'shop_' + mercariShopMatch[1];
+
+  // ラクマ: item.fril.jp/xxxxx（IDのみ）
+  const rakumaMatch = input.match(/item\.fril\.jp\/([a-zA-Z0-9]+)/);
+  if (rakumaMatch) return rakumaMatch[1];
+
+  // 楽天市場: item.rakuten.co.jp/shop/product/（URLパス全体）
+  const rakutenMatch = input.match(/item\.rakuten\.co\.jp\/([^?#]+)/);
+  if (rakutenMatch) return 'rakuten_' + rakutenMatch[1].replace(/\/$/, '');
+
+  // ヤフオク: page.auctions.yahoo.co.jp/jp/auction/xxxxx
+  // ※IDがzで始まる場合はPayPayフリマの商品
+  const yahooAuctionMatch = input.match(/page\.auctions\.yahoo\.co\.jp\/jp\/auction\/([a-zA-Z0-9]+)/);
+  if (yahooAuctionMatch) {
+    const id = yahooAuctionMatch[1];
+    return id.startsWith('z') ? 'paypay_' + id : 'yahoo_' + id;
+  }
+
+  // ヤフオク: auctions.yahoo.co.jp系
+  const yahooSearchMatch = input.match(/auctions\.yahoo\.co\.jp.*\/([a-zA-Z0-9]{10,})/);
+  if (yahooSearchMatch) {
+    const id = yahooSearchMatch[1];
+    return id.startsWith('z') ? 'paypay_' + id : 'yahoo_' + id;
+  }
+
+  // オフモール（ハードオフ）: netmall.hardoff.co.jp/product/[数字]/
+  const hardoffMatch = input.match(/netmall\.hardoff\.co\.jp\/product\/([0-9]+)/);
+  if (hardoffMatch) return 'hardoff_' + hardoffMatch[1];
+
+  // ヤフショ: store.shopping.yahoo.co.jp/{store_id}/{product_id}.html
+  const yshoppingMatch = input.match(/store\.shopping\.yahoo\.co\.jp\/([^/]+)\/([^/?#]+)\.html(?:[?#]|$)/);
+  if (yshoppingMatch) return 'yshopping_' + yshoppingMatch[1] + '_' + yshoppingMatch[2];
+
+  // Amazon: /dp/[ASIN] または /gp/product/[ASIN]
+  const amazonMatch = input.match(/amazon\.co\.jp\/(?:.*\/)?(?:dp|gp\/product)\/([A-Z0-9]{10})(?:[/?#]|$)/i);
+  if (amazonMatch) return 'amazon_' + amazonMatch[1].toUpperCase();
+
+  // === ID 単体入力の判定（URL 抽出に失敗した場合のフォールバック）===
+  if (/^m[0-9]{11}$/.test(input)) return input;
+  if (/^[a-zA-Z0-9]{22}$/.test(input) && /[A-Z]/.test(input)) return 'shop_' + input;
+  if (/^[a-f0-9]{32}$/.test(input)) return input;
+  if (/^B0[A-Z0-9]{8}$/i.test(input)) return 'amazon_' + input.toUpperCase();
+  if (/^z[0-9]{9}$/.test(input)) return 'paypay_' + input;
+  if (/^[a-y][0-9]{10}$/.test(input)) return 'yahoo_' + input;
+  if (/^[0-9]{6,10}$/.test(input)) return 'hardoff_' + input;
+
+  return null;
+}
+
+// ステータス表示（元 popup.js:110-118 相当。options.html 既存の status-message パターンに合わせる）
+function michattaShowMessage(elementId, message, isError = false) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  el.textContent = message;
+  el.className = 'status-message ' + (isError ? 'error' : 'success');
+  el.style.display = 'block';
+  setTimeout(() => {
+    el.style.display = 'none';
+  }, 3000);
+}
+
+// 件数を更新（元 popup.js:104-108）
+async function michattaUpdateCount() {
+  const countEl = document.getElementById('michattaCount');
+  if (!countEl || !window.MichattaStorage) return;
+  const count = await window.MichattaStorage.getViewedItemsCount();
+  countEl.textContent = count;
+}
+
+// 登録処理（元 popup.js:121-160）
+async function michattaRegisterItems() {
+  if (!window.MichattaStorage) return;
+  const textarea = document.getElementById('michattaItemIds');
+  const input = textarea.value;
+  const lines = input.split('\n').filter(line => line.trim());
+
+  if (lines.length === 0) {
+    michattaShowMessage('michattaRegisterStatus', 'IDまたはURLを入力してください', true);
+    return;
+  }
+
+  const viewedItems = await window.MichattaStorage.getViewedItems();
+  let addedCount = 0;
+  let skippedCount = 0;
+  let invalidCount = 0;
+
+  for (const line of lines) {
+    const itemId = michattaExtractItemId(line);
+    if (itemId) {
+      if (!viewedItems[itemId]) {
+        viewedItems[itemId] = Date.now();
+        addedCount++;
+      } else {
+        skippedCount++;
+      }
+    } else {
+      invalidCount++;
+    }
+  }
+
+  // 一括保存（上限なし）
+  await window.MichattaStorage.saveViewedItemsBulk(viewedItems);
+
+  // 結果表示
+  let message = `${addedCount}件を登録しました`;
+  if (skippedCount > 0) message += `（${skippedCount}件は登録済み）`;
+  if (invalidCount > 0) message += `（${invalidCount}件は無効なID）`;
+
+  michattaShowMessage('michattaRegisterStatus', message, invalidCount > 0 && addedCount === 0);
+  textarea.value = '';
+  michattaUpdateCount();
+}
+
+// 全削除処理（元 popup.js:163-188。破壊的操作のため confirm() で確認。
+// options.js は既存の他の破壊的操作（スプレッドシート削除・APIキー削除・設定リセット等）
+// でも同じサイドパネル上で標準の confirm() を使用しており、動作実績がある＝忠実移植）
+async function michattaClearAllItems() {
+  if (!window.MichattaStorage) return;
+  const count = await window.MichattaStorage.getViewedItemsCount();
+
+  if (count === 0) {
+    michattaShowMessage('michattaRegisterStatus', '削除する履歴がありません', true);
+    return;
+  }
+
+  const confirmed = confirm(`本当に全ての閲覧履歴（${count}件）を削除しますか？\n\nこの操作は取り消せません。`);
+
+  if (!confirmed) {
+    michattaShowMessage('michattaRegisterStatus', '削除をキャンセルしました');
+    return;
+  }
+
+  const success = await window.MichattaStorage.clearAllViewedItems();
+
+  if (success) {
+    michattaShowMessage('michattaRegisterStatus', `${count}件の履歴を削除しました`);
+    michattaUpdateCount();
+  } else {
+    michattaShowMessage('michattaRegisterStatus', '削除に失敗しました', true);
+  }
+}
+
+// IDのプレフィックスからサイト名を判定（元 popup.js:191-201）
+function michattaDetectSite(itemId) {
+  if (itemId.startsWith('paypay_')) return 'paypay';
+  if (itemId.startsWith('shop_')) return 'mercari_shop';
+  if (itemId.startsWith('rakuten_')) return 'rakuten';
+  if (itemId.startsWith('yahoo_')) return 'yahoo_auction';
+  if (itemId.startsWith('hardoff_')) return 'hardoff';
+  if (itemId.startsWith('yshopping_')) return 'yahoo_shopping';
+  if (itemId.startsWith('amazon_')) return 'amazon';
+  if (/^m[a-zA-Z0-9]+$/.test(itemId)) return 'mercari';
+  return 'rakuma';
+}
+
+// CSV用にフィールドをエスケープ（全フィールドをクォートで囲む。元 popup.js:204-207）
+function michattaCsvEscape(value) {
+  const str = String(value);
+  return '"' + str.replace(/"/g, '""') + '"';
+}
+
+// 2桁ゼロ埋め（元 popup.js:210-212）
+function michattaPad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+// ファイル名用のタイムスタンプ YYYYMMDD_HHMMSS（元 popup.js:215-225）
+function michattaFormatFilenameTimestamp(date) {
+  return (
+    date.getFullYear() +
+    michattaPad2(date.getMonth() + 1) +
+    michattaPad2(date.getDate()) +
+    '_' +
+    michattaPad2(date.getHours()) +
+    michattaPad2(date.getMinutes()) +
+    michattaPad2(date.getSeconds())
+  );
+}
+
+// 人間可読なローカル日時 YYYY-MM-DD HH:MM:SS（元 popup.js:228-238）
+function michattaFormatViewedAt(timestampMs) {
+  const d = new Date(timestampMs);
+  return (
+    d.getFullYear() + '-' +
+    michattaPad2(d.getMonth() + 1) + '-' +
+    michattaPad2(d.getDate()) + ' ' +
+    michattaPad2(d.getHours()) + ':' +
+    michattaPad2(d.getMinutes()) + ':' +
+    michattaPad2(d.getSeconds())
+  );
+}
+
+// 閲覧履歴をCSVでエクスポート（元 popup.js:241-273 と完全同一形式:
+// ヘッダー "id","site","timestamp_ms","viewed_at" / 全フィールドクォート /
+// 改行CRLF / UTF-8 BOM付き / ファイル名 michatta_backup_YYYYMMDD_HHMMSS.csv）
+async function michattaExportItems() {
+  if (!window.MichattaStorage) return;
+  const items = await window.MichattaStorage.getViewedItems();
+  const ids = Object.keys(items);
+
+  if (ids.length === 0) {
+    michattaShowMessage('michattaRegisterStatus', 'エクスポートする履歴がありません', true);
+    return;
+  }
+
+  // 新しい順に並べる
+  ids.sort((a, b) => items[b] - items[a]);
+
+  const header = ['id', 'site', 'timestamp_ms', 'viewed_at'].map(michattaCsvEscape).join(',');
+  const rows = ids.map((id) => {
+    const ts = items[id];
+    return [id, michattaDetectSite(id), ts, michattaFormatViewedAt(ts)].map(michattaCsvEscape).join(',');
+  });
+
+  // Excel互換のためUTF-8 BOMを付与、改行はCRLF（元 popup.js:260 の '﻿' リテラルと同一コードポイント U+FEFF）
+  const csv = '﻿' + header + '\r\n' + rows.join('\r\n') + '\r\n';
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'michatta_backup_' + michattaFormatFilenameTimestamp(new Date()) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+  michattaShowMessage('michattaRegisterStatus', `${ids.length}件をエクスポートしました`);
+}
+
+// アラート設定を保存（元 popup.js:276-294。保存キー名(ratings/badRate/listedDays/
+// updatedDays/shipping47/shipping8)は元のまま。DOM idのみ michattaAlert* に変更）
+async function michattaSaveAlertSettings() {
+  if (!window.MichattaStorage) return;
+  const settings = {
+    ratings: parseInt(document.getElementById('michattaAlertRatings').value) || 0,
+    badRate: parseInt(document.getElementById('michattaAlertBadRate').value) || 0,
+    listedDays: parseInt(document.getElementById('michattaAlertListedDays').value) || 0,
+    updatedDays: parseInt(document.getElementById('michattaAlertUpdatedDays').value) || 0,
+    shipping47: document.getElementById('michattaAlertShipping47').checked,
+    shipping8: document.getElementById('michattaAlertShipping8').checked
+  };
+
+  await window.MichattaStorage.saveAlertSettings(settings);
+  michattaShowMessage('michattaAlertStatus', '設定を保存しました');
+}
+
+// アラート設定をUIに反映（元 popup.js:297-305）
+async function michattaLoadAlertSettings() {
+  if (!window.MichattaStorage) return;
+  const settings = await window.MichattaStorage.getAlertSettings();
+  document.getElementById('michattaAlertRatings').value = settings.ratings;
+  document.getElementById('michattaAlertBadRate').value = settings.badRate;
+  document.getElementById('michattaAlertListedDays').value = settings.listedDays;
+  document.getElementById('michattaAlertUpdatedDays').value = settings.updatedDays;
+  document.getElementById('michattaAlertShipping47').checked = settings.shipping47;
+  document.getElementById('michattaAlertShipping8').checked = settings.shipping8;
+}
+
+// 会員パスで解除（元 popup.js:1, 308-317。パスワードは忠実移植のためハードコード値のまま
+// 変更しない。プレミアム解除機能の扱いは設計書§10未決事項だが、今回の指示は「単体版と
+// 同じ仕組みをそのまま移植」のため現状維持で実装する）
+const MICHATTA_PREMIUM_PASS = 'MGOOSE2025';
+
+async function michattaUnlockPremium() {
+  if (!window.MichattaStorage) return;
+  const pass = document.getElementById('michattaPremiumPass').value.trim();
+  if (pass === MICHATTA_PREMIUM_PASS) {
+    await window.MichattaStorage.unlockPremium();
+    michattaShowMessage('michattaRegisterStatus', '会員機能を解除しました！');
+    michattaUpdatePremiumUI(true);
+  } else {
+    michattaShowMessage('michattaRegisterStatus', 'パスワードが違います', true);
+  }
+}
+
+// 会員機能のUI更新（元 popup.js:320-334。#alertSettings.locked → .michatta-locked クラスに対応）
+function michattaUpdatePremiumUI(isUnlocked) {
+  const lockedEl = document.getElementById('michattaPremiumLocked');
+  const unlockedEl = document.getElementById('michattaPremiumUnlocked');
+  const alertSettings = document.getElementById('michattaAlertSettingsBlock');
+
+  if (isUnlocked) {
+    lockedEl.style.display = 'none';
+    unlockedEl.style.display = 'block';
+    if (alertSettings) alertSettings.classList.remove('michatta-locked');
+  } else {
+    lockedEl.style.display = 'block';
+    unlockedEl.style.display = 'none';
+    if (alertSettings) alertSettings.classList.add('michatta-locked');
+  }
+}
+
+// 表示ゲート: enableMichatta が ON のときだけ「閲覧履歴（みちゃった君）」セクションを表示
+function michattaUpdateSectionVisibility() {
+  const toggle = document.getElementById('enableMichatta');
+  const section = document.getElementById('michattaHistorySection');
+  if (!toggle || !section) return;
+  section.style.display = toggle.checked ? '' : 'none';
+}
+
+// 閲覧履歴セクションの初期化（件数・アラート設定・会員状態の読み込み。元 popup.js の init() 相当）
+async function michattaInitHistorySection() {
+  if (!window.MichattaStorage) return;
+  try {
+    await michattaUpdateCount();
+    await michattaLoadAlertSettings();
+    const isUnlocked = await window.MichattaStorage.isPremiumUnlocked();
+    michattaUpdatePremiumUI(isUnlocked);
+  } catch (error) {
+    console.error('[みちゃった君] options.html 閲覧履歴セクション初期化エラー:', error);
+  }
 }

@@ -16,7 +16,13 @@ const PREMIUM_KEY = 'mercari_premium_unlocked';
 const MIGRATION_KEY = 'michatta_migration_v2';
 
 // 未処理のPromise rejectionをログに出す
+// 【フェーズ1レビュー指摘LOW-1の修正】このリスナーはトップレベルで無条件登録されるため、
+// enableMichatta=OFF（未初期化）の状態でも、とりこみ君側の未処理rejectionを「みちゃった君」
+// 名義で誤ってログ出力してしまう問題があった。michattaInitialized フラグで内部ゲートし、
+// initialize()（enableMichatta=true のときのみ実行）が開始した後だけログを出す。
+let michattaInitialized = false;
 self.addEventListener('unhandledrejection', (event) => {
+  if (!michattaInitialized) return;
   console.error('[みちゃった君 BG] 未処理のPromise rejection:', event.reason);
 });
 
@@ -855,6 +861,9 @@ async function fetchItemDetailsInBackground(itemId, itemUrl) {
 // ==============================
 
 async function initialize() {
+  // enableMichatta=true が確認できてここに到達した時点で初期化済みとみなし、
+  // unhandledrejectionのログゲート（michattaInitialized）を開く。
+  michattaInitialized = true;
   try {
     await initDB();
     await migrateFromStorageLocal();
