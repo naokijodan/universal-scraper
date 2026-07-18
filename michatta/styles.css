@@ -1,0 +1,334 @@
+/* 閲覧済み商品のマーク */
+.mercari-viewed-marked {
+  position: relative;
+}
+
+/* 閲覧済みバッジ */
+.mercari-viewed-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background-color: rgba(255, 87, 34, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  pointer-events: auto;
+  cursor: default;
+}
+
+/* 閲覧済み商品の画像を少し薄く */
+.mercari-viewed-marked img {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+/* ホバー時は元に戻す */
+.mercari-viewed-marked:hover img {
+  opacity: 1;
+}
+
+/* 閲覧済み商品の枠線 */
+.mercari-viewed-marked {
+  outline: 3px solid rgba(255, 87, 34, 0.6);
+  outline-offset: -3px;
+}
+
+/* PayPayフリマ検索結果: aタグがカードの場合のスタイル */
+a.mercari-viewed-marked {
+  display: block;
+}
+
+/* 商品ページ用バッジ（フローティング固定） */
+.mercari-viewed-page-badge {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #FF5722;
+  color: white;
+  padding: 14px 28px;
+  padding-right: 48px;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: bold;
+  z-index: 999999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    top: 10px;
+    opacity: 0;
+  }
+  to {
+    top: 80px;
+    opacity: 1;
+  }
+}
+
+.mercari-viewed-date {
+  font-weight: normal;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* 閉じるボタン */
+.mercari-viewed-close {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  opacity: 0.8;
+  padding: 0;
+  line-height: 1;
+}
+
+.mercari-viewed-close:hover {
+  opacity: 1;
+}
+
+/* 開くボタン - 右上配置 */
+.mercari-open-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: rgba(76, 175, 80, 0.9);
+  color: white;
+  border: none;
+  padding: 12px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s, transform 0.1s;
+  z-index: 100;
+}
+
+.mercari-open-btn:hover {
+  background-color: rgba(56, 142, 60, 1);
+  transform: scale(1.05);
+}
+
+.mercari-open-btn:active {
+  transform: scale(0.95);
+}
+
+/* ヒットエリア拡張 */
+.mercari-open-btn::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  bottom: -8px;
+  left: -8px;
+}
+
+/* 詳細パネル */
+.mercari-detail-panel {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  min-width: 260px;
+  z-index: 999999;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ローディング */
+.mercari-detail-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  color: #666;
+  font-size: 14px;
+}
+
+.mercari-detail-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e0e0e0;
+  border-top-color: #2196F3;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* エラー表示 */
+.mercari-detail-error {
+  padding: 20px;
+  text-align: center;
+  color: #d32f2f;
+  font-size: 13px;
+}
+
+.mercari-detail-close-btn {
+  margin-top: 12px;
+  background: #e0e0e0;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.mercari-detail-close-btn:hover {
+  background: #bdbdbd;
+}
+
+/* パネルヘッダー */
+.mercari-detail-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+  background: #fafafa;
+  border-radius: 8px 8px 0 0;
+}
+
+.mercari-detail-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  flex: 1;
+}
+
+.mercari-detail-sold {
+  background: #d32f2f;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-right: 8px;
+}
+
+.mercari-detail-close-x {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.mercari-detail-close-x:hover {
+  color: #333;
+}
+
+/* パネルボディ */
+.mercari-detail-body {
+  padding: 12px 16px;
+}
+
+.mercari-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.mercari-detail-row:last-child {
+  border-bottom: none;
+}
+
+.mercari-detail-label {
+  font-size: 12px;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.mercari-detail-value {
+  font-size: 13px;
+  color: #333;
+  text-align: right;
+  margin-left: 12px;
+}
+
+/* 評価表示 */
+.mercari-detail-ratings-count {
+  font-weight: bold;
+  color: #333;
+}
+
+.mercari-detail-bad-rate {
+  font-size: 11px;
+  color: #d32f2f;
+  margin-left: 6px;
+}
+
+/* パネルフッター */
+.mercari-detail-footer {
+  padding: 12px 16px;
+  border-top: 1px solid #eee;
+  text-align: center;
+}
+
+.mercari-detail-open-btn {
+  background: #FF5722;
+  color: white;
+  border: none;
+  padding: 10px 32px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: 100%;
+}
+
+.mercari-detail-open-btn:hover:not(:disabled) {
+  background: #E64A19;
+}
+
+.mercari-detail-open-btn:disabled {
+  background: #bdbdbd;
+  cursor: not-allowed;
+}
+
+/* アラート表示 */
+.mercari-detail-alerts {
+  background: #FFF3E0;
+  padding: 8px 12px;
+  border-bottom: 1px solid #FFE0B2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mercari-detail-alert {
+  background: #FF5722;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 3px;
+}

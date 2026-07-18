@@ -1254,6 +1254,25 @@ function doPost(e) {
         </div>
       </div>
 
+      <!-- みちゃった君機能 -->
+      <div class="section">
+        <div class="section-title-row">
+          <div class="title">
+            みちゃった君機能（閲覧履歴・既読マーク）
+          </div>
+          <div class="toggle-container">
+            <label class="toggle-switch">
+              <input type="checkbox" id="enableMichatta">
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-status" id="statusEnableMichatta">無効</span>
+          </div>
+        </div>
+        <div class="setting-description">
+          メルカリ等で一度見た商品に既読マークを付ける機能です。初期状態では無効です。切り替え後は、対象サイトのページを再読み込みすると反映されます。
+        </div>
+      </div>
+
       <!-- 保存ボタン -->
       <div class="btn-container">
         <button class="btn btn-secondary" id="resetBtn">デフォルトに戻す</button>

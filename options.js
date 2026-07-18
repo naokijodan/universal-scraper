@@ -106,7 +106,9 @@ const defaultSettings = {
   // マイタグ（タブ区切り形式の文字列で保存。各行: tagName\tkeyword1,keyword2,...）
   aiMyTags: '',
   // 担当者名（インポート用2 シートの B列に出力される。未入力なら B列は空白）
-  aiOperatorName: ''
+  aiOperatorName: '',
+  // みちゃった君機能（閲覧履歴・既読マーク）の有効/無効。初期状態では無効
+  enableMichatta: false
 };
 
 // 公式プロンプトをコード同梱ファイルから取得（共通 + 各プラットフォーム）
@@ -257,6 +259,9 @@ async function loadSettings() {
 
     // （旧トグルの updateToggleStatus 呼び出しは UI 廃止のため削除）
     updateToggleStatus('enableImageInClipboard', 'statusImageInClipboard');
+
+    document.getElementById('enableMichatta').checked = !!syncSettings.enableMichatta;
+    updateToggleStatus('enableMichatta', 'statusEnableMichatta');
 
     // AI 翻訳設定を読み込み
     document.getElementById('aiTranslationEnabled').checked = !!syncSettings.aiTranslationEnabled;
@@ -439,6 +444,11 @@ function setupEventListeners() {
   // 画像出力設定のトグル
   document.getElementById('enableImageInClipboard').addEventListener('change', () => {
     updateToggleStatus('enableImageInClipboard', 'statusImageInClipboard');
+  });
+
+  // みちゃった君機能トグル
+  document.getElementById('enableMichatta').addEventListener('change', () => {
+    updateToggleStatus('enableMichatta', 'statusEnableMichatta');
   });
   document.getElementById('imageBase64Count').addEventListener('change', (event) => {
     const count = parseInt(event.target.value, 10);
@@ -730,6 +740,7 @@ async function saveSettings() {
       imageOutputCount: (() => { const v = parseInt(document.getElementById('imageOutputCount').value); return isNaN(v) ? 999 : v; })(),
       imageBase64Count: (() => { const v = parseInt(document.getElementById('imageBase64Count').value, 10); return isNaN(v) ? 1 : Math.min(Math.max(v, 1), 10); })(),
       enableImageInClipboard: document.getElementById('enableImageInClipboard').checked,
+      enableMichatta: document.getElementById('enableMichatta').checked,
       // 画像読み込み待機時間（秒）
       amazonLoadDelay: parseFloat(document.getElementById('amazonLoadDelay').value) || 0,
       ebayLoadDelay: parseFloat(document.getElementById('ebayLoadDelay').value) || 0,

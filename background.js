@@ -10,6 +10,12 @@ try {
   console.error('[boot] failed to load background-queue.js:', e?.message || e);
 }
 
+try {
+  importScripts('michatta/background.js');
+} catch (e) {
+  console.error('[boot] failed to load michatta/background.js:', e?.message || e);
+}
+
 // サイドパネル: アクションアイコンクリックで開く
 if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
   chrome.sidePanel
