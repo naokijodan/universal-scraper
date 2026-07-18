@@ -18,6 +18,10 @@ const AI_PLATFORMS = [
   { id: 'rakuma',        name: 'ラクマ',             enableKey: 'enableFril',          enableDefault: true,  aiDefault: true  }
 ];
 
+// みちゃった君: 直近に chrome.storage.sync へ保存された enableMichatta の値。
+// トグルのチェック状態（未保存の可能性あり）と区別するために持つ（MED-1対応）。
+let michattaSavedEnabled = false;
+
 // AI_PLATFORMS から { mercari: true, mercari_shop: true, ebay: false, ... } を生成
 function buildDefaultAiPlatforms() {
   const out = {};
@@ -261,8 +265,10 @@ async function loadSettings() {
     updateToggleStatus('enableImageInClipboard', 'statusImageInClipboard');
 
     document.getElementById('enableMichatta').checked = !!syncSettings.enableMichatta;
+    michattaSavedEnabled = !!syncSettings.enableMichatta;
     updateToggleStatus('enableMichatta', 'statusEnableMichatta');
     michattaUpdateSectionVisibility();
+    michattaUpdateUnsavedNotice();
     if (syncSettings.enableMichatta) {
       michattaInitHistorySection();
     }
@@ -454,11 +460,18 @@ function setupEventListeners() {
   document.getElementById('enableMichatta').addEventListener('change', (event) => {
     updateToggleStatus('enableMichatta', 'statusEnableMichatta');
     michattaUpdateSectionVisibility();
+    michattaUpdateUnsavedNotice();
     if (event.target.checked) {
-      // OFF→ON時、閲覧履歴セクションを表示するのと同時にデータを読み込む
-      // （enableMichattaのsync保存はsaveSettings実行後だが、background.js側の
-      // chrome.storage.onChangedリスナーがSW生存中は即時初期化するため、通常はこの時点で
-      // 読み込み可能。保存前でもUI表示だけは切り替える）
+      // OFF→ON時、閲覧履歴セクションを表示だけは即座に行う。ただし、
+      // enableMichattaのsync保存は「設定を保存」実行後（saveSettings内の
+      // chrome.storage.sync.set）まで発生しないため、この時点ではまだ
+      // background.js側は enableMichatta=false 判定のまま。そのため
+      // ここで呼ぶ michattaInitHistorySection() は件数・アラート設定・
+      // プレミアム状態がすべてフォールバック値（0件・デフォルト設定・
+      // 未解除）のまま返ってくる（エラーにはならない）。正しい値は
+      // 「設定を保存」後（saveSettings内で再度 michattaInitHistorySection()
+      // を呼ぶ）に反映される。michattaUpdateUnsavedNotice() が保存前は
+      // その旨をユーザーに案内する。
       michattaInitHistorySection();
     }
   });
@@ -467,6 +480,10 @@ function setupEventListeners() {
   document.getElementById('michattaRegisterBtn').addEventListener('click', michattaRegisterItems);
   document.getElementById('michattaClearAllBtn').addEventListener('click', michattaClearAllItems);
   document.getElementById('michattaExportBtn').addEventListener('click', michattaExportItems);
+  document.getElementById('michattaImportBtn').addEventListener('click', () => {
+    document.getElementById('michattaImportFile').click();
+  });
+  document.getElementById('michattaImportFile').addEventListener('change', michattaImportHistoryCsv);
   document.getElementById('michattaSaveAlertBtn').addEventListener('click', michattaSaveAlertSettings);
   document.getElementById('michattaUnlockBtn').addEventListener('click', michattaUnlockPremium);
   document.getElementById('imageBase64Count').addEventListener('change', (event) => {
@@ -826,6 +843,15 @@ async function saveSettings() {
     }
 
     showMessage('設定を保存しました', 'success');
+
+    // みちゃった君: 保存が成功した時点で background.js 側も enableMichatta の
+    // 最新値を参照できるようになる（MED-1対応）。ON保存なら、フォールバック値
+    // ではない正しい件数・アラート設定・プレミアム状態を取得し直す。
+    michattaSavedEnabled = settings.enableMichatta;
+    if (settings.enableMichatta) {
+      michattaInitHistorySection();
+    }
+    michattaUpdateUnsavedNotice();
 
   } catch (error) {
     console.error('Error saving settings:', error);
@@ -1220,6 +1246,185 @@ async function michattaExportItems() {
   michattaShowMessage('michattaRegisterStatus', `${ids.length}件をエクスポートしました`);
 }
 
+// ============================================================
+// みちゃった君: 履歴CSVインポート機能（フェーズ3, 設計書§8-2）
+// パース系・マージ計算系（michattaParseCsvLine / michattaParseHistoryCsv /
+// michattaComputeMergedBulk）は純粋関数として実装する（DOM/chrome APIに依存しない。
+// Node.js から直接テストするため）。
+// ============================================================
+
+// CSVの1行をダブルクォート対応でパースし、フィールド配列を返す汎用ヘルパー。
+// クォートで囲まれたフィールド内の `,` や、エスケープされた `""` に対応する。
+function michattaParseCsvLine(line) {
+  const fields = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') {
+          field += '"';
+          i++; // エスケープされた "" は 1 個の " として扱い、2文字分読み進める
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ',') {
+      fields.push(field);
+      field = '';
+    } else {
+      field += ch;
+    }
+  }
+  fields.push(field);
+  return fields;
+}
+
+// みちゃった君の履歴CSV文字列（popup.js:241-273 形式）をパースする。
+// 戻り値: { rows: [{id, timestamp}, ...], skipped: number }
+function michattaParseHistoryCsv(csvText) {
+  const rows = [];
+  let skipped = 0;
+
+  // 先頭のUTF-8 BOM（U+FEFF）を除去する（無くても正常動作する）
+  let text = csvText;
+  if (text.length > 0 && text.charCodeAt(0) === 0xFEFF) {
+    text = text.slice(1);
+  }
+
+  // 改行は CRLF / LF / CR いずれにも対応する
+  const lines = text.split(/\r\n|\n|\r/);
+
+  // 1行目がヘッダー行（1列目が大小問わず "id"）であれば読み飛ばす
+  let startIndex = 0;
+  if (lines.length > 0) {
+    const firstFields = michattaParseCsvLine(lines[0]);
+    if (firstFields.length > 0 && String(firstFields[0]).trim().toLowerCase() === 'id') {
+      startIndex = 1;
+    }
+  }
+
+  for (let i = startIndex; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trim() === '') continue; // 空行はスキップ（skippedにカウントしない）
+
+    const fields = michattaParseCsvLine(line);
+    const id = (fields[0] || '').trim();
+    const timestampRaw = fields[2] !== undefined ? fields[2].trim() : '';
+    const timestamp = Number(timestampRaw);
+
+    // 不正行（idが空、またはtimestamp_msが正の整数として解釈できない）はrowsに含めない
+    if (!id || !Number.isInteger(timestamp) || timestamp <= 0) {
+      skipped++;
+      continue;
+    }
+
+    rows.push({ id, timestamp });
+  }
+
+  return { rows, skipped };
+}
+
+// 既存の {id: timestamp} マップとパース済み行配列から、保存すべき {id: timestamp} を計算する。
+// 同一idについて既存値・CSV値・CSV内の重複行同士を比較し、常に一番大きい（新しい）
+// timestampを採用する（既存の方が新しければCSV側の古い値で上書きしない。§10決定済み事項）。
+function michattaComputeMergedBulk(existingMap, rows) {
+  const merged = {};
+  Object.keys(existingMap || {}).forEach((id) => {
+    merged[id] = existingMap[id];
+  });
+
+  (rows || []).forEach(({ id, timestamp }) => {
+    merged[id] = (merged[id] === undefined) ? timestamp : Math.max(merged[id], timestamp);
+  });
+
+  return merged;
+}
+
+// ここから下はDOM/chrome APIを使うオーケストレーション関数（純粋関数ではない）
+
+// FileReaderを使い、選択されたファイルの内容をテキストとしてPromiseで読み込む
+function michattaReadFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error('ファイルの読み込みに失敗しました'));
+    reader.readAsText(file);
+  });
+}
+
+// idsを500件ずつのチャンクに分割し、getViewedItemsBatchで既存の記録を取得して1つにまとめる
+async function michattaFetchExistingBatch(ids) {
+  const CHUNK_SIZE = 500;
+  const merged = {};
+  for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+    const chunk = ids.slice(i, i + CHUNK_SIZE);
+    const result = await window.MichattaStorage.getViewedItemsBatch(chunk);
+    Object.assign(merged, result || {});
+  }
+  return merged;
+}
+
+// bulkObjのエントリを500件ずつのチャンクに分割し、saveViewedItemsBulkでバッチ保存する。
+// 戻り値: 保存に失敗したチャンクがあれば true を含む { hadFailure: boolean }
+// （saveViewedItemsBulkはIndexedDB書き込み失敗時にfalseを返す実装のため、
+// 呼び出し側で戻り値を確認しないと「取込N件」の表示が実態と食い違う恐れがある）
+async function michattaSaveBulkChunked(bulkObj) {
+  const CHUNK_SIZE = 500;
+  const entries = Object.entries(bulkObj);
+  let hadFailure = false;
+  for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
+    const chunkEntries = entries.slice(i, i + CHUNK_SIZE);
+    const chunkObj = {};
+    chunkEntries.forEach(([id, ts]) => { chunkObj[id] = ts; });
+    const success = await window.MichattaStorage.saveViewedItemsBulk(chunkObj);
+    if (!success) hadFailure = true;
+  }
+  return { hadFailure };
+}
+
+// 履歴CSVインポートのfile input changeイベントハンドラ
+async function michattaImportHistoryCsv(event) {
+  const input = event.target;
+  const file = input.files && input.files[0];
+  if (!file) return;
+
+  try {
+    if (!window.MichattaStorage) return;
+
+    const text = await michattaReadFileAsText(file);
+    const { rows, skipped } = michattaParseHistoryCsv(text);
+
+    if (rows.length === 0) {
+      michattaShowMessage('michattaImportStatus', `取込0件・スキップ${skipped}件`, true);
+      return;
+    }
+
+    const ids = rows.map((r) => r.id);
+    const existingMap = await michattaFetchExistingBatch(ids);
+    const mergedBulk = michattaComputeMergedBulk(existingMap, rows);
+    const { hadFailure } = await michattaSaveBulkChunked(mergedBulk);
+
+    if (hadFailure) {
+      michattaShowMessage('michattaImportStatus', `取込${rows.length}件・スキップ${skipped}件（一部の保存に失敗しました。もう一度お試しください）`, true);
+    } else {
+      michattaShowMessage('michattaImportStatus', `取込${rows.length}件・スキップ${skipped}件`);
+    }
+    await michattaUpdateCount();
+  } catch (error) {
+    console.error('[みちゃった君] 履歴CSVインポートエラー:', error);
+    michattaShowMessage('michattaImportStatus', '読み込みに失敗しました', true);
+  } finally {
+    // 同じファイルを連続選択できるよう、処理後は必ずvalueをクリアする
+    input.value = '';
+  }
+}
+
 // アラート設定を保存（元 popup.js:276-294。保存キー名(ratings/badRate/listedDays/
 // updatedDays/shipping47/shipping8)は元のまま。DOM idのみ michattaAlert* に変更）
 async function michattaSaveAlertSettings() {
@@ -1289,6 +1494,17 @@ function michattaUpdateSectionVisibility() {
   const section = document.getElementById('michattaHistorySection');
   if (!toggle || !section) return;
   section.style.display = toggle.checked ? '' : 'none';
+}
+
+// 未保存警告の表示切替（MED-1対応）。
+// 「トグルがONだが、まだ保存されていない（michattaSavedEnabledがfalse）」場合にのみ表示する。
+// トグルOFF、またはトグルONかつ既に保存済み（michattaSavedEnabled === true）の場合は非表示。
+function michattaUpdateUnsavedNotice() {
+  const toggle = document.getElementById('enableMichatta');
+  const notice = document.getElementById('michattaUnsavedNotice');
+  if (!toggle || !notice) return;
+  const shouldShow = toggle.checked && !michattaSavedEnabled;
+  notice.style.display = shouldShow ? '' : 'none';
 }
 
 // 閲覧履歴セクションの初期化（件数・アラート設定・会員状態の読み込み。元 popup.js の init() 相当）
