@@ -266,12 +266,6 @@
       border: 1px solid #ef9a9a;
     }
 
-    /* みちゃった君: 会員専用機能が未解除のときアラート閾値設定をロック表示（元 popup.html #alertSettings.locked と同一挙動） */
-    .michatta-locked {
-      opacity: 0.5;
-      pointer-events: none;
-    }
-
     .site-badge {
       display: inline-block;
       padding: 4px 10px;
@@ -1336,60 +1330,6 @@ function doPost(e) {
           単体版でエクスポートしたCSVを読み込んで、閲覧履歴に取り込みます。同じ商品IDが両方にある場合は新しい方の記録を採用します。
         </div>
         <div class="status-message" id="michattaImportStatus"></div>
-
-        <h3 class="section-title" style="margin-top: 30px;">会員専用機能</h3>
-        <div class="setting-item" id="michattaPremiumLocked">
-          <div class="setting-description">チェック機能・アラート機能を使うには会員パスが必要です</div>
-          <div style="display: flex; gap: 8px; align-items: center;">
-            <input type="text" id="michattaPremiumPass" placeholder="会員パスを入力" style="flex: 1;">
-            <button type="button" class="btn-verify" id="michattaUnlockBtn">解除</button>
-          </div>
-        </div>
-        <div class="setting-item" id="michattaPremiumUnlocked" style="display: none;">
-          <div class="setting-description" style="color: #2e7d32; font-weight: bold;">会員機能が有効です</div>
-        </div>
-
-        <h3 class="section-title" style="margin-top: 30px;">アラート閾値設定</h3>
-        <div id="michattaAlertSettingsBlock">
-          <div class="compact-row">
-            <div class="label-block"><span class="label">評価件数</span><span class="desc">この件数以下でアラート。</span></div>
-            <div class="input-block"><input type="number" id="michattaAlertRatings" min="0"><span>件 以下</span></div>
-          </div>
-          <div class="compact-row">
-            <div class="label-block"><span class="label">悪い評価の割合</span><span class="desc">この割合以上でアラート。</span></div>
-            <div class="input-block"><input type="number" id="michattaAlertBadRate" min="0" max="100"><span>% 以上</span></div>
-          </div>
-          <div class="compact-row">
-            <div class="label-block"><span class="label">出品経過日数</span><span class="desc">出品から経過した日数。</span></div>
-            <div class="input-block"><input type="number" id="michattaAlertListedDays" min="0"><span>日 以上</span></div>
-          </div>
-          <div class="compact-row">
-            <div class="label-block"><span class="label">更新経過日数</span><span class="desc">最終更新から経過した日数。</span></div>
-            <div class="input-block"><input type="number" id="michattaAlertUpdatedDays" min="0"><span>日 以上</span></div>
-          </div>
-          <div class="compact-row">
-            <div class="label-block"><span class="label">発送日数</span></div>
-            <div class="input-block">
-              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                <input type="checkbox" id="michattaAlertShipping47" style="width: 18px; height: 18px;">
-                <span>4〜7日でアラート</span>
-              </label>
-            </div>
-          </div>
-          <div class="compact-row">
-            <div class="label-block"></div>
-            <div class="input-block">
-              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                <input type="checkbox" id="michattaAlertShipping8" style="width: 18px; height: 18px;">
-                <span>8日以上でアラート</span>
-              </label>
-            </div>
-          </div>
-          <div style="margin-top: 10px;">
-            <button type="button" class="btn-verify" id="michattaSaveAlertBtn">アラート設定を保存</button>
-          </div>
-          <div class="status-message" id="michattaAlertStatus"></div>
-        </div>
       </div>
 
       <!-- 保存ボタン -->

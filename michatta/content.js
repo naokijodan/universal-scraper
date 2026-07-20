@@ -16,21 +16,6 @@
     });
   }
 
-  // 会員機能が解除されているか確認
-  async function isPremiumUnlocked() {
-    return whenStorageReady(() => window.MichattaStorage.isPremiumUnlocked());
-  }
-
-  // デフォルトのアラート設定
-  const DEFAULT_ALERT_SETTINGS = {
-    ratings: 100,
-    badRate: 5,
-    listedDays: 180,
-    updatedDays: 90,
-    shipping47: false,
-    shipping8: false
-  };
-
   // チェック用タブかどうか（_mcheck=1 パラメータがあるか）
   const isCheckTab = window.location.search.includes('_mcheck=1');
 
@@ -40,53 +25,6 @@
   // マーク済み itemId を記憶（MutationObserver による重複マーク防止）
   // URL変更時にクリアされる（SPA対応、実際のクリア用タイマーは init() 内で enableMichatta 確認後に開始）
   const markedItemIds = new Set();
-
-  // アラート設定を取得
-  async function getAlertSettings() {
-    return whenStorageReady(() => window.MichattaStorage.getAlertSettings());
-  }
-
-  // アラート判定
-  function checkAlerts(details, settings) {
-    const alerts = [];
-
-    // 評価件数チェック（設定値以下でアラート）
-    if (settings.ratings > 0 && details.ratings <= settings.ratings) {
-      alerts.push({ type: 'ratings', message: `評価${details.ratings}件` });
-    }
-
-    // 悪い評価の割合チェック（設定値以上でアラート）
-    if (settings.badRate > 0 && details.badRatePercent >= settings.badRate) {
-      alerts.push({ type: 'badRate', message: `悪い評価${details.badRatePercent.toFixed(1)}%` });
-    }
-
-    // 出品経過日数チェック（設定値以上でアラート）
-    if (settings.listedDays > 0 && details.listedDays !== undefined && details.listedDays >= settings.listedDays) {
-      alerts.push({ type: 'listedDays', message: `出品から${details.listedDays}日経過` });
-    }
-
-    // 更新経過日数チェック（設定値以上でアラート）
-    if (settings.updatedDays > 0 && details.updatedDays !== undefined && details.updatedDays >= settings.updatedDays) {
-      alerts.push({ type: 'updatedDays', message: `更新から${details.updatedDays}日経過` });
-    }
-
-    // 発送日数チェック（4〜7日）
-    if (settings.shipping47 && details.shippingDays) {
-      if (details.shippingDays.includes('4') && details.shippingDays.includes('7')) {
-        alerts.push({ type: 'shipping', message: '発送4〜7日' });
-      }
-    }
-
-    // 発送日数チェック（8日以上）
-    if (settings.shipping8 && details.shippingDays) {
-      // 「8日以上」や数値が8以上の場合
-      if (details.shippingDays.includes('8') || /[89]\d*/.test(details.shippingDays)) {
-        alerts.push({ type: 'shipping', message: '発送8日以上' });
-      }
-    }
-
-    return alerts;
-  }
 
   // 現在のサイトを判定
   function getCurrentSite() {
@@ -713,10 +651,6 @@
           throw new Error('詳細なし');
         }
 
-        // アラート設定を取得してチェック
-        const alertSettings = await getAlertSettings();
-        const alerts = checkAlerts(details, alertSettings);
-
         // 売り切れチェック
         const isSold = details.status === 'sold_out' || details.status === 'trading';
         const soldBadge = isSold ? '<span class="mercari-detail-sold">SOLD</span>' : '';
@@ -743,16 +677,6 @@
           </div>`;
         }
 
-        // アラート表示
-        let alertsHtml = '';
-        if (alerts.length > 0) {
-          alertsHtml = '<div class="mercari-detail-alerts">';
-          alerts.forEach(alert => {
-            alertsHtml += `<span class="mercari-detail-alert">${escapeHtml(alert.message)}</span>`;
-          });
-          alertsHtml += '</div>';
-        }
-
         panel.innerHTML = `
           <div class="mercari-detail-content">
             <div class="mercari-detail-header">
@@ -760,7 +684,6 @@
               ${soldBadge}
               <button class="mercari-detail-close-x" data-item-id="${itemId}">✕</button>
             </div>
-            ${alertsHtml}
             <div class="mercari-detail-body">
               <div class="mercari-detail-row">
                 <span class="mercari-detail-label">評価件数</span>

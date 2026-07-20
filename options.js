@@ -490,8 +490,6 @@ function setupEventListeners() {
     document.getElementById('michattaImportFile').click();
   });
   document.getElementById('michattaImportFile').addEventListener('change', michattaImportHistoryCsv);
-  document.getElementById('michattaSaveAlertBtn').addEventListener('click', michattaSaveAlertSettings);
-  document.getElementById('michattaUnlockBtn').addEventListener('click', michattaUnlockPremium);
   document.getElementById('imageBase64Count').addEventListener('change', (event) => {
     const count = parseInt(event.target.value, 10);
     if (count >= 2) {
@@ -1434,69 +1432,6 @@ async function michattaImportHistoryCsv(event) {
   }
 }
 
-// アラート設定を保存（元 popup.js:276-294。保存キー名(ratings/badRate/listedDays/
-// updatedDays/shipping47/shipping8)は元のまま。DOM idのみ michattaAlert* に変更）
-async function michattaSaveAlertSettings() {
-  if (!window.MichattaStorage) return;
-  const settings = {
-    ratings: parseInt(document.getElementById('michattaAlertRatings').value) || 0,
-    badRate: parseInt(document.getElementById('michattaAlertBadRate').value) || 0,
-    listedDays: parseInt(document.getElementById('michattaAlertListedDays').value) || 0,
-    updatedDays: parseInt(document.getElementById('michattaAlertUpdatedDays').value) || 0,
-    shipping47: document.getElementById('michattaAlertShipping47').checked,
-    shipping8: document.getElementById('michattaAlertShipping8').checked
-  };
-
-  await window.MichattaStorage.saveAlertSettings(settings);
-  michattaShowMessage('michattaAlertStatus', '設定を保存しました');
-}
-
-// アラート設定をUIに反映（元 popup.js:297-305）
-async function michattaLoadAlertSettings() {
-  if (!window.MichattaStorage) return;
-  const settings = await window.MichattaStorage.getAlertSettings();
-  document.getElementById('michattaAlertRatings').value = settings.ratings;
-  document.getElementById('michattaAlertBadRate').value = settings.badRate;
-  document.getElementById('michattaAlertListedDays').value = settings.listedDays;
-  document.getElementById('michattaAlertUpdatedDays').value = settings.updatedDays;
-  document.getElementById('michattaAlertShipping47').checked = settings.shipping47;
-  document.getElementById('michattaAlertShipping8').checked = settings.shipping8;
-}
-
-// 会員パスで解除（元 popup.js:1, 308-317。パスワードは忠実移植のためハードコード値のまま
-// 変更しない。プレミアム解除機能の扱いは設計書§10未決事項だが、今回の指示は「単体版と
-// 同じ仕組みをそのまま移植」のため現状維持で実装する）
-const MICHATTA_PREMIUM_PASS = 'MGOOSE2025';
-
-async function michattaUnlockPremium() {
-  if (!window.MichattaStorage) return;
-  const pass = document.getElementById('michattaPremiumPass').value.trim();
-  if (pass === MICHATTA_PREMIUM_PASS) {
-    await window.MichattaStorage.unlockPremium();
-    michattaShowMessage('michattaRegisterStatus', '会員機能を解除しました！');
-    michattaUpdatePremiumUI(true);
-  } else {
-    michattaShowMessage('michattaRegisterStatus', 'パスワードが違います', true);
-  }
-}
-
-// 会員機能のUI更新（元 popup.js:320-334。#alertSettings.locked → .michatta-locked クラスに対応）
-function michattaUpdatePremiumUI(isUnlocked) {
-  const lockedEl = document.getElementById('michattaPremiumLocked');
-  const unlockedEl = document.getElementById('michattaPremiumUnlocked');
-  const alertSettings = document.getElementById('michattaAlertSettingsBlock');
-
-  if (isUnlocked) {
-    lockedEl.style.display = 'none';
-    unlockedEl.style.display = 'block';
-    if (alertSettings) alertSettings.classList.remove('michatta-locked');
-  } else {
-    lockedEl.style.display = 'block';
-    unlockedEl.style.display = 'none';
-    if (alertSettings) alertSettings.classList.add('michatta-locked');
-  }
-}
-
 // 表示ゲート: enableMichatta が ON のときだけ「閲覧履歴（みちゃった君）」セクションを表示
 function michattaUpdateSectionVisibility() {
   const toggle = document.getElementById('enableMichatta');
@@ -1521,14 +1456,11 @@ function michattaUpdateUnsavedNotice() {
   notice.style.display = shouldShow ? 'block' : 'none';
 }
 
-// 閲覧履歴セクションの初期化（件数・アラート設定・会員状態の読み込み。元 popup.js の init() 相当）
+// 閲覧履歴セクションの初期化（件数の読み込み。元 popup.js の init() 相当）
 async function michattaInitHistorySection() {
   if (!window.MichattaStorage) return;
   try {
     await michattaUpdateCount();
-    await michattaLoadAlertSettings();
-    const isUnlocked = await window.MichattaStorage.isPremiumUnlocked();
-    michattaUpdatePremiumUI(isUnlocked);
   } catch (error) {
     console.error('[みちゃった君] options.html 閲覧履歴セクション初期化エラー:', error);
   }

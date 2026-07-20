@@ -11,8 +11,6 @@ const STORE_SETTINGS = 'settings';
 
 // chrome.storage.localのキー（移行用・バックアップ用）
 const STORAGE_KEY = 'mercari_viewed_items';
-const ALERT_KEY = 'mercari_alert_settings';
-const PREMIUM_KEY = 'mercari_premium_unlocked';
 const MIGRATION_KEY = 'michatta_migration_v2';
 
 // 未処理のPromise rejectionをログに出す
@@ -465,108 +463,6 @@ async function backupToStorageLocal() {
 }
 
 // ==============================
-// 設定の操作
-// ==============================
-
-const DEFAULT_ALERT_SETTINGS = {
-  ratings: 100,
-  badRate: 5,
-  listedDays: 180,
-  updatedDays: 90,
-  shipping47: false,
-  shipping8: false
-};
-
-async function getAlertSettings() {
-  try {
-    const database = await ensureDBReady();
-    const tx = database.transaction(STORE_SETTINGS, 'readonly');
-    const store = tx.objectStore(STORE_SETTINGS);
-
-    return new Promise((resolve) => {
-      const request = store.get('alertSettings');
-      request.onsuccess = () => {
-        const result = request.result;
-        resolve({ ...DEFAULT_ALERT_SETTINGS, ...(result?.value || {}) });
-      };
-      request.onerror = () => resolve(DEFAULT_ALERT_SETTINGS);
-    });
-  } catch (error) {
-    console.error('[みちゃった君 BG] getAlertSettingsエラー:', error);
-    return DEFAULT_ALERT_SETTINGS;
-  }
-}
-
-async function saveAlertSettings(settings) {
-  try {
-    const database = await ensureDBReady();
-    const tx = database.transaction(STORE_SETTINGS, 'readwrite');
-    const store = tx.objectStore(STORE_SETTINGS);
-
-    store.put({ key: 'alertSettings', value: settings });
-
-    await new Promise((resolve, reject) => {
-      tx.oncomplete = resolve;
-      tx.onerror = () => reject(tx.error);
-    });
-
-    // バックアップ
-    chrome.storage.local.set({ [ALERT_KEY]: settings }).catch((error) => {
-      console.error('[みちゃった君 BG] アラート設定バックアップエラー:', error);
-    });
-
-    return true;
-  } catch (error) {
-    console.error('[みちゃった君 BG] saveAlertSettingsエラー:', error);
-    return false;
-  }
-}
-
-async function isPremiumUnlocked() {
-  try {
-    const database = await ensureDBReady();
-    const tx = database.transaction(STORE_SETTINGS, 'readonly');
-    const store = tx.objectStore(STORE_SETTINGS);
-
-    return new Promise((resolve) => {
-      const request = store.get('premiumUnlocked');
-      request.onsuccess = () => {
-        resolve(request.result?.value === true);
-      };
-      request.onerror = () => resolve(false);
-    });
-  } catch (error) {
-    console.error('[みちゃった君 BG] isPremiumUnlockedエラー:', error);
-    return false;
-  }
-}
-
-async function unlockPremium() {
-  try {
-    const database = await ensureDBReady();
-    const tx = database.transaction(STORE_SETTINGS, 'readwrite');
-    const store = tx.objectStore(STORE_SETTINGS);
-
-    store.put({ key: 'premiumUnlocked', value: true });
-
-    await new Promise((resolve, reject) => {
-      tx.oncomplete = resolve;
-      tx.onerror = () => reject(tx.error);
-    });
-
-    // バックアップ
-    chrome.storage.local.set({ [PREMIUM_KEY]: true }).catch((error) => {
-      console.error('[みちゃった君 BG] 会員情報バックアップエラー:', error);
-    });
-
-    return true;
-  } catch (error) {
-    console.error('[みちゃった君 BG] unlockPremiumエラー:', error);
-    return false;
-  }
-}
-
-// ==============================
 // データ移行
 // ==============================
 
@@ -592,7 +488,7 @@ async function migrateFromStorageLocal() {
 
     // 旧データを取得
     const legacyData = await new Promise((resolve, reject) => {
-      chrome.storage.local.get([STORAGE_KEY, ALERT_KEY, PREMIUM_KEY], (result) => {
+      chrome.storage.local.get([STORAGE_KEY], (result) => {
         if (chrome.runtime.lastError) {
           reject(new Error(chrome.runtime.lastError.message));
           return;
@@ -620,18 +516,6 @@ async function migrateFromStorageLocal() {
       }
 
       console.log('[みちゃった君 BG] 閲覧履歴の移行完了');
-    }
-
-    // アラート設定を移行
-    if (legacyData[ALERT_KEY]) {
-      await saveAlertSettings(legacyData[ALERT_KEY]);
-      console.log('[みちゃった君 BG] アラート設定を移行完了');
-    }
-
-    // 会員情報を移行
-    if (legacyData[PREMIUM_KEY]) {
-      await unlockPremium();
-      console.log('[みちゃった君 BG] 会員情報を移行完了');
     }
 
     // 移行完了フラグ
@@ -735,26 +619,6 @@ async function handleStorageMessage(request, sendResponse) {
 
       case 'clearAllViewedItems':
         result = await clearAllViewedItems();
-        sendResponse({ success: result });
-        break;
-
-      case 'getAlertSettings':
-        result = await getAlertSettings();
-        sendResponse({ success: true, settings: result });
-        break;
-
-      case 'saveAlertSettings':
-        result = await saveAlertSettings(params.settings);
-        sendResponse({ success: result });
-        break;
-
-      case 'isPremiumUnlocked':
-        result = await isPremiumUnlocked();
-        sendResponse({ success: true, unlocked: result });
-        break;
-
-      case 'unlockPremium':
-        result = await unlockPremium();
         sendResponse({ success: result });
         break;
 

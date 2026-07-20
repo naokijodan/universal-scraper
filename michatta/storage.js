@@ -99,59 +99,6 @@ async function clearAllViewedItems() {
 }
 
 // ==============================
-// 設定の操作
-// ==============================
-
-async function getAlertSettings() {
-  const DEFAULT_ALERT_SETTINGS = {
-    ratings: 100,
-    badRate: 5,
-    listedDays: 180,
-    updatedDays: 90,
-    shipping47: false,
-    shipping8: false
-  };
-
-  try {
-    const response = await sendStorageMessage('getAlertSettings');
-    return response.settings || DEFAULT_ALERT_SETTINGS;
-  } catch (error) {
-    console.error('[みちゃった君] getAlertSettingsエラー:', error);
-    return DEFAULT_ALERT_SETTINGS;
-  }
-}
-
-async function saveAlertSettings(settings) {
-  try {
-    const response = await sendStorageMessage('saveAlertSettings', { settings });
-    return response.success;
-  } catch (error) {
-    console.error('[みちゃった君] saveAlertSettingsエラー:', error);
-    return false;
-  }
-}
-
-async function isPremiumUnlocked() {
-  try {
-    const response = await sendStorageMessage('isPremiumUnlocked');
-    return response.unlocked || false;
-  } catch (error) {
-    console.error('[みちゃった君] isPremiumUnlockedエラー:', error);
-    return false;
-  }
-}
-
-async function unlockPremium() {
-  try {
-    const response = await sendStorageMessage('unlockPremium');
-    return response.success;
-  } catch (error) {
-    console.error('[みちゃった君] unlockPremiumエラー:', error);
-    return false;
-  }
-}
-
-// ==============================
 // グローバルに公開（content.js, popup.jsから使用）
 // ==============================
 
@@ -164,10 +111,6 @@ if (typeof window !== 'undefined') {
     saveViewedItem,
     saveViewedItemsBulk,
     getViewedItemsCount,
-    clearAllViewedItems,
-    getAlertSettings,
-    saveAlertSettings,
-    isPremiumUnlocked,
-    unlockPremium
+    clearAllViewedItems
   };
 }
