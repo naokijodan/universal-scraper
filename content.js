@@ -304,7 +304,8 @@ function isNoiseText(text) {
     alertLowReviewCount: 100,
     alertDaysFromListing: 180,
     alertDaysFromUpdate: 90,
-    alertHandlingDays: false
+    alertHandlingDays: false,
+    alertShipFromRemote: true
   });
 
   // aiPlatforms のサブキーマージ（既存ユーザーの保存値に新サイト keys が無い場合に
@@ -668,6 +669,42 @@ function isNoiseText(text) {
           icon: '⚠️',
           title: '注目キーワード検出',
           message: keywordInfo.foundAttentionKeywords.join(', ')
+        });
+      }
+    }
+
+    // 除外セラーのチェック（完全一致のみ。部分一致は誤検知するため使わない）
+    if (data.seller && Array.isArray(settings.excludeSellerIds) && settings.excludeSellerIds.length > 0) {
+      const sellerId = data.seller.toString().trim().toLowerCase();
+      const isExcludedSeller = settings.excludeSellerIds.some(id =>
+        id && id.toString().trim().toLowerCase() === sellerId
+      );
+      if (isExcludedSeller) {
+        alerts.push({
+          type: 'error',
+          icon: '🚫',
+          title: '除外セラー',
+          message: data.seller
+        });
+      }
+    }
+
+    // 発送元地域のチェック（北海道・沖縄）。shipFrom を持たないサイトでは何もしない
+    if (settings.alertShipFromRemote !== false && data.shipFrom) {
+      const shipFrom = data.shipFrom.toString();
+      if (shipFrom.includes('北海道')) {
+        alerts.push({
+          type: 'warning',
+          icon: '⚠️',
+          title: '発送元: 北海道',
+          message: shipFrom
+        });
+      } else if (shipFrom.includes('沖縄')) {
+        alerts.push({
+          type: 'warning',
+          icon: '⚠️',
+          title: '発送元: 沖縄',
+          message: shipFrom
         });
       }
     }

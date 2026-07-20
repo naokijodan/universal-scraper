@@ -72,6 +72,7 @@ const defaultSettings = {
   enableHardoff: true,
   alertKeywords: defaultAlertKeywords().join('\n'), // 除外キーワード（赤ハイライト）
   popupKeywords: defaultPopupKeywords().join('\n'), // 注目キーワード（黄色ハイライト）
+  excludeSellerIds: [], // 除外セラー（出品者ID完全一致で警告）
   buttonPosition: 'top-right',
   spreadsheets: [], // 複数スプレッドシート対応
   lastUsedSheetId: null, // 最後に使ったシートID
@@ -95,6 +96,7 @@ const defaultSettings = {
   alertDaysFromListing: 180,
   alertDaysFromUpdate: 90,
   alertHandlingDays: false,
+  alertShipFromRemote: true,
   // AI 翻訳設定（chrome.storage.sync に保存）。API キーは別管理で chrome.storage.local
   aiTranslationEnabled: false,
   aiModel: 'gpt-5.4-mini',
@@ -232,6 +234,7 @@ async function loadSettings() {
     // その他の設定値を設定
     document.getElementById('alertKeywords').value = syncSettings.alertKeywords;
     document.getElementById('popupKeywords').value = syncSettings.popupKeywords;
+    document.getElementById('excludeSellerIds').value = Array.isArray(syncSettings.excludeSellerIds) ? syncSettings.excludeSellerIds.join('\n') : '';
     document.getElementById('buttonPosition').value = syncSettings.buttonPosition;
 
     // 画像出力設定を設定
@@ -257,6 +260,7 @@ async function loadSettings() {
     document.getElementById('alertDaysFromListing').value = syncSettings.alertDaysFromListing || 180;
     document.getElementById('alertDaysFromUpdate').value = syncSettings.alertDaysFromUpdate || 90;
     document.getElementById('alertHandlingDays').checked = syncSettings.alertHandlingDays || false;
+    document.getElementById('alertShipFromRemote').checked = syncSettings.alertShipFromRemote !== false;
 
     // スプレッドシート一覧を表示（同期設定から）
     renderSpreadsheetList(syncSettings.spreadsheets || []);
@@ -772,6 +776,7 @@ async function saveSettings() {
       // enable* キーは「対応プラットフォーム」マトリクス UI から後方の spread で保存
       alertKeywords: document.getElementById('alertKeywords').value,
       popupKeywords: document.getElementById('popupKeywords').value,
+      excludeSellerIds: document.getElementById('excludeSellerIds').value.split('\n').map(s => s.trim()).filter(s => s),
       buttonPosition: document.getElementById('buttonPosition').value,
       imageOutputCount: (() => { const v = parseInt(document.getElementById('imageOutputCount').value); return isNaN(v) ? 999 : v; })(),
       imageBase64Count: (() => { const v = parseInt(document.getElementById('imageBase64Count').value, 10); return isNaN(v) ? 1 : Math.min(Math.max(v, 1), 10); })(),
@@ -793,6 +798,7 @@ async function saveSettings() {
       alertDaysFromListing: parseInt(document.getElementById('alertDaysFromListing').value) || 180,
       alertDaysFromUpdate: parseInt(document.getElementById('alertDaysFromUpdate').value) || 90,
       alertHandlingDays: document.getElementById('alertHandlingDays').checked,
+      alertShipFromRemote: document.getElementById('alertShipFromRemote').checked,
       // AI 翻訳設定（API キーは含めない、別ストレージ）
       aiTranslationEnabled: document.getElementById('aiTranslationEnabled').checked,
       aiWebSearchEnabled: document.getElementById('aiWebSearchEnabled').checked,
