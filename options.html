@@ -1254,10 +1254,19 @@ function doPost(e) {
             </div>
           </div>
           <div class="compact-row">
-            <div class="label-block"><span class="label">発送元アラート</span><span class="desc">発送元に「北海道」「沖縄」が含まれる場合に警告する。</span></div>
+            <div class="label-block"><span class="label">発送元が北海道の場合に警告</span><span class="desc">発送元に「北海道」が含まれる場合に警告する。</span></div>
             <div class="input-block">
               <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                <input type="checkbox" id="alertShipFromRemote" style="width: 18px; height: 18px;">
+                <input type="checkbox" id="alertShipFromHokkaido" style="width: 18px; height: 18px;">
+                <span>有効</span>
+              </label>
+            </div>
+          </div>
+          <div class="compact-row">
+            <div class="label-block"><span class="label">発送元が沖縄の場合に警告</span><span class="desc">発送元に「沖縄」が含まれる場合に警告する。</span></div>
+            <div class="input-block">
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="checkbox" id="alertShipFromOkinawa" style="width: 18px; height: 18px;">
                 <span>有効</span>
               </label>
             </div>

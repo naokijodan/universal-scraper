@@ -305,7 +305,8 @@ function isNoiseText(text) {
     alertDaysFromListing: 180,
     alertDaysFromUpdate: 90,
     alertHandlingDays: false,
-    alertShipFromRemote: true
+    alertShipFromHokkaido: true,
+    alertShipFromOkinawa: true
   });
 
   // aiPlatforms のサブキーマージ（既存ユーザーの保存値に新サイト keys が無い場合に
@@ -690,16 +691,17 @@ function isNoiseText(text) {
     }
 
     // 発送元地域のチェック（北海道・沖縄）。shipFrom を持たないサイトでは何もしない
-    if (settings.alertShipFromRemote !== false && data.shipFrom) {
+    if (data.shipFrom) {
       const shipFrom = data.shipFrom.toString();
-      if (shipFrom.includes('北海道')) {
+      if (settings.alertShipFromHokkaido !== false && shipFrom.includes('北海道')) {
         alerts.push({
           type: 'warning',
           icon: '⚠️',
           title: '発送元: 北海道',
           message: shipFrom
         });
-      } else if (shipFrom.includes('沖縄')) {
+      }
+      if (settings.alertShipFromOkinawa !== false && shipFrom.includes('沖縄')) {
         alerts.push({
           type: 'warning',
           icon: '⚠️',

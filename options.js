@@ -96,7 +96,8 @@ const defaultSettings = {
   alertDaysFromListing: 180,
   alertDaysFromUpdate: 90,
   alertHandlingDays: false,
-  alertShipFromRemote: true,
+  alertShipFromHokkaido: true,
+  alertShipFromOkinawa: true,
   // AI 翻訳設定（chrome.storage.sync に保存）。API キーは別管理で chrome.storage.local
   aiTranslationEnabled: false,
   aiModel: 'gpt-5.4-mini',
@@ -260,7 +261,8 @@ async function loadSettings() {
     document.getElementById('alertDaysFromListing').value = syncSettings.alertDaysFromListing || 180;
     document.getElementById('alertDaysFromUpdate').value = syncSettings.alertDaysFromUpdate || 90;
     document.getElementById('alertHandlingDays').checked = syncSettings.alertHandlingDays || false;
-    document.getElementById('alertShipFromRemote').checked = syncSettings.alertShipFromRemote !== false;
+    document.getElementById('alertShipFromHokkaido').checked = syncSettings.alertShipFromHokkaido !== false;
+    document.getElementById('alertShipFromOkinawa').checked = syncSettings.alertShipFromOkinawa !== false;
 
     // スプレッドシート一覧を表示（同期設定から）
     renderSpreadsheetList(syncSettings.spreadsheets || []);
@@ -798,7 +800,8 @@ async function saveSettings() {
       alertDaysFromListing: parseInt(document.getElementById('alertDaysFromListing').value) || 180,
       alertDaysFromUpdate: parseInt(document.getElementById('alertDaysFromUpdate').value) || 90,
       alertHandlingDays: document.getElementById('alertHandlingDays').checked,
-      alertShipFromRemote: document.getElementById('alertShipFromRemote').checked,
+      alertShipFromHokkaido: document.getElementById('alertShipFromHokkaido').checked,
+      alertShipFromOkinawa: document.getElementById('alertShipFromOkinawa').checked,
       // AI 翻訳設定（API キーは含めない、別ストレージ）
       aiTranslationEnabled: document.getElementById('aiTranslationEnabled').checked,
       aiWebSearchEnabled: document.getElementById('aiWebSearchEnabled').checked,
