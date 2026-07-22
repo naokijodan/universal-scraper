@@ -1013,9 +1013,10 @@
         <div class="setting-item">
           <label class="setting-label" for="imageBase64Count">セル内画像にする枚数（メルカリ非経由）</label>
           <div class="setting-description">
-            先頭から指定した枚数を、Googleホストのセル内画像として保存します（翻訳時にメルカリへアクセスしません）。残りは=IMAGEのまま。枚数を増やすほど取り込みに時間がかかり1日の処理件数が減ります（1枚約1.4秒）。通常は1枚で十分です。
+            先頭から指定した枚数を、Googleホストのセル内画像として保存します（翻訳時にメルカリへアクセスしません）。残りは=IMAGEのまま。枚数を増やすほど取り込みに時間がかかり1日の処理件数が減ります（1枚約1.4秒）。通常は1枚で十分です。0枚を選ぶとセル内画像を作らず、全画像がURL（=IMAGE）のままになります（メルカリ非経由の保護は働きません）。
           </div>
           <select id="imageBase64Count" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; margin-top: 10px;">
+            <option value="0">0枚（セル内画像にしない・URLのまま）</option>
             <option value="1" selected>1枚</option>
             <option value="2">2枚</option>
             <option value="3">3枚</option>

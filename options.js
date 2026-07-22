@@ -240,7 +240,7 @@ async function loadSettings() {
 
     // 画像出力設定を設定
     document.getElementById('imageOutputCount').value = syncSettings.imageOutputCount;
-    document.getElementById('imageBase64Count').value = (syncSettings.imageBase64Count || 1);
+    document.getElementById('imageBase64Count').value = (() => { const v = parseInt(syncSettings.imageBase64Count, 10); return Number.isFinite(v) ? Math.min(Math.max(v, 0), 10) : 1; })();
     document.getElementById('enableImageInClipboard').checked = syncSettings.enableImageInClipboard;
 
     // 画像読み込み待機時間を設定
@@ -492,6 +492,9 @@ function setupEventListeners() {
   document.getElementById('michattaImportFile').addEventListener('change', michattaImportHistoryCsv);
   document.getElementById('imageBase64Count').addEventListener('change', (event) => {
     const count = parseInt(event.target.value, 10);
+    if (count === 0) {
+      alert('0枚にすると、セル内画像は作られず全画像がメルカリ等のURL（=IMAGE式）のままになります。翻訳時にメルカリへ自動アクセスしない「メルカリ非経由」の保護は働きません。');
+    }
     if (count >= 2) {
       alert('画像を増やすほど取り込みに時間がかかり、1日に処理できる件数が減ります（1枚あたり約1.4秒、Googleの実行枠は1アカウント1日90分）。通常は1枚で十分です。');
     }
@@ -779,7 +782,7 @@ async function saveSettings() {
       excludeSellerIds: document.getElementById('excludeSellerIds').value.split('\n').map(s => s.trim()).filter(s => s),
       buttonPosition: document.getElementById('buttonPosition').value,
       imageOutputCount: (() => { const v = parseInt(document.getElementById('imageOutputCount').value); return isNaN(v) ? 999 : v; })(),
-      imageBase64Count: (() => { const v = parseInt(document.getElementById('imageBase64Count').value, 10); return isNaN(v) ? 1 : Math.min(Math.max(v, 1), 10); })(),
+      imageBase64Count: (() => { const v = parseInt(document.getElementById('imageBase64Count').value, 10); return isNaN(v) ? 1 : Math.min(Math.max(v, 0), 10); })(),
       enableImageInClipboard: document.getElementById('enableImageInClipboard').checked,
       enableMichatta: document.getElementById('enableMichatta').checked,
       // 画像読み込み待機時間（秒）

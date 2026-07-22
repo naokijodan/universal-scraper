@@ -42,7 +42,7 @@ const _normalizeImageOutputCount = (value) => {
 const _normalizeImageBase64Count = (value) => {
   const n = parseInt(value, 10);
   if (!Number.isFinite(n)) return 1;
-  return Math.min(Math.max(n, 1), 10);
+  return Math.min(Math.max(n, 0), 10);
 };
 
 const _getMaxImageCount = (imageUrls, value) => {
