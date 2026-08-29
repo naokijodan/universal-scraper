@@ -294,6 +294,11 @@
                    link.closest('article') ||
                    link.closest('li') ||
                    link.parentElement;
+            // メルカリShopsプロフィール「すべての商品」等: <a>がグリッド直下にあり
+            // 親要素が商品一覧全体になる場合はリンク自体をカードとして扱う
+            if (card && card.querySelectorAll('a[href*="/item/"], a[href*="/shops/product/"]').length > 1) {
+              card = link;
+            }
           }
 
           if (card && !card.classList.contains('mercari-viewed-marked')) {
@@ -890,6 +895,11 @@
                link.closest('[data-testid="product-box"]') ||  // メルカリShops
                link.closest('li') ||
                link.parentElement;
+        // メルカリShopsプロフィール「すべての商品」等: <a>がグリッド直下にあり
+        // 親要素が商品一覧全体になる場合はリンク自体をカードとして扱う
+        if (card && card.querySelectorAll('a[href*="/item/"], a[href*="/shops/product/"]').length > 1) {
+          card = link;
+        }
       } else if (site === 'hardoff') {
         card = link.closest('li[class*="product"]') ||
                link.closest('li[class*="item"]') ||
