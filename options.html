@@ -1220,6 +1220,14 @@ function doPost(e) {
           <textarea id="excludeSellerIds" placeholder="例：&#10;seller_id_1&#10;seller_id_2"></textarea>
         </div>
 
+        <div class="setting-item">
+          <label class="setting-label" for="excludeShippingMethods">除外する配送方法（1行に1つ）</label>
+          <div class="setting-description">
+            配送方法にこれらの語が含まれると赤いアラートを表示します（取り込みは止めません）
+          </div>
+          <textarea id="excludeShippingMethods" placeholder="例：&#10;普通郵便&#10;定形&#10;ゆうメール&#10;スマートレター"></textarea>
+        </div>
+
         <h3 class="section-title">フリマ設定（メルカリ、ヤフオク、PayPayフリマ、ラクマ）</h3>
 
         <div>

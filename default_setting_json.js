@@ -238,6 +238,7 @@ const default_setting_json = {
   popupKeywords: defaultPopupKeywords(),
   excludeKeywords: defaultExcludeKeywords(), // 旧設定（互換性のため保持）
   excludeSellerIds: [], // 除外セラーID
+  excludeShippingMethods: ['普通郵便', '定形', 'ゆうメール', 'スマートレター'], // 除外配送方法
 
   // フリマサイト（メルカリ/ヤフオク/PayPayフリマ/ラクマ）専用のアラート条件
   alertBadRate: 5, // 悪い評価率が次以上でアラート（%）

@@ -73,6 +73,7 @@ const defaultSettings = {
   alertKeywords: defaultAlertKeywords().join('\n'), // 除外キーワード（赤ハイライト）
   popupKeywords: defaultPopupKeywords().join('\n'), // 注目キーワード（黄色ハイライト）
   excludeSellerIds: [], // 除外セラー（出品者ID完全一致で警告）
+  excludeShippingMethods: ['普通郵便', '定形', 'ゆうメール', 'スマートレター'], // 除外配送方法（部分一致で警告）
   buttonPosition: 'top-right',
   spreadsheets: [], // 複数スプレッドシート対応
   lastUsedSheetId: null, // 最後に使ったシートID
@@ -236,6 +237,7 @@ async function loadSettings() {
     document.getElementById('alertKeywords').value = syncSettings.alertKeywords;
     document.getElementById('popupKeywords').value = syncSettings.popupKeywords;
     document.getElementById('excludeSellerIds').value = Array.isArray(syncSettings.excludeSellerIds) ? syncSettings.excludeSellerIds.join('\n') : '';
+    document.getElementById('excludeShippingMethods').value = Array.isArray(syncSettings.excludeShippingMethods) ? syncSettings.excludeShippingMethods.join('\n') : defaultSettings.excludeShippingMethods.join('\n');
     document.getElementById('buttonPosition').value = syncSettings.buttonPosition;
 
     // 画像出力設定を設定
@@ -780,6 +782,7 @@ async function saveSettings() {
       alertKeywords: document.getElementById('alertKeywords').value,
       popupKeywords: document.getElementById('popupKeywords').value,
       excludeSellerIds: document.getElementById('excludeSellerIds').value.split('\n').map(s => s.trim()).filter(s => s),
+      excludeShippingMethods: document.getElementById('excludeShippingMethods').value.split('\n').map(s => s.trim()).filter(s => s),
       buttonPosition: document.getElementById('buttonPosition').value,
       imageOutputCount: (() => { const v = parseInt(document.getElementById('imageOutputCount').value); return isNaN(v) ? 999 : v; })(),
       imageBase64Count: (() => { const v = parseInt(document.getElementById('imageBase64Count').value, 10); return isNaN(v) ? 1 : Math.min(Math.max(v, 0), 10); })(),

@@ -290,6 +290,7 @@ function isNoiseText(text) {
     popupKeywords: [],
     excludeKeywords: [],
     excludeSellerIds: [],
+    excludeShippingMethods: ['普通郵便', '定形', 'ゆうメール', 'スマートレター'],
     skipReviewCount: null,
     skipBadRate: null,
     skipDaysFromListing: null,
@@ -686,6 +687,22 @@ function isNoiseText(text) {
           icon: '🚫',
           title: '除外セラー',
           message: data.seller
+        });
+      }
+    }
+
+    // 除外配送方法のチェック（部分一致。サイトごとに「普通郵便（定形、定形外）」のような表記揺れがあるため）
+    if (data.shippingMethod && Array.isArray(settings.excludeShippingMethods) && settings.excludeShippingMethods.length > 0) {
+      const shippingMethod = data.shippingMethod.toString();
+      const matchedShippingMethods = settings.excludeShippingMethods
+        .map(word => (word || '').toString().trim())
+        .filter(word => word && shippingMethod.includes(word));
+      if (matchedShippingMethods.length > 0) {
+        alerts.push({
+          type: 'error',
+          icon: '🚫',
+          title: '除外配送方法',
+          message: data.shippingMethod
         });
       }
     }
