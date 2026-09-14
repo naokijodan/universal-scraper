@@ -1328,7 +1328,8 @@ function isNoiseText(text) {
       const priceEl = document.querySelector('meta[name="product:price:amount"]') || document.querySelector('[data-testid="price"]');
       const hasPrice = priceEl && (priceEl.content?.trim() || priceEl.textContent?.trim());
       const hasLdjson = document.querySelector('script[type="application/ld+json"]');
-      const hasDates = document.querySelector('span[data-testid="更新日時"]') || document.querySelector('span[data-testid="出品日時"]');
+      // 出品日時を必須にする（更新日時は「一度も更新されていない商品」に存在しないため必須にしない）
+      const hasDates = document.querySelector('span[data-testid="出品日時"]') || document.querySelector('span[data-testid="開始日時"]');
       const hasSeller = document.querySelector('a[href^="/user/profile/"]') || document.querySelector('a[href^="/shops/profile/"]');
       return hasTitle && hasPrice && hasLdjson && hasDates && hasSeller;
     };
@@ -1477,6 +1478,22 @@ function isNoiseText(text) {
   loadingIndicator.remove();
 
   _log('✅ データ抽出完了、ボタン作成開始');
+
+  // メルカリ: 出品日時/更新日時が未取得のまま抽出が完了した場合の保険。
+  // バックグラウンドタブで開かれてDOM未描画のまま抽出されたケースを想定し、
+  // タブが表示状態に戻った瞬間に一度だけ再スキャンする（ポーリングはしない）。
+  // 注: 現状 UI 側に日時専用の常設バッジは無く、未取得警告は各送信系ボタンのクリック時に
+  // _mercariRefillDates を呼ぶ形で対応済みのため、ここではデータの補完のみ行いUI再描画は行わない。
+  if ((currentSite === 'mercari' || currentSite === 'mercari_shop') && extractedData && (!extractedData.listedFmt || !extractedData.updatedFmt)) {
+    const _onMercariVisibleForDateRefill = () => {
+      if (document.visibilityState !== 'visible') return;
+      const filled = _mercariRefillDates(extractedData);
+      if (filled) {
+        document.removeEventListener('visibilitychange', _onMercariVisibleForDateRefill);
+      }
+    };
+    document.addEventListener('visibilitychange', _onMercariVisibleForDateRefill);
+  }
 
   // ページ要素をハイライト表示（少し遅延させてDOM構築完了を待つ）
   let detectedKeywords = null;
@@ -1992,6 +2009,8 @@ function isNoiseText(text) {
       Math.pow(e.clientX - dragStartX, 2) + Math.pow(e.clientY - dragStartY, 2)
     );
     if (moveDistance < 5) {
+      // メルカリ: 出品日時が未取得なら再スキャンして補完（多タブ背景ロード対策）
+      _mercariRefillDates(extractedData);
       // データ未取得警告（内容確認時）- 基本項目 + 説明文
       const missingFieldsPreview = _getMissingFields(extractedData, false);
       if (!extractedData.description || extractedData.description === '') {
@@ -2076,6 +2095,9 @@ function isNoiseText(text) {
 
   multiExportBtn.addEventListener('click', async (e) => {
     e.stopPropagation();
+
+    // メルカリ: 出品日時が未取得なら再スキャンして補完（多タブ背景ロード対策）
+    _mercariRefillDates(extractedData);
 
     // 既に開いている場合は閉じる
     if (multiExportPopup) {
@@ -2242,6 +2264,9 @@ function isNoiseText(text) {
   // エクスポートボタンクリック（直接エクスポート）
   exportButton.addEventListener('click', async (e) => {
     e.preventDefault();
+
+    // メルカリ: 出品日時が未取得なら再スキャンして補完（多タブ背景ロード対策）
+    _mercariRefillDates(extractedData);
 
     // データ未取得チェック
     const originalText = exportButton.innerHTML;
@@ -5805,6 +5830,83 @@ function isNoiseText(text) {
   console.log('スプレッドシートエクスポート機能が読み込まれました');
 
   // ==========================================
+  // メルカリ 出品日時・更新日時 取得（多タブ背景ロード対策で再取得できるよう関数化）
+  // ==========================================
+  // 出品日時・更新日時を取得（extractMercariProductData と _mercariRefillDates の両方から使用）
+  function _mercariGetListingDates() {
+    const pick = (sel) => {
+      const el = document.querySelector(sel);
+      if (!el) return '';
+      const t = el.firstChild?.textContent ?? el.textContent ?? '';
+      return t.trim();
+    };
+
+    let listedAt = pick('span[data-testid="出品日時"]') || pick('span[data-testid="開始日時"]');
+    let updatedAt = pick('span[data-testid="更新日時"]') || pick('span[data-testid="終了日時"]');
+
+    if (!listedAt || !updatedAt) {
+      const rows = document.querySelectorAll('table tr, .ProductDetail__item, dl');
+      Array.from(rows || []).forEach(tr => {
+        if (!tr || !tr.querySelector) return;
+        const th = tr.querySelector('th,dt,.ProductDetail__title');
+        const td = tr.querySelector('td,dd,.ProductDetail__desc');
+        const key = (th ? th.textContent : '').trim();
+        const val = (td ? td.textContent : '').trim();
+        if (!listedAt && /出品|開始/.test(key)) listedAt = val;
+        if (!updatedAt && /更新|終了/.test(key)) updatedAt = val;
+      });
+    }
+
+    const parseDate = (str) => {
+      if (!str) return null;
+      const d = new Date(str);
+      if (!isNaN(d)) return d;
+      return null;
+    };
+
+    const ld = parseDate(listedAt);
+    const ud = parseDate(updatedAt);
+
+    return {
+      listedFmt: _formatJST(ld),
+      updatedFmt: _formatJST(ud),
+      listedElapsedDays: _elapsedDays(ld),
+      updatedElapsedDays: _elapsedDays(ud)
+    };
+  }
+
+  // 出品日時・更新日時が未取得のまま抽出が完了した場合に再スキャンして埋める（多タブ背景ロード対策）。
+  // 同期・DOM読み取りのみ（ネットワークアクセスなし）。埋まったフィールドがあれば true を返す。
+  function _mercariRefillDates(extractedData) {
+    if (!extractedData) return false;
+    if (currentSite !== 'mercari' && currentSite !== 'mercari_shop') return false;
+    if (extractedData.listedFmt && extractedData.updatedFmt) return false;
+
+    const dates = _mercariGetListingDates();
+    let filled = false;
+
+    if (!extractedData.listedFmt && dates.listedFmt) {
+      extractedData.listedFmt = dates.listedFmt;
+      extractedData.listedElapsedDays = dates.listedElapsedDays;
+      filled = true;
+    }
+    if (!extractedData.updatedFmt && dates.updatedFmt) {
+      extractedData.updatedFmt = dates.updatedFmt;
+      extractedData.updatedElapsedDays = dates.updatedElapsedDays;
+      filled = true;
+    }
+
+    if (filled) {
+      _log('🔁 _mercariRefillDates: 出品日時/更新日時を再取得して補完しました', {
+        listedFmt: extractedData.listedFmt,
+        updatedFmt: extractedData.updatedFmt
+      });
+    }
+
+    return filled;
+  }
+
+  // ==========================================
   // メルカリ商品データ抽出
   // ==========================================
   async function extractMercariProductData() {
@@ -5972,50 +6074,9 @@ function isNoiseText(text) {
       const shipFrom = pickDetailByLabel(['発送元の地域', '発送元']);
       const handlingDays = pickDetailByLabel(['発送までの日数']);
 
-      // 出品日時・更新日時を取得
-      const getListingDates = () => {
-        const pick = (sel) => {
-          const el = document.querySelector(sel);
-          if (!el) return '';
-          const t = el.firstChild?.textContent ?? el.textContent ?? '';
-          return t.trim();
-        };
-
-        let listedAt = pick('span[data-testid="出品日時"]') || pick('span[data-testid="開始日時"]');
-        let updatedAt = pick('span[data-testid="更新日時"]') || pick('span[data-testid="終了日時"]');
-
-        if (!listedAt || !updatedAt) {
-          const rows = document.querySelectorAll('table tr, .ProductDetail__item, dl');
-          Array.from(rows || []).forEach(tr => {
-            if (!tr || !tr.querySelector) return;
-            const th = tr.querySelector('th,dt,.ProductDetail__title');
-            const td = tr.querySelector('td,dd,.ProductDetail__desc');
-            const key = (th ? th.textContent : '').trim();
-            const val = (td ? td.textContent : '').trim();
-            if (!listedAt && /出品|開始/.test(key)) listedAt = val;
-            if (!updatedAt && /更新|終了/.test(key)) updatedAt = val;
-          });
-        }
-
-        const parseDate = (str) => {
-          if (!str) return null;
-          const d = new Date(str);
-          if (!isNaN(d)) return d;
-          return null;
-        };
-
-        const ld = parseDate(listedAt);
-        const ud = parseDate(updatedAt);
-
-        return {
-          listedFmt: _formatJST(ld),
-          updatedFmt: _formatJST(ud),
-          listedElapsedDays: _elapsedDays(ld),
-          updatedElapsedDays: _elapsedDays(ud)
-        };
-      };
-
-      const dates = getListingDates();
+      // 出品日時・更新日時を取得（モジュールレベルの _mercariGetListingDates に集約。
+      // 出品日時が未取得のまま抽出完了した際に _mercariRefillDates からも同じロジックで再取得する）
+      const dates = _mercariGetListingDates();
 
       // 出品者の評価情報を取得
       const getSellerRating = async () => {
