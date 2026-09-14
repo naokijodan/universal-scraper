@@ -689,6 +689,67 @@
       font-size: 12px;
       color: #2e7d32;
     }
+
+    /* ==========================================
+       キーボードショートカット案内パネル
+       ========================================== */
+    .shortcuts-desc {
+      margin: 0 0 12px 0;
+      font-size: 13px;
+      color: #555;
+      line-height: 1.6;
+    }
+
+    .shortcuts-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+
+    .shortcuts-table th,
+    .shortcuts-table td {
+      padding: 8px 10px;
+      border: 1px solid #ecedf5;
+      text-align: left;
+    }
+
+    .shortcuts-table th {
+      background: #f7f8fc;
+      color: #4527a0;
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .shortcuts-table td.shortcuts-key-cell {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .shortcuts-actions-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .shortcuts-help-text {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .shortcuts-help-text.shortcuts-help-error {
+      color: #c62828;
+      font-weight: 600;
+    }
+
+    .shortcuts-note {
+      font-size: 11px;
+      color: #999;
+      margin-top: 4px;
+    }
   </style>
 </head>
 <body>
@@ -699,6 +760,49 @@
     </div>
 
     <div class="content">
+      <!-- キーボードショートカット案内パネル -->
+      <section class="queue-panel" id="shortcuts-panel">
+        <div class="queue-header">
+          <h2>⌨️ キーボードショートカット</h2>
+        </div>
+
+        <p class="shortcuts-desc">商品ページを表示中にキーを押すと、ボタンを押したのと同じ動作をします。キーは Chrome の「拡張機能のキーボードショートカット」画面で自由に変更できます。</p>
+
+        <table class="shortcuts-table">
+          <thead>
+            <tr>
+              <th>操作</th>
+              <th>現在のキー</th>
+              <th>初期値</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>直接送信</td>
+              <td class="shortcuts-key-cell" id="shortcut-key-direct-send">未設定</td>
+              <td>Mac: Option+Shift+1 / Windows: Alt+Shift+1</td>
+            </tr>
+            <tr>
+              <td>選択送信</td>
+              <td class="shortcuts-key-cell" id="shortcut-key-select-send">未設定</td>
+              <td>Mac: Option+Shift+2 / Windows: Alt+Shift+2</td>
+            </tr>
+            <tr>
+              <td>内容確認</td>
+              <td class="shortcuts-key-cell" id="shortcut-key-preview">未設定</td>
+              <td>Mac: Option+Shift+3 / Windows: Alt+Shift+3</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="queue-actions shortcuts-actions-row">
+          <button type="button" class="queue-btn-primary" id="open-shortcuts-btn">ショートカット設定画面を開く</button>
+          <span class="shortcuts-help-text" id="shortcuts-help-text">開かない場合はアドレスバーに chrome://extensions/shortcuts と入力してください。</span>
+        </div>
+
+        <p class="shortcuts-note">control＋Option などの組み合わせは Chrome が受け付けない場合があります。受け付けられない時はその画面に表示されます。</p>
+      </section>
+
       <!-- 直接送信の履歴パネル（v1.6.6: background-direct.js の耐障害キュー可視化） -->
       <section class="queue-panel" id="direct-panel">
         <div class="queue-header">
@@ -1400,5 +1504,6 @@ function doPost(e) {
   <script src="options.js"></script>
   <script src="options-queue.js"></script>
   <script src="options-direct.js"></script>
+  <script src="options-shortcuts.js"></script>
 </body>
 </html>
