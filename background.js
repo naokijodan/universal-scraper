@@ -11,6 +11,12 @@ try {
 }
 
 try {
+  importScripts('background-direct.js');
+} catch (e) {
+  console.error('[boot] failed to load background-direct.js:', e?.message || e);
+}
+
+try {
   importScripts('michatta/background.js');
 } catch (e) {
   console.error('[boot] failed to load michatta/background.js:', e?.message || e);
@@ -25,9 +31,9 @@ if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
 
 console.log('Background script loaded (とりこみ君AI)');
 
-async function fetchImageAsBase64(url) {
+async function fetchImageAsBase64(url, signal) {
   try {
-    const res = await fetch(url, { method: 'GET' });
+    const res = await fetch(url, { method: 'GET', signal });
     if (!res.ok) return null;
 
     const buf = await res.arrayBuffer();
@@ -80,9 +86,72 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === 'exportToSheet') {
-    handleExportToSheet(request)
+    // v1.6.6: 直接送信は background-direct.js の耐障害キューへ即時受付する。
+    // 実送信は processDirectQueue が非同期・直列で行う（タブを閉じても継続）。
+    Promise.resolve()
+      .then(() => (typeof enqueueDirectSend === 'function'
+        ? enqueueDirectSend(request, sender)
+        : Promise.reject(new Error('enqueueDirectSend 未定義'))))
       .then(response => sendResponse(response))
-      .catch(error => sendResponse({ success: false, error: error.message }));
+      .catch(error => sendResponse({ success: false, error: error?.message || '直接送信の受付に失敗しました' }));
+    return true;
+  }
+
+  if (request.action === 'warmupWebhook') {
+    Promise.resolve()
+      .then(() => (typeof handleWarmupWebhookMessage === 'function'
+        ? handleWarmupWebhookMessage()
+        : Promise.reject(new Error('handleWarmupWebhookMessage 未定義'))))
+      .then(response => sendResponse(response))
+      .catch(error => sendResponse({ success: false, error: error?.message || 'ウォームアップに失敗しました' }));
+    return true;
+  }
+
+  if (request.action === 'directGetState') {
+    Promise.resolve()
+      .then(() => (typeof directGetState === 'function' ? directGetState() : Promise.reject(new Error('directGetState 未定義'))))
+      .then(response => sendResponse(response))
+      .catch(error => sendResponse({ success: false, error: error?.message || 'directGetState 失敗' }));
+    return true;
+  }
+
+  if (request.action === 'directRetryFailed') {
+    Promise.resolve()
+      .then(() => (typeof directRetryFailed === 'function' ? directRetryFailed() : Promise.reject(new Error('directRetryFailed 未定義'))))
+      .then(response => sendResponse(response))
+      .catch(error => sendResponse({ success: false, error: error?.message || 'directRetryFailed 失敗' }));
+    return true;
+  }
+
+  if (request.action === 'directClearDone') {
+    Promise.resolve()
+      .then(() => (typeof directClearDone === 'function' ? directClearDone() : Promise.reject(new Error('directClearDone 未定義'))))
+      .then(response => sendResponse(response))
+      .catch(error => sendResponse({ success: false, error: error?.message || 'directClearDone 失敗' }));
+    return true;
+  }
+
+  if (request.action === 'directClearFailed') {
+    Promise.resolve()
+      .then(() => (typeof directClearFailed === 'function' ? directClearFailed() : Promise.reject(new Error('directClearFailed 未定義'))))
+      .then(response => sendResponse(response))
+      .catch(error => sendResponse({ success: false, error: error?.message || 'directClearFailed 失敗' }));
+    return true;
+  }
+
+  if (request.action === 'directDeleteOne') {
+    Promise.resolve()
+      .then(() => (typeof directDeleteOne === 'function' ? directDeleteOne(request.id) : Promise.reject(new Error('directDeleteOne 未定義'))))
+      .then(response => sendResponse(response))
+      .catch(error => sendResponse({ success: false, error: error?.message || 'directDeleteOne 失敗' }));
+    return true;
+  }
+
+  if (request.action === 'directRequeueOne') {
+    Promise.resolve()
+      .then(() => (typeof directRequeueOne === 'function' ? directRequeueOne(request.id) : Promise.reject(new Error('directRequeueOne 未定義'))))
+      .then(response => sendResponse(response))
+      .catch(error => sendResponse({ success: false, error: error?.message || 'directRequeueOne 失敗' }));
     return true;
   }
 
@@ -205,55 +274,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // ==========================================
-// Google Apps Script Webhook 送信（既存）
+// Google Apps Script Webhook 送信（直接送信）は v1.6.6 で background-direct.js
+// （enqueueDirectSend / processDirectQueue）へ移行済み。handleExportToSheet は
+// 他から参照されなくなったため削除。
 // ==========================================
-async function handleExportToSheet(request) {
-  try {
-    const { webhookUrl, sheetName, values } = request;
-    if (!webhookUrl) throw new Error('Webhook URLが設定されていません');
-
-    console.log('📤 データ送信開始: sheet=', sheetName, 'values.len=', values?.length);
-
-    const body = { values, sheetName: sheetName || 'インポート用' };
-    const topImageUrls = Array.isArray(request.topImageUrls)
-      ? request.topImageUrls
-      : (typeof request.topImageUrl === 'string' && request.topImageUrl ? [request.topImageUrl] : []);
-    const topImagesBase64 = [];
-    for (const url of topImageUrls) {
-      try {
-        if (
-          typeof url === 'string' &&
-          url.startsWith('https://static.mercdn.net/') &&
-          typeof fetchImageAsBase64 === 'function'
-        ) {
-          const dataUrl = await fetchImageAsBase64(url);
-          topImagesBase64.push(dataUrl || null);
-        } else {
-          topImagesBase64.push(null);
-        }
-      } catch (e) {
-        console.error('[handleExportToSheet] top image base64 failed:', e && e.message ? e.message : e);
-        topImagesBase64.push(null);
-      }
-    }
-    if (topImagesBase64.some(Boolean)) {
-      body.topImagesBase64 = topImagesBase64;
-    }
-
-    await fetch(webhookUrl, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-
-    console.log('✅ データ送信成功');
-    return { success: true, message: `${sheetName}に追加しました` };
-  } catch (error) {
-    console.error('❌ エクスポートエラー:', error);
-    return { success: false, error: error.message };
-  }
-}
 
 // ==========================================
 // 両シートへ一括送信（fire-and-forget エンドポイント）

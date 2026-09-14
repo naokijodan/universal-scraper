@@ -699,6 +699,50 @@
     </div>
 
     <div class="content">
+      <!-- 直接送信の履歴パネル（v1.6.6: background-direct.js の耐障害キュー可視化） -->
+      <section class="queue-panel" id="direct-panel">
+        <div class="queue-header">
+          <h2>📨 直接送信の履歴</h2>
+          <span class="queue-meta" id="direct-warmup-last">受け口ウォームアップ 最終: 未実施</span>
+        </div>
+
+        <div class="queue-stats">
+          <div class="queue-stat-item queue-stat-sending">
+            <span class="queue-stat-label">送信中</span>
+            <span class="queue-stat-value" id="direct-stat-sending">0</span>
+          </div>
+          <div class="queue-stat-item">
+            <span class="queue-stat-label">待機</span>
+            <span class="queue-stat-value" id="direct-stat-waiting">0</span>
+          </div>
+          <div class="queue-stat-item queue-stat-success">
+            <span class="queue-stat-label">成功</span>
+            <span class="queue-stat-value" id="direct-stat-sent">0</span>
+          </div>
+          <div class="queue-stat-item queue-stat-failed">
+            <span class="queue-stat-label">失敗</span>
+            <span class="queue-stat-value" id="direct-stat-failed">0</span>
+          </div>
+          <div class="queue-stat-item queue-stat-unknown">
+            <span class="queue-stat-label">不明</span>
+            <span class="queue-stat-value" id="direct-stat-unknown">0</span>
+          </div>
+        </div>
+
+        <div class="queue-actions">
+          <button type="button" id="direct-retry-btn">↻ 失敗・不明を再送</button>
+          <button type="button" id="direct-clear-failed-btn">🗑 失敗・不明をクリア</button>
+          <button type="button" id="direct-clear-done-btn">🧹 成功をクリア</button>
+        </div>
+
+        <details class="queue-details" id="direct-details" open>
+          <summary>個別の項目を表示（最大 100 件・新しい順）</summary>
+          <div id="direct-list">
+            <div class="queue-empty">送信履歴はありません</div>
+          </div>
+        </details>
+      </section>
+
       <!-- 送信キュー進捗パネル（Phase 3: docs/queue-design.md §5-1） -->
       <section class="queue-panel" id="queue-panel">
         <div class="queue-header">
@@ -1355,5 +1399,6 @@ function doPost(e) {
   <script src="michatta/storage.js"></script>
   <script src="options.js"></script>
   <script src="options-queue.js"></script>
+  <script src="options-direct.js"></script>
 </body>
 </html>

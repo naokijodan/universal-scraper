@@ -195,6 +195,17 @@ chrome.runtime.onStartup?.addListener(() => {
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm?.name === QUEUE_ALARM_NAME) {
     processQueue().catch((e) => console.error('[queue] processQueue error:', e?.message || e));
+    // v1.6.6: 直接送信（background-direct.js）の 1 分ごとバックアップキック。
+    // setTimeout による即時リトライが SW 停止等で失われた場合の保険。
+    // 直接送信キューの耐障害性はこのアラームに依存している（重要）:
+    //   processDirectQueue() は内部で reviveDirectQueue({all:false}) を呼び、
+    //   nextRetryAt を過ぎた waiting item や DIRECT_STALE_SENDING_MS を超えて
+    //   sending のまま止まっている item を拾って回復させる。このフックを消すと
+    //   SW が眠ってリトライの setTimeout が発火しなかった場合に直接送信が
+    //   永久に waiting/sending のまま止まる可能性がある。
+    if (typeof processDirectQueue === 'function') {
+      processDirectQueue().catch((e) => console.error('[direct] alarm backup kick failed:', e?.message || e));
+    }
   }
 });
 

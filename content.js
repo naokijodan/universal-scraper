@@ -2361,6 +2361,12 @@ function isNoiseText(text) {
 
   _log('🎉 ボタン配置完了！');
 
+  // v1.6.6: 直接送信の受け口（GAS）ウォームアップ。コールドスタート（45〜60秒）対策。
+  // 全サイト共通でデータ抽出・ボタン作成完了時に一度だけキックする（background-direct.js 側で 10 分デデュープ）。
+  try {
+    chrome.runtime.sendMessage({ action: 'warmupWebhook' }).catch(() => {});
+  } catch (_) {}
+
   // プレビューモーダル表示関数
   async function showPreviewModal(data, site, colors, settings) {
     _log('🎨 モーダル表示開始');
@@ -3368,6 +3374,20 @@ function isNoiseText(text) {
     }
   }
 
+  // XSS対策: innerHTML に差し込む前に HTML 特殊文字をエスケープする。
+  // showNotification は GAS 応答文字列（directSendResult の error/message）等、
+  // 拡張の外から来た文字列も表示するため、シンク側で必ずエスケープする。
+  // white-space: pre-wrap で表示しているのでテキストのままでも改行は保持される。
+  function _escHtml(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function showNotification(title, message, type = 'info', colors) {
     const notification = document.createElement('div');
     notification.style.cssText = `
@@ -3387,8 +3407,8 @@ function isNoiseText(text) {
     `;
 
     notification.innerHTML = `
-      <div style="font-weight: bold; font-size: 16px; margin-bottom: 8px;">${title}</div>
-      <div style="font-size: 14px; line-height: 1.5; white-space: pre-wrap;">${message}</div>
+      <div style="font-weight: bold; font-size: 16px; margin-bottom: 8px;">${_escHtml(title)}</div>
+      <div style="font-size: 14px; line-height: 1.5; white-space: pre-wrap;">${_escHtml(message)}</div>
     `;
 
     document.body.appendChild(notification);
@@ -5486,6 +5506,38 @@ function isNoiseText(text) {
     });
   }
 
+  // v1.6.6: 直接送信（direct-send）の結果通知リスナー（全サイト共通）
+  // background-direct.js が送信完了/失敗/不明状態になった際に tabId 経由で通知してくる。
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request && request.action === 'directSendResult') {
+      try {
+        const sheetName = request.sheetName || '';
+        if (request.status === 'sent') {
+          showNotification(
+            '送信完了',
+            `${sheetName} に追加しました`,
+            'success'
+          );
+        } else if (request.status === 'failed') {
+          showNotification(
+            '送信失敗',
+            request.error || request.message || '送信に失敗しました',
+            'error'
+          );
+        } else if (request.status === 'unknown') {
+          showNotification(
+            '送信結果不明',
+            request.error || request.message || 'シートを確認してください',
+            'error'
+          );
+        }
+      } catch (e) {
+        console.error('[directSendResult] notification failed:', e?.message || e);
+      }
+    }
+    return false;
+  });
+
   // ==========================================
   // Googleスプレッドシートエクスポート機能
   // ==========================================
@@ -5793,13 +5845,22 @@ function isNoiseText(text) {
         action: 'exportToSheet',
         webhookUrl: selectedSheet.webhookUrl,
         sheetName: selectedSheet.sheetName,
+        sourceLabel: (document.title || '').slice(0, 120),
         values: values,
         topImageUrls: topImageUrls,
         imageOutputCount: imageOutputCount
       });
 
-      if (response.success) {
-        // 成功時の通知
+      if (response && response.accepted) {
+        // v1.6.6: 直接送信はバックグラウンドで非同期処理される。受付通知のみ表示。
+        showNotification(
+          '送信を受け付けました',
+          `「${selectedSheet.name}」の「${selectedSheet.sheetName}」へ裏で送信中です。タブを閉じても送信は続きます。結果は設定画面の「直接送信の履歴」で確認できます。`,
+          'success',
+          colors
+        );
+      } else if (response.success) {
+        // 成功時の通知（後方互換：accepted が無い旧形式応答が来た場合）
         showNotification(
           '成功',
           `「${selectedSheet.name}」の「${selectedSheet.sheetName}」に追加しました！`,
