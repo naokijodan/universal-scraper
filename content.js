@@ -1331,7 +1331,8 @@ function isNoiseText(text) {
       // 出品日時を必須にする（更新日時は「一度も更新されていない商品」に存在しないため必須にしない）
       const hasDates = document.querySelector('span[data-testid="出品日時"]') || document.querySelector('span[data-testid="開始日時"]');
       const hasSeller = document.querySelector('a[href^="/user/profile/"]') || document.querySelector('a[href^="/shops/profile/"]');
-      return hasTitle && hasPrice && hasLdjson && hasDates && hasSeller;
+      const hasRating = document.querySelector('[data-testid="seller-link"]') || document.querySelector('[data-testid="shops-information"]') || document.querySelector('[data-testid="shops-profile-link"]');
+      return hasTitle && hasPrice && hasLdjson && hasDates && hasSeller && hasRating;
     };
 
     // 既に揃っているかチェック
@@ -1484,13 +1485,18 @@ function isNoiseText(text) {
   // タブが表示状態に戻った瞬間に一度だけ再スキャンする（ポーリングはしない）。
   // 注: 現状 UI 側に日時専用の常設バッジは無く、未取得警告は各送信系ボタンのクリック時に
   // _mercariRefillDates を呼ぶ形で対応済みのため、ここではデータの補完のみ行いUI再描画は行わない。
-  if ((currentSite === 'mercari' || currentSite === 'mercari_shop') && extractedData && (!extractedData.listedFmt || !extractedData.updatedFmt)) {
-    const _onMercariVisibleForDateRefill = () => {
+  if ((currentSite === 'mercari' || currentSite === 'mercari_shop') && extractedData && (!extractedData.listedFmt || !extractedData.updatedFmt || !extractedData.reviewCount)) {
+    const _onMercariVisibleForDateRefill = async () => {
       if (document.visibilityState !== 'visible') return;
-      const filled = _mercariRefillDates(extractedData);
-      if (filled) {
-        document.removeEventListener('visibilitychange', _onMercariVisibleForDateRefill);
+      const filledDates = _mercariRefillDates(extractedData);
+      const filledRating = await _mercariRefillSellerRating(extractedData);
+      if (filledDates || filledRating) {
+        showAlertBadges(extractedData, null);
       }
+      if (!extractedData.listedFmt || !extractedData.updatedFmt || !extractedData.reviewCount) {
+        return;
+      }
+      document.removeEventListener('visibilitychange', _onMercariVisibleForDateRefill);
     };
     document.addEventListener('visibilitychange', _onMercariVisibleForDateRefill);
   }
@@ -2008,9 +2014,11 @@ function isNoiseText(text) {
   // 名前付き関数に切り出し、キーボードショートカット（triggerButton）からも
   // 同じ処理を呼べるようにする（ドラッグ判定はクリックイベント由来の座標が
   // 前提のため、ショートカット側はこの関数を直接呼んで判定自体をバイパスする）。
-  const _runPreviewAction = () => {
+  const _runPreviewAction = async () => {
     // メルカリ: 出品日時が未取得なら再スキャンして補完（多タブ背景ロード対策）
     _mercariRefillDates(extractedData);
+    // メルカリ: 評価件数が未取得なら再スキャンして補完（多タブ背景ロード対策）
+    await _mercariRefillSellerRating(extractedData);
     // データ未取得警告（内容確認時）- 基本項目 + 説明文
     const missingFieldsPreview = _getMissingFields(extractedData, false);
     if (!extractedData.description || extractedData.description === '') {
@@ -2032,7 +2040,7 @@ function isNoiseText(text) {
       Math.pow(e.clientX - dragStartX, 2) + Math.pow(e.clientY - dragStartY, 2)
     );
     if (moveDistance < 5) {
-      _runPreviewAction();
+      _runPreviewAction().catch((e) => console.error("[_runPreviewAction] failed:", e?.message || e));
     }
   });
 
@@ -2110,6 +2118,8 @@ function isNoiseText(text) {
 
     // メルカリ: 出品日時が未取得なら再スキャンして補完（多タブ背景ロード対策）
     _mercariRefillDates(extractedData);
+    // メルカリ: 評価件数が未取得なら再スキャンして補完（多タブ背景ロード対策）
+    await _mercariRefillSellerRating(extractedData);
 
     // 既に開いている場合は閉じる
     if (multiExportPopup) {
@@ -2279,6 +2289,8 @@ function isNoiseText(text) {
 
     // メルカリ: 出品日時が未取得なら再スキャンして補完（多タブ背景ロード対策）
     _mercariRefillDates(extractedData);
+    // メルカリ: 評価件数が未取得なら再スキャンして補完（多タブ背景ロード対策）
+    await _mercariRefillSellerRating(extractedData);
 
     // データ未取得チェック
     const originalText = exportButton.innerHTML;
@@ -5564,7 +5576,7 @@ function isNoiseText(text) {
 
         if (targetButton && !targetButton.disabled) {
           if (request.which === 'preview' && typeof targetButton._triggerShortcutAction === 'function') {
-            targetButton._triggerShortcutAction();
+            Promise.resolve(targetButton._triggerShortcutAction()).catch((e) => console.error("[triggerButton] preview failed:", e?.message || e));
           } else {
             targetButton.click();
           }
@@ -6007,6 +6019,211 @@ function isNoiseText(text) {
   }
 
   // ==========================================
+  // メルカリ 出品者評価 取得（多タブ背景ロード対策・visibilitychange再取得で使えるよう関数化。
+  // extractMercariProductData と _mercariRefillSellerRating の両方から使用）
+  // assistPollMax: フリマアシスト連携のポーリング回数（500ms間隔）。0を渡すとポーリングをスキップする
+  // ==========================================
+  async function _mercariGetSellerRating({ assistPollMax = 8 } = {}) {
+    try {
+    _log('[getSellerRating] 評価情報取得開始');
+
+    let good = null;
+    let bad = null;
+    let normal = null;
+    let totalFromSellerLink = null; // seller-linkから取得した合計（フォールバック用）
+
+    // メルカリショップの場合は、ショップ情報セクションから評価数を取得
+    const isShop = window.location.pathname.includes('/shops/product/');
+    if (isShop) {
+      _log('[getSellerRating] メルカリショップモード');
+
+      // 方法0（最優先）: data-testid="shops-information" または "shops-profile-link" から取得
+      // 形式: "ショップ名\n\n評価数\n\nメルカリShops"
+      const shopsInfoEl = document.querySelector('[data-testid="shops-information"]') ||
+                          document.querySelector('[data-testid="shops-profile-link"]');
+      if (shopsInfoEl) {
+        const shopsText = shopsInfoEl.innerText || '';
+        _log('[getSellerRating] shops-information テキスト:', shopsText.substring(0, 100));
+
+        // 改行で分割して評価数を取得（2番目の要素が評価数）
+        const lines = shopsText.split('\n').filter(line => line.trim() !== '');
+        _log('[getSellerRating] shops-information 行分割:', lines);
+
+        if (lines.length >= 2) {
+          const reviewCount = parseInt(lines[1].trim());
+          if (!Number.isNaN(reviewCount) && reviewCount > 0) {
+            _log('[getSellerRating] ショップ評価数取得成功:', reviewCount);
+            return { reviewCount: String(reviewCount), badRate: '' };
+          }
+        }
+      }
+
+      // 方法1（フォールバック）: ページ全体のテキストから評価数を探す
+      const bodyText = document.body.innerText || '';
+
+      // パターン1: 「優良ショップ」の直前にある数字（優良ショップバッジがある場合）
+      const excellentShopMatch = bodyText.match(/(\d{1,5})\s*優良ショップ/);
+      if (excellentShopMatch) {
+        const total = parseInt(excellentShopMatch[1]);
+        _log('[getSellerRating] ショップ星評価取得（優良ショップ前）:', total);
+        return { reviewCount: String(total), badRate: '' };
+      }
+
+      // パターン2: 「メルカリShops」の直前にある数字（優良ショップバッジが無い場合）
+      const shopSectionMatch = bodyText.match(/ショップ情報[\s\S]{0,500}メルカリShops/);
+      if (shopSectionMatch) {
+        const sectionText = shopSectionMatch[0];
+        _log('[getSellerRating] ショップ情報セクション:', sectionText.substring(0, 100));
+
+        const shopsMatch = sectionText.match(/(\d{1,6})\s*メルカリShops/);
+        if (shopsMatch) {
+          const total = parseInt(shopsMatch[1]);
+          _log('[getSellerRating] ショップ星評価取得（メルカリShops前）:', total);
+          return { reviewCount: String(total), badRate: '' };
+        }
+      }
+
+      _log('[getSellerRating] ショップ情報セクションが見つかりませんでした');
+    }
+
+    // Step 1: seller-linkから合計評価を取得（常に取得可能）
+    const sellerLinkEl = document.querySelector('[data-testid="seller-link"]');
+    if (sellerLinkEl) {
+      const sellerText = sellerLinkEl.innerText || '';
+      _log('[getSellerRating] seller-link テキスト:', sellerText.substring(0, 100));
+
+      // 数値を全て抽出（改行や空白で区切られた数値）
+      const allNumbers = sellerText.match(/\d+/g);
+      _log('[getSellerRating] seller-link 数値一覧:', allNumbers);
+
+      // 改行で分割し、純粋に数字のみの行を探す（セラー名に含まれる数字を避けるため）
+      // 3者協議結果: Math.max()フォールバックは誤検出リスクが高いため削除
+      const lines = sellerText.split(/\n/).map(line => line.trim()).filter(line => line.length > 0);
+      let foundPureNumberLine = false;
+
+      for (const line of lines) {
+        // カンマを除去してから数値判定（桁区切り対応: "1,234" → "1234"）
+        const normalized = line.replace(/,/g, '');
+        if (/^\d+$/.test(normalized) && normalized.length > 0) {
+          totalFromSellerLink = parseInt(normalized);
+          foundPureNumberLine = true;
+          _log('[getSellerRating] seller-link 純粋数値行から合計評価:', totalFromSellerLink);
+          break;
+        }
+      }
+
+      // 純粋数値行が見つからない場合はログ出力して空のまま（フリマアシストに委ねる）
+      if (!foundPureNumberLine) {
+        console.warn('[getSellerRating] 純粋数値行が見つかりません。innerText:', sellerText.substring(0, 200));
+      }
+
+      // 3つ以上の数値がある場合は内訳も取得を試みる
+      // totalFromSellerLinkを基準に、それ以降の数値から内訳を探す
+      if (allNumbers && allNumbers.length >= 3 && totalFromSellerLink > 0) {
+        const nums = allNumbers.map(n => parseInt(n)).filter(n => !Number.isNaN(n));
+
+        // totalFromSellerLinkの位置を見つけ、その後の数値を内訳候補とする
+        const totalIndex = nums.indexOf(totalFromSellerLink);
+        if (totalIndex !== -1 && nums.length > totalIndex + 2) {
+          const goodVal = nums[totalIndex + 1];
+          const remaining = nums.slice(totalIndex + 2);
+
+          // 合計 = 良い + 悪い (+ 普通) かどうか検証
+          if (remaining.length === 1) {
+            const badVal = remaining[0];
+            if (Math.abs(totalFromSellerLink - (goodVal + badVal)) <= 1) {
+              good = goodVal;
+              bad = badVal;
+              _log('[getSellerRating] seller-link 解析成功（良い/悪い）:', { total: totalFromSellerLink, good, bad });
+            }
+          } else if (remaining.length >= 2) {
+            const normalVal = remaining[0];
+            const badVal = remaining[1];
+            if (Math.abs(totalFromSellerLink - (goodVal + normalVal + badVal)) <= 1) {
+              good = goodVal;
+              normal = normalVal;
+              bad = badVal;
+              _log('[getSellerRating] seller-link 解析成功（良い/普通/悪い）:', { total: totalFromSellerLink, good, normal, bad });
+            } else if (Math.abs(totalFromSellerLink - (goodVal + remaining[0])) <= 1) {
+              good = goodVal;
+              bad = remaining[0];
+              _log('[getSellerRating] seller-link 解析成功（良い/悪い + 余分）:', { total: totalFromSellerLink, good, bad });
+            }
+          }
+        }
+      }
+    }
+
+    // Step 2: フリマアシスト連携（内訳が未取得の場合のみ）
+    if (good === null || bad === null) {
+      // フリマアシスト拡張がインストールされているかチェック
+      const hasFurimaAssist = document.querySelector('[id*="furima-assist"]');
+
+      if (hasFurimaAssist) {
+        // ポーリングで待機（500ms × assistPollMax回）
+        _log('[getSellerRating] フリマアシスト検出済み、seller-ratings要素を待機中...');
+        const maxAttempts = assistPollMax;
+        const interval = 500;
+
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          const assistResult = _parseAssistRatings();
+          if (assistResult) {
+            good = assistResult.good;
+            bad = assistResult.bad;
+            normal = assistResult.normal;
+            _log('[getSellerRating] フリマアシスト取得成功（試行:', attempt + 1, '回目）');
+            break;
+          }
+          if (attempt < maxAttempts - 1) {
+            await new Promise(r => setTimeout(r, interval));
+          }
+        }
+
+        if (good === null && bad === null) {
+          _log('[getSellerRating] フリマアシストにseller-ratings要素なし（内訳取得不可）');
+        }
+      } else {
+        _log('[getSellerRating] フリマアシスト未検出、ポーリングスキップ');
+      }
+    }
+
+    return _calcRatingResult(good, bad, normal, totalFromSellerLink, 'Mercari');
+    } catch (e) {
+    console.error('[getSellerRating] エラー:', e);
+    return { reviewCount: '', badRate: '' };
+    }
+  }
+
+  // 出品者評価（評価件数）が未取得のまま抽出が完了した場合に再スキャンして埋める（多タブ背景ロード対策）。
+  // フリマアシスト連携のポーリング（最大4秒）はクリック操作を遅延させないため行わない
+  // （reviewCountはseller-link/shops-informationのStep1のみで取得可能なため）。
+  async function _mercariRefillSellerRating(extractedData) {
+    if (!extractedData) return false;
+    if (currentSite !== 'mercari' && currentSite !== 'mercari_shop') return false;
+    if (extractedData.reviewCount) return false;
+
+    const rating = await _mercariGetSellerRating({ assistPollMax: 0 });
+    let filled = false;
+
+    if (!extractedData.reviewCount && rating.reviewCount) {
+      extractedData.reviewCount = rating.reviewCount;
+      filled = true;
+    }
+    if (!extractedData.badRate && rating.badRate) {
+      extractedData.badRate = rating.badRate;
+    }
+
+    if (filled) {
+      _log('🔁 _mercariRefillSellerRating: 出品者評価件数を再取得して補完しました', {
+        reviewCount: extractedData.reviewCount,
+        badRate: extractedData.badRate
+      });
+    }
+
+    return filled;
+  }
+
+  // ==========================================
   // メルカリ商品データ抽出
   // ==========================================
   async function extractMercariProductData() {
@@ -6178,183 +6395,13 @@ function isNoiseText(text) {
       // 出品日時が未取得のまま抽出完了した際に _mercariRefillDates からも同じロジックで再取得する）
       const dates = _mercariGetListingDates();
 
-      // 出品者の評価情報を取得
-      const getSellerRating = async () => {
-        try {
-        _log('[getSellerRating] 評価情報取得開始');
-
-        let good = null;
-        let bad = null;
-        let normal = null;
-        let totalFromSellerLink = null; // seller-linkから取得した合計（フォールバック用）
-
-        // メルカリショップの場合は、ショップ情報セクションから評価数を取得
-        const isShop = window.location.pathname.includes('/shops/product/');
-        if (isShop) {
-          _log('[getSellerRating] メルカリショップモード');
-
-          // 方法0（最優先）: data-testid="shops-information" または "shops-profile-link" から取得
-          // 形式: "ショップ名\n\n評価数\n\nメルカリShops"
-          const shopsInfoEl = document.querySelector('[data-testid="shops-information"]') ||
-                              document.querySelector('[data-testid="shops-profile-link"]');
-          if (shopsInfoEl) {
-            const shopsText = shopsInfoEl.innerText || '';
-            _log('[getSellerRating] shops-information テキスト:', shopsText.substring(0, 100));
-
-            // 改行で分割して評価数を取得（2番目の要素が評価数）
-            const lines = shopsText.split('\n').filter(line => line.trim() !== '');
-            _log('[getSellerRating] shops-information 行分割:', lines);
-
-            if (lines.length >= 2) {
-              const reviewCount = parseInt(lines[1].trim());
-              if (!Number.isNaN(reviewCount) && reviewCount > 0) {
-                _log('[getSellerRating] ショップ評価数取得成功:', reviewCount);
-                return { reviewCount: String(reviewCount), badRate: '' };
-              }
-            }
-          }
-
-          // 方法1（フォールバック）: ページ全体のテキストから評価数を探す
-          const bodyText = document.body.innerText || '';
-
-          // パターン1: 「優良ショップ」の直前にある数字（優良ショップバッジがある場合）
-          const excellentShopMatch = bodyText.match(/(\d{1,5})\s*優良ショップ/);
-          if (excellentShopMatch) {
-            const total = parseInt(excellentShopMatch[1]);
-            _log('[getSellerRating] ショップ星評価取得（優良ショップ前）:', total);
-            return { reviewCount: String(total), badRate: '' };
-          }
-
-          // パターン2: 「メルカリShops」の直前にある数字（優良ショップバッジが無い場合）
-          const shopSectionMatch = bodyText.match(/ショップ情報[\s\S]{0,500}メルカリShops/);
-          if (shopSectionMatch) {
-            const sectionText = shopSectionMatch[0];
-            _log('[getSellerRating] ショップ情報セクション:', sectionText.substring(0, 100));
-
-            const shopsMatch = sectionText.match(/(\d{1,6})\s*メルカリShops/);
-            if (shopsMatch) {
-              const total = parseInt(shopsMatch[1]);
-              _log('[getSellerRating] ショップ星評価取得（メルカリShops前）:', total);
-              return { reviewCount: String(total), badRate: '' };
-            }
-          }
-
-          _log('[getSellerRating] ショップ情報セクションが見つかりませんでした');
-        }
-
-        // Step 1: seller-linkから合計評価を取得（常に取得可能）
-        const sellerLinkEl = document.querySelector('[data-testid="seller-link"]');
-        if (sellerLinkEl) {
-          const sellerText = sellerLinkEl.innerText || '';
-          _log('[getSellerRating] seller-link テキスト:', sellerText.substring(0, 100));
-
-          // 数値を全て抽出（改行や空白で区切られた数値）
-          const allNumbers = sellerText.match(/\d+/g);
-          _log('[getSellerRating] seller-link 数値一覧:', allNumbers);
-
-          // 改行で分割し、純粋に数字のみの行を探す（セラー名に含まれる数字を避けるため）
-          // 3者協議結果: Math.max()フォールバックは誤検出リスクが高いため削除
-          const lines = sellerText.split(/\n/).map(line => line.trim()).filter(line => line.length > 0);
-          let foundPureNumberLine = false;
-
-          for (const line of lines) {
-            // カンマを除去してから数値判定（桁区切り対応: "1,234" → "1234"）
-            const normalized = line.replace(/,/g, '');
-            if (/^\d+$/.test(normalized) && normalized.length > 0) {
-              totalFromSellerLink = parseInt(normalized);
-              foundPureNumberLine = true;
-              _log('[getSellerRating] seller-link 純粋数値行から合計評価:', totalFromSellerLink);
-              break;
-            }
-          }
-
-          // 純粋数値行が見つからない場合はログ出力して空のまま（フリマアシストに委ねる）
-          if (!foundPureNumberLine) {
-            console.warn('[getSellerRating] 純粋数値行が見つかりません。innerText:', sellerText.substring(0, 200));
-          }
-
-          // 3つ以上の数値がある場合は内訳も取得を試みる
-          // totalFromSellerLinkを基準に、それ以降の数値から内訳を探す
-          if (allNumbers && allNumbers.length >= 3 && totalFromSellerLink > 0) {
-            const nums = allNumbers.map(n => parseInt(n)).filter(n => !Number.isNaN(n));
-
-            // totalFromSellerLinkの位置を見つけ、その後の数値を内訳候補とする
-            const totalIndex = nums.indexOf(totalFromSellerLink);
-            if (totalIndex !== -1 && nums.length > totalIndex + 2) {
-              const goodVal = nums[totalIndex + 1];
-              const remaining = nums.slice(totalIndex + 2);
-
-              // 合計 = 良い + 悪い (+ 普通) かどうか検証
-              if (remaining.length === 1) {
-                const badVal = remaining[0];
-                if (Math.abs(totalFromSellerLink - (goodVal + badVal)) <= 1) {
-                  good = goodVal;
-                  bad = badVal;
-                  _log('[getSellerRating] seller-link 解析成功（良い/悪い）:', { total: totalFromSellerLink, good, bad });
-                }
-              } else if (remaining.length >= 2) {
-                const normalVal = remaining[0];
-                const badVal = remaining[1];
-                if (Math.abs(totalFromSellerLink - (goodVal + normalVal + badVal)) <= 1) {
-                  good = goodVal;
-                  normal = normalVal;
-                  bad = badVal;
-                  _log('[getSellerRating] seller-link 解析成功（良い/普通/悪い）:', { total: totalFromSellerLink, good, normal, bad });
-                } else if (Math.abs(totalFromSellerLink - (goodVal + remaining[0])) <= 1) {
-                  good = goodVal;
-                  bad = remaining[0];
-                  _log('[getSellerRating] seller-link 解析成功（良い/悪い + 余分）:', { total: totalFromSellerLink, good, bad });
-                }
-              }
-            }
-          }
-        }
-
-        // Step 2: フリマアシスト連携（内訳が未取得の場合のみ）
-        if (good === null || bad === null) {
-          // フリマアシスト拡張がインストールされているかチェック
-          const hasFurimaAssist = document.querySelector('[id*="furima-assist"]');
-
-          if (hasFurimaAssist) {
-            // ポーリングで待機（500ms × 8回 = 最大4秒）
-            _log('[getSellerRating] フリマアシスト検出済み、seller-ratings要素を待機中...');
-            const maxAttempts = 8;
-            const interval = 500;
-
-            for (let attempt = 0; attempt < maxAttempts; attempt++) {
-              const assistResult = _parseAssistRatings();
-              if (assistResult) {
-                good = assistResult.good;
-                bad = assistResult.bad;
-                normal = assistResult.normal;
-                _log('[getSellerRating] フリマアシスト取得成功（試行:', attempt + 1, '回目）');
-                break;
-              }
-              if (attempt < maxAttempts - 1) {
-                await new Promise(r => setTimeout(r, interval));
-              }
-            }
-
-            if (good === null && bad === null) {
-              _log('[getSellerRating] フリマアシストにseller-ratings要素なし（内訳取得不可）');
-            }
-          } else {
-            _log('[getSellerRating] フリマアシスト未検出、ポーリングスキップ');
-          }
-        }
-
-        return _calcRatingResult(good, bad, normal, totalFromSellerLink, 'Mercari');
-      } catch (e) {
-        console.error('[getSellerRating] エラー:', e);
-        return { reviewCount: '', badRate: '' };
-      }
-      };
-
-      let rating = await getSellerRating();
+      // 出品者の評価情報を取得（モジュールレベルの _mercariGetSellerRating に集約。
+      // visibilitychange時の再取得は _mercariRefillSellerRating が同じロジックを使う）
+      let rating = await _mercariGetSellerRating();
       if (!rating.reviewCount && !window.location.pathname.includes('/shops/product/')) {
         _log('[getSellerRating] 1回目で取得失敗。2秒後にリトライ...');
         await new Promise(r => setTimeout(r, 2000));
-        rating = await getSellerRating();
+        rating = await _mercariGetSellerRating();
         if (rating.reviewCount) {
           _log('[getSellerRating] リトライで取得成功');
         } else {
