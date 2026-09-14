@@ -1485,15 +1485,16 @@ function isNoiseText(text) {
   // タブが表示状態に戻った瞬間に一度だけ再スキャンする（ポーリングはしない）。
   // 注: 現状 UI 側に日時専用の常設バッジは無く、未取得警告は各送信系ボタンのクリック時に
   // _mercariRefillDates を呼ぶ形で対応済みのため、ここではデータの補完のみ行いUI再描画は行わない。
-  if ((currentSite === 'mercari' || currentSite === 'mercari_shop') && extractedData && (!extractedData.listedFmt || !extractedData.updatedFmt || !extractedData.reviewCount)) {
+  if ((currentSite === 'mercari' || currentSite === 'mercari_shop') && extractedData && (!extractedData.listedFmt || !extractedData.updatedFmt || !extractedData.reviewCount || !extractedData.description)) {
     const _onMercariVisibleForDateRefill = async () => {
       if (document.visibilityState !== 'visible') return;
       const filledDates = _mercariRefillDates(extractedData);
       const filledRating = await _mercariRefillSellerRating(extractedData);
-      if (filledDates || filledRating) {
+      const filledDescription = _mercariRefillDescription(extractedData);
+      if (filledDates || filledRating || filledDescription) {
         showAlertBadges(extractedData, null);
       }
-      if (!extractedData.listedFmt || !extractedData.updatedFmt || !extractedData.reviewCount) {
+      if (!extractedData.listedFmt || !extractedData.updatedFmt || !extractedData.reviewCount || !extractedData.description) {
         return;
       }
       document.removeEventListener('visibilitychange', _onMercariVisibleForDateRefill);
@@ -2019,6 +2020,8 @@ function isNoiseText(text) {
     _mercariRefillDates(extractedData);
     // メルカリ: 評価件数が未取得なら再スキャンして補完（多タブ背景ロード対策）
     await _mercariRefillSellerRating(extractedData);
+    // メルカリ: 説明文が未取得なら再スキャンして補完（多タブ背景ロード対策）
+    _mercariRefillDescription(extractedData);
     // データ未取得警告（内容確認時）- 基本項目 + 説明文
     const missingFieldsPreview = _getMissingFields(extractedData, false);
     if (!extractedData.description || extractedData.description === '') {
@@ -2120,6 +2123,8 @@ function isNoiseText(text) {
     _mercariRefillDates(extractedData);
     // メルカリ: 評価件数が未取得なら再スキャンして補完（多タブ背景ロード対策）
     await _mercariRefillSellerRating(extractedData);
+    // メルカリ: 説明文が未取得なら再スキャンして補完（多タブ背景ロード対策）
+    _mercariRefillDescription(extractedData);
 
     // 既に開いている場合は閉じる
     if (multiExportPopup) {
@@ -2291,6 +2296,8 @@ function isNoiseText(text) {
     _mercariRefillDates(extractedData);
     // メルカリ: 評価件数が未取得なら再スキャンして補完（多タブ背景ロード対策）
     await _mercariRefillSellerRating(extractedData);
+    // メルカリ: 説明文が未取得なら再スキャンして補完（多タブ背景ロード対策）
+    _mercariRefillDescription(extractedData);
 
     // データ未取得チェック
     const originalText = exportButton.innerHTML;
@@ -6224,6 +6231,65 @@ function isNoiseText(text) {
   }
 
   // ==========================================
+  // メルカリ 説明文 DOMフォールバック（ld+json に description が無い場合の保険。
+  // ハイライト機能（highlightPageElements）で使っているセレクタと同じものを使用し、
+  // extractMercariProductData と _mercariRefillDescription の両方から使用）
+  // 同期・DOM読み取りのみ（ネットワークアクセスなし）
+  // ==========================================
+  function _mercariGetDescriptionFromDom() {
+    const selectors = [
+      'div[data-testid="description"]',
+      'pre[data-testid="description"]',
+      'div.item-description',
+      'pre.item-description__inner',
+      'mer-text[class*="description"]',
+      'div[class*="ItemDescription"]'
+    ];
+
+    for (const selector of selectors) {
+      const el = document.querySelector(selector);
+      const raw = el ? (el.innerText || el.textContent || '') : '';
+      if (raw && raw.trim()) {
+        return raw
+          .replace(/\r\n/g, ' ')     // Windows改行
+          .replace(/\r/g, ' ')        // Mac改行
+          .replace(/\n/g, ' ')        // Unix改行
+          .replace(/\u2028/g, ' ')    // ラインセパレータ
+          .replace(/\u2029/g, ' ')    // パラグラフセパレータ
+          .replace(/\t/g, ' ')        // タブ
+          .replace(/\s+/g, ' ')       // 連続する空白を1つに
+          .trim();                    // 前後の空白を削除
+      }
+    }
+
+    return '';
+  }
+
+  // 説明文が未取得のまま抽出が完了した場合に再スキャンして埋める（多タブ背景ロード対策・
+  // ld+jsonにdescriptionが無いページ対策）。埋まった場合 true を返す。
+  function _mercariRefillDescription(extractedData) {
+    if (!extractedData) return false;
+    if (currentSite !== 'mercari' && currentSite !== 'mercari_shop') return false;
+    if (extractedData.description) return false;
+
+    const description = _mercariGetDescriptionFromDom();
+    let filled = false;
+
+    if (description) {
+      extractedData.description = description;
+      filled = true;
+    }
+
+    if (filled) {
+      _log('🔁 _mercariRefillDescription: 説明文をDOMから再取得して補完しました', {
+        descriptionLength: extractedData.description.length
+      });
+    }
+
+    return filled;
+  }
+
+  // ==========================================
   // メルカリ商品データ抽出
   // ==========================================
   async function extractMercariProductData() {
@@ -6303,6 +6369,14 @@ function isNoiseText(text) {
           .replace(/\t/g, ' ')        // タブ
           .replace(/\s+/g, ' ')       // 連続する空白を1つに
           .trim();                    // 前後の空白を削除
+        _log('📝 説明文をld+jsonから取得しました');
+      }
+      // ld+jsonにdescriptionが無いページ対策: DOMセレクタから直接取得
+      if (!description) {
+        description = _mercariGetDescriptionFromDom();
+        if (description) {
+          _log('📝 説明文をDOMフォールバックから取得しました（ld+json未検出）');
+        }
       }
 
       // 出品者ID（通常のメルカリとメルカリショップ両方に対応）
