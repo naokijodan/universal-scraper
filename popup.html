@@ -48,6 +48,24 @@
       color: #4CAF50;
       font-weight: bold;
     }
+    .direct-summary {
+      font-size: 12px;
+      color: #666;
+      background: #f5f5f5;
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 12px;
+    }
+    .direct-summary.has-issue {
+      color: #c62828;
+      background: #fdecea;
+    }
+    .btn-secondary {
+      background: #757575;
+    }
+    .btn-secondary:hover {
+      background: #616161;
+    }
     button {
       width: 100%;
       padding: 12px;
@@ -75,6 +93,9 @@
 </head>
 <body>
   <h1>📦 とりこみ君</h1>
+
+  <div id="direct-summary" class="direct-summary"></div>
+  <button type="button" id="open-direct-history" class="btn-secondary">📜 送信履歴を開く</button>
 
   <div class="info">
     商品ページを開くと、「📋 商品情報コピー」ボタンが表示されます。

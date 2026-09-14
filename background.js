@@ -115,6 +115,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  if (request.action === 'directGetSummary') {
+    Promise.resolve()
+      .then(() => (typeof directGetSummary === 'function' ? directGetSummary() : Promise.reject(new Error('directGetSummary 未定義'))))
+      .then(response => sendResponse(response))
+      .catch(error => sendResponse({ success: false, error: error?.message || 'directGetSummary 失敗' }));
+    return true;
+  }
+
   if (request.action === 'directRetryFailed') {
     Promise.resolve()
       .then(() => (typeof directRetryFailed === 'function' ? directRetryFailed() : Promise.reject(new Error('directRetryFailed 未定義'))))

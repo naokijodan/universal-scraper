@@ -21,7 +21,10 @@ const DIRECT_KEYS = Object.freeze({
   warmup: 'directWarmup'
 });
 
-const DIRECT_QUEUE_MAX_LENGTH = 300;                 // 仕様: 300件でキャップ（sent から間引く）
+const DIRECT_SENT_KEEP = 100;                        // 仕様: 成功(sent)は最新100件だけ保持し、古いものは自動的に間引く
+const DIRECT_ERROR_CEILING = 500;                    // 仕様: 失敗(failed)・不明(unknown)はユーザーが設定画面で
+                                                      // クリア/再送するまで自動では間引かない。ただし保存容量を
+                                                      // 守るための安全上限として合計500件を超えたら古いものから間引く
 const DIRECT_FETCH_TIMEOUT_MS = 120_000;             // コールドスタート(45〜60s) + lock 待ち(最大30s) を見込んで 120 秒
 const DIRECT_IMAGE_TIMEOUT_MS = 10_000;              // 画像 base64 化タイムアウト（1枚あたり）
 const DIRECT_RETRY_DELAYS_MS = [10_000];             // 合計2回試行＝自動再送は1回、10秒後
@@ -384,34 +387,47 @@ function deriveDirectSourceLabel(values) {
 }
 
 // ------------------------------------------
-// 300件キャップ: sent の古いものから間引く。waiting/sending は絶対に落とさない。
-// sent を全部落としても超過する場合のみ failed/unknown の古いものから間引く（保険）。
+// キュー整理（2026-09 見直し）:
+//   - sent（成功）は新しい DIRECT_SENT_KEEP（100）件だけ残し、それより古い sent は自動的に間引く。
+//   - failed（失敗）・unknown（不明）はユーザーが設定画面（options-direct.js）で
+//     クリア／再送するまで自動では絶対に間引かない。ただしストレージを守るための
+//     安全上限として、failed+unknown の合計が DIRECT_ERROR_CEILING（500）件を超えた
+//     場合のみ、古いものから間引く（この場合のみログを残す）。
+//   - waiting/sending は状態に関わらず絶対に落とさない。
+//   - 間引きは対象を id で特定してから元の配列を filter するだけなので、
+//     残った項目の並び順（enqueuedAt 昇順で格納されている現在の順序）は変えない。
+// 変更なしの場合は引数の queue をそのまま返す（reviveDirectQueue 側で「変更があったか」の
+// 判定に参照の一致を使っているため）。
 // ------------------------------------------
 function capDirectQueue(queue) {
-  if (!Array.isArray(queue) || queue.length <= DIRECT_QUEUE_MAX_LENGTH) return queue;
-  const next = queue.slice();
-  const sortKey = (item) => item.completedAt || item.enqueuedAt || 0;
+  if (!Array.isArray(queue) || queue.length === 0) return queue;
 
-  const dropOldestByStatuses = (statuses) => {
-    let oldestIdx = -1;
-    for (let i = 0; i < next.length; i++) {
-      const q = next[i];
-      if (!q || !statuses.includes(q.status)) continue;
-      if (oldestIdx === -1 || sortKey(q) < sortKey(next[oldestIdx])) oldestIdx = i;
-    }
-    if (oldestIdx !== -1) {
-      next.splice(oldestIdx, 1);
-      return true;
-    }
-    return false;
-  };
+  const sortKey = (item) => (item && (item.completedAt || item.enqueuedAt)) || 0;
+  const toDropIds = new Set();
 
-  while (next.length > DIRECT_QUEUE_MAX_LENGTH) {
-    if (dropOldestByStatuses(['sent'])) continue;
-    if (dropOldestByStatuses(['failed', 'unknown'])) continue;
-    break; // waiting/sending しか残っていない場合は打ち切り（絶対に落とさない）
+  // sent: 新しい順に DIRECT_SENT_KEEP 件だけ残す
+  const sentItems = queue.filter((q) => q && q.status === 'sent');
+  if (sentItems.length > DIRECT_SENT_KEEP) {
+    const sortedSent = sentItems.slice().sort((a, b) => sortKey(b) - sortKey(a));
+    for (const q of sortedSent.slice(DIRECT_SENT_KEEP)) {
+      toDropIds.add(q.id);
+    }
   }
-  return next;
+
+  // failed/unknown: 合計が DIRECT_ERROR_CEILING を超えた場合のみ、古いものから間引く（保険）
+  const errorItems = queue.filter((q) => q && (q.status === 'failed' || q.status === 'unknown'));
+  if (errorItems.length > DIRECT_ERROR_CEILING) {
+    const sortedErrors = errorItems.slice().sort((a, b) => sortKey(b) - sortKey(a));
+    const overflow = sortedErrors.slice(DIRECT_ERROR_CEILING);
+    for (const q of overflow) {
+      toDropIds.add(q.id);
+    }
+    console.log('[direct] capDirectQueue: failed/unknown が安全上限(' + DIRECT_ERROR_CEILING + ')を超えたため',
+      overflow.length, '件（古いもの）を自動的に間引きました');
+  }
+
+  if (toDropIds.size === 0) return queue;
+  return queue.filter((q) => !q || !toDropIds.has(q.id));
 }
 
 // ------------------------------------------
@@ -446,7 +462,7 @@ async function reviveDirectQueue(opts) {
       const queue = Array.isArray(stored[DIRECT_KEYS.queue]) ? stored[DIRECT_KEYS.queue] : [];
       const now = Date.now();
       let recovered = 0;
-      const next = queue.map((q) => {
+      const revived = queue.map((q) => {
         if (!q || q.status !== 'sending') return q;
         const startedAt = Number(q.startedAt) || 0;
         const isStale = all || !startedAt || (now - startedAt > DIRECT_STALE_SENDING_MS);
@@ -461,9 +477,21 @@ async function reviveDirectQueue(opts) {
         }
         return q;
       });
-      if (recovered > 0) {
+
+      // all:true（SW インスタンス起動直後の boot）のときだけ capDirectQueue も通す。
+      // これにより、キュー整理ルールの変更（例: 旧仕様の 300 件キャップで保存されたまま
+      // アップグレードしてきた既存ユーザーのキュー）が起動時に新ルールへ揃う。
+      // 参照が変わっていれば実際に間引きが発生したという意味（capDirectQueue の仕様）。
+      const next = all ? capDirectQueue(revived) : revived;
+
+      if (recovered > 0 || next !== revived) {
         await chrome.storage.local.set({ [DIRECT_KEYS.queue]: next });
-        console.log('[direct] recovered', recovered, 'stale sending item(s) as unknown (all=' + all + ')');
+        if (recovered > 0) {
+          console.log('[direct] recovered', recovered, 'stale sending item(s) as unknown (all=' + all + ')');
+        }
+        if (next !== revived) {
+          console.log('[direct] boot capDirectQueue trimmed', revived.length - next.length, 'item(s)');
+        }
       }
       updateDirectBadge(next);
     } catch (e) {
@@ -635,6 +663,23 @@ async function directGetState() {
     const queue = Array.isArray(stored[DIRECT_KEYS.queue]) ? stored[DIRECT_KEYS.queue] : [];
     const warmup = stored[DIRECT_KEYS.warmup] || {};
     return { success: true, items: queue, warmup };
+  });
+}
+
+// ポップアップ（popup.js）から呼ばれる軽量サマリ。読み取り専用なので withStorageLock は
+// 必須ではないが、Step A/C の書き込みと同時に読んで中途半端な配列を見ないよう、
+// 他のハンドラと同じく withStorageLock 経由に揃えておく。
+async function directGetSummary() {
+  return withStorageLock(async () => {
+    const stored = await chrome.storage.local.get([DIRECT_KEYS.queue]);
+    const queue = Array.isArray(stored[DIRECT_KEYS.queue]) ? stored[DIRECT_KEYS.queue] : [];
+    const counts = { failed: 0, unknown: 0, waiting: 0, sending: 0, sent: 0 };
+    for (const q of queue) {
+      if (q && Object.prototype.hasOwnProperty.call(counts, q.status)) {
+        counts[q.status]++;
+      }
+    }
+    return { success: true, ...counts };
   });
 }
 
