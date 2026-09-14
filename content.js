@@ -467,8 +467,7 @@ function isNoiseText(text) {
         'mer-heading[variant="headingM"]'
       ];
       descriptionSelectors = [
-        'div[data-testid="description"]',
-        'pre[data-testid="description"]',
+        '[data-testid="description"]',        // 2026-09-14: 実ページは <p data-testid="description"> のためタグ非依存にする（div/pre 指定は重複ハイライト防止のため削除）
         'div.item-description',
         'pre.item-description__inner',
         'mer-text[class*="description"]',
@@ -6238,6 +6237,7 @@ function isNoiseText(text) {
   // ==========================================
   function _mercariGetDescriptionFromDom() {
     const selectors = [
+      '[data-testid="description"]',        // 2026-09-14: 実ページは <p data-testid="description"> のためタグ非依存にする
       'div[data-testid="description"]',
       'pre[data-testid="description"]',
       'div.item-description',
