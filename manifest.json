@@ -24,6 +24,26 @@
       "128": "icon128.png"
     }
   },
+  "commands": {
+    "direct-send": {
+      "suggested_key": {
+        "default": "Alt+Shift+1"
+      },
+      "description": "直接送信（表示中の商品ページ）"
+    },
+    "select-send": {
+      "suggested_key": {
+        "default": "Alt+Shift+2"
+      },
+      "description": "選択送信（送信先を選ぶ）"
+    },
+    "preview": {
+      "suggested_key": {
+        "default": "Alt+Shift+3"
+      },
+      "description": "内容確認（取り込み内容を表示）"
+    }
+  },
   "side_panel": {
     "default_path": "options.html"
   },

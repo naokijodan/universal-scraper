@@ -2004,29 +2004,41 @@ function isNoiseText(text) {
   };
 
   // 1. 内容確認ボタンクリック
+  // v1.6.6: ドラッグ判定（moveDistance < 5）を通過した実クリック時の処理を
+  // 名前付き関数に切り出し、キーボードショートカット（triggerButton）からも
+  // 同じ処理を呼べるようにする（ドラッグ判定はクリックイベント由来の座標が
+  // 前提のため、ショートカット側はこの関数を直接呼んで判定自体をバイパスする）。
+  const _runPreviewAction = () => {
+    // メルカリ: 出品日時が未取得なら再スキャンして補完（多タブ背景ロード対策）
+    _mercariRefillDates(extractedData);
+    // データ未取得警告（内容確認時）- 基本項目 + 説明文
+    const missingFieldsPreview = _getMissingFields(extractedData, false);
+    if (!extractedData.description || extractedData.description === '') {
+      missingFieldsPreview.push('説明文');
+    }
+    if (missingFieldsPreview.length > 0) {
+      showNotification(
+        '⚠️ 未取得データあり',
+        missingFieldsPreview.join('・') + ' が取得できていません。ページをリロードすると取得できる場合があります。',
+        'warning',
+        colors
+      );
+    }
+    showPreviewModal(extractedData, currentSite, colors, settings);
+  };
+
   previewButton.addEventListener('click', (e) => {
     const moveDistance = Math.sqrt(
       Math.pow(e.clientX - dragStartX, 2) + Math.pow(e.clientY - dragStartY, 2)
     );
     if (moveDistance < 5) {
-      // メルカリ: 出品日時が未取得なら再スキャンして補完（多タブ背景ロード対策）
-      _mercariRefillDates(extractedData);
-      // データ未取得警告（内容確認時）- 基本項目 + 説明文
-      const missingFieldsPreview = _getMissingFields(extractedData, false);
-      if (!extractedData.description || extractedData.description === '') {
-        missingFieldsPreview.push('説明文');
-      }
-      if (missingFieldsPreview.length > 0) {
-        showNotification(
-          '⚠️ 未取得データあり',
-          missingFieldsPreview.join('・') + ' が取得できていません。ページをリロードすると取得できる場合があります。',
-          'warning',
-          colors
-        );
-      }
-      showPreviewModal(extractedData, currentSite, colors, settings);
+      _runPreviewAction();
     }
   });
+
+  // ショートカット（Alt+Shift+3 既定）からの呼び出し用フック。
+  // triggerButton メッセージ受信時、ボタンが disabled でなければこの関数を呼ぶ。
+  previewButton._triggerShortcutAction = _runPreviewAction;
 
   // 2. コピーボタンクリック（直接クリップボードにコピー）
   copyButton.addEventListener('click', async (e) => {
@@ -5535,6 +5547,33 @@ function isNoiseText(text) {
         console.error('[directSendResult] notification failed:', e?.message || e);
       }
     }
+
+    // v1.6.6: キーボードショートカット（chrome.commands）からの転送。
+    // background.js が manifest.json の commands (direct-send / select-send / preview) を
+    // 'triggerButton' として送ってくる。ボタンが未生成のページ・disabled時は何もしない。
+    if (request && request.action === 'triggerButton') {
+      try {
+        let targetButton = null;
+        if (request.which === 'direct-send') {
+          targetButton = (typeof exportButton !== 'undefined') ? exportButton : null;
+        } else if (request.which === 'select-send') {
+          targetButton = (typeof multiExportBtn !== 'undefined') ? multiExportBtn : null;
+        } else if (request.which === 'preview') {
+          targetButton = (typeof previewButton !== 'undefined') ? previewButton : null;
+        }
+
+        if (targetButton && !targetButton.disabled) {
+          if (request.which === 'preview' && typeof targetButton._triggerShortcutAction === 'function') {
+            targetButton._triggerShortcutAction();
+          } else {
+            targetButton.click();
+          }
+        }
+      } catch (e) {
+        console.error('[triggerButton] failed:', e?.message || e);
+      }
+    }
+
     return false;
   });
 

@@ -274,6 +274,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // ==========================================
+// キーボードショートカット（chrome.commands）
+// manifest.json の "commands" で定義した direct-send / select-send / preview を
+// アクティブタブの content.js へ 'triggerButton' として転送する。
+// content.js 側にリスナーが無い（対応ページでない）場合は catch で握りつぶす。
+// ==========================================
+chrome.commands.onCommand.addListener((command) => {
+  console.log('[cmd] received command:', command);
+  chrome.tabs.query({ active: true, currentWindow: true })
+    .then((tabs) => {
+      const tab = tabs && tabs[0];
+      if (!tab || !tab.id) {
+        console.warn('[cmd] アクティブタブが見つかりません:', command);
+        return;
+      }
+      chrome.tabs.sendMessage(tab.id, { action: 'triggerButton', which: command })
+        .catch((err) => {
+          console.log('[cmd] content script 未対応タブのため無視:', command, err?.message || err);
+        });
+    })
+    .catch((err) => {
+      console.error('[cmd] tabs.query 失敗:', command, err?.message || err);
+    });
+});
+
+// ==========================================
 // Google Apps Script Webhook 送信（直接送信）は v1.6.6 で background-direct.js
 // （enqueueDirectSend / processDirectQueue）へ移行済み。handleExportToSheet は
 // 他から参照されなくなったため削除。
