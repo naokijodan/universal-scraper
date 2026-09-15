@@ -591,13 +591,13 @@ async function directRetryFailed() {
     const queue = Array.isArray(stored[DIRECT_KEYS.queue]) ? stored[DIRECT_KEYS.queue] : [];
     let retried = 0;
     const next = queue.map((q) => {
-      if (!q || (q.status !== 'failed' && q.status !== 'unknown')) return q;
+      if (!q || q.status !== 'failed') return q;
       retried++;
       return { ...q, status: 'waiting', attempts: 0, nextRetryAt: 0, lastError: null, completedAt: null };
     });
     await chrome.storage.local.set({ [DIRECT_KEYS.queue]: next });
     updateDirectBadge(next);
-    console.log('[direct] directRetryFailed:', retried, '件を再送待機に戻しました');
+    console.log('[direct] directRetryFailed:', retried, '件（失敗のみ）を再送待機に戻しました');
     return { success: true, retried };
   });
   if (result && result.success) {

@@ -65,7 +65,7 @@
     if (status === 'sending') return '送信中';
     if (status === 'sent') return '成功';
     if (status === 'failed') return '失敗';
-    if (status === 'unknown') return '不明';
+    if (status === 'unknown') return '不明（要確認）';
     if (status === 'waiting') return '待機';
     return status || '?';
   }
@@ -232,7 +232,7 @@
       const retryBtn = document.createElement('button');
       retryBtn.type = 'button';
       retryBtn.textContent = '↻ 再送';
-      retryBtn.addEventListener('click', () => requeueOne(item.id));
+      retryBtn.addEventListener('click', () => onRetryClick(item));
       actions.appendChild(retryBtn);
 
       const delBtn = document.createElement('button');
@@ -285,7 +285,7 @@
   // アクション
   // ==========================================
   async function retryFailed() {
-    if (!confirmAction('失敗・不明をすべて再送待機に戻しますか？')) return;
+    if (!confirmAction('『失敗』の項目をすべて再送待機に戻しますか？\n（『不明』は書き込み済みの可能性が高いため対象外です。個別に確認して再送してください）')) return;
     try {
       const res = await sendMessageSafely({ action: 'directRetryFailed' });
       if (!res || res.success === false) {
@@ -321,6 +321,16 @@
     } catch (e) {
       console.error('[options-direct] clearDone error:', e?.message || e);
     }
+  }
+
+  function onRetryClick(item) {
+    if (!item || !item.id) return;
+    if (item.status === 'unknown') {
+      if (!confirmAction('この商品はスプレッドシートに既に書き込まれている可能性が高いです。\n\nシートを開いて、この商品の行が「無い」ことを確認しましたか？\n無い場合のみ再送してください（有る場合は二重になります）。')) {
+        return;
+      }
+    }
+    requeueOne(item.id);
   }
 
   async function requeueOne(id) {
