@@ -175,16 +175,21 @@ async function processDirectQueueOnce() {
       updated = { ...current, status: 'unknown', completedAt: now, lastError: DIRECT_TIMEOUT_MESSAGE, timing };
     } else {
       // definite_failure（GAS success:false / HTTP非2xx / JSON解析失敗 / ネットワークエラー）
-      // 仕様上は「error==='lock_timeout' なら常にリトライ」とも読めるが、無限リトライを避けるため
-      // 最大2回試行（attempts>=2で打ち切り）の上限をあらゆるエラー種別に一律適用する。
-      if ((current.attempts || 0) < 2) {
-        const delays = _directRetryDelaysMs();
-        const idx = Math.min((current.attempts || 1) - 1, delays.length - 1);
-        retryDelayMs = delays[idx];
-        updated = { ...current, status: 'waiting', nextRetryAt: now + retryDelayMs, lastError: outcome.error, timing };
-      } else {
-        updated = { ...current, status: 'failed', completedAt: now, lastError: outcome.error, timing };
-      }
+      // v1.6.10: 自動再送を廃止（二重送信の根絶）。
+      // 失敗応答（特にコールドスタート/一時制限時の HTTP 404）が返っても、その裏で GAS は
+      // 既に1行書き込んでいることがある。ここで自動再送すると2行目が書かれ重複になる（実ログで確認）。
+      // よって「書けたか不明」として unknown に固定し、自動では送り直さない。
+      // 送り直しは options の履歴パネルの「再送」ボタンでユーザーが手動で行う（シート確認後）。
+      const isLockTimeout = outcome.error === 'lock_timeout';
+      updated = {
+        ...current,
+        status: 'unknown',
+        completedAt: now,
+        lastError: isLockTimeout
+          ? 'シートが混雑して書き込めなかった可能性（lock_timeout）。シートを確認し、無ければ再送してください'
+          : ((outcome.error || '不明なエラー') + '（書き込まれたか不明。シートを確認してください）'),
+        timing
+      };
     }
 
     let nextQueue = queue2.map((q, i) => (i === idx2 ? updated : q));
