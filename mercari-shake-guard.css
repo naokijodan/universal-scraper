@@ -1,0 +1,5 @@
+/* 同じボタン欄が2つ以上並んだとき、2つ目以降を表示しない。
+   1つ目はそのまま表示するので、欄の機能は変わらない。 */
+#furima-assist-search-buttons ~ #furima-assist-search-buttons {
+  display: none !important;
+}

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "とりこみ君",
   "short_name": "とりこみ君",
-  "version": "1.6.11",
+  "version": "1.6.12",
   "description": "ECサイト・フリマサイトの商品情報を取得し、スプレッドシートへのエクスポートやクリップボードへのコピーができます。AI 翻訳で eBay 出品用データの生成にも対応。",
   "permissions": [
     "clipboardWrite",
@@ -137,6 +137,11 @@
       "js": ["michatta/storage.js", "michatta/content.js"],
       "css": ["michatta/styles.css"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://jp.mercari.com/*"],
+      "css": ["mercari-shake-guard.css"],
+      "run_at": "document_start"
     }
   ],
   "icons": {
