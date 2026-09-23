@@ -1484,16 +1484,17 @@ function isNoiseText(text) {
   // タブが表示状態に戻った瞬間に一度だけ再スキャンする（ポーリングはしない）。
   // 注: 現状 UI 側に日時専用の常設バッジは無く、未取得警告は各送信系ボタンのクリック時に
   // _mercariRefillDates を呼ぶ形で対応済みのため、ここではデータの補完のみ行いUI再描画は行わない。
-  if ((currentSite === 'mercari' || currentSite === 'mercari_shop') && extractedData && (!extractedData.listedFmt || !extractedData.updatedFmt || !extractedData.reviewCount || !extractedData.description)) {
+  if ((currentSite === 'mercari' || currentSite === 'mercari_shop') && extractedData && (!extractedData.listedFmt || !extractedData.updatedFmt || !extractedData.reviewCount || !extractedData.description || !_hasAnyImageUrl(extractedData))) {
     const _onMercariVisibleForDateRefill = async () => {
       if (document.visibilityState !== 'visible') return;
       const filledDates = _mercariRefillDates(extractedData);
       const filledRating = await _mercariRefillSellerRating(extractedData);
       const filledDescription = _mercariRefillDescription(extractedData);
-      if (filledDates || filledRating || filledDescription) {
+      const filledImages = _mercariRefillImages(extractedData);
+      if (filledDates || filledRating || filledDescription || filledImages) {
         showAlertBadges(extractedData, null);
       }
-      if (!extractedData.listedFmt || !extractedData.updatedFmt || !extractedData.reviewCount || !extractedData.description) {
+      if (!extractedData.listedFmt || !extractedData.updatedFmt || !extractedData.reviewCount || !extractedData.description || !_hasAnyImageUrl(extractedData)) {
         return;
       }
       document.removeEventListener('visibilitychange', _onMercariVisibleForDateRefill);
@@ -1992,7 +1993,7 @@ function isNoiseText(text) {
     if (!data.price || data.price === 0) {
       missing.push('価格');
     }
-    if (!data.imageUrl || data.imageUrl === '') {
+    if (!_hasAnyImageUrl(data)) {
       missing.push('画像');
     }
     if (includeDetail) {
@@ -2021,6 +2022,8 @@ function isNoiseText(text) {
     await _mercariRefillSellerRating(extractedData);
     // メルカリ: 説明文が未取得なら再スキャンして補完（多タブ背景ロード対策）
     _mercariRefillDescription(extractedData);
+    // メルカリ: 画像が未取得なら再スキャンして補完（多タブ背景ロード対策）
+    _mercariRefillImages(extractedData);
     // データ未取得警告（内容確認時）- 基本項目 + 説明文
     const missingFieldsPreview = _getMissingFields(extractedData, false);
     if (!extractedData.description || extractedData.description === '') {
@@ -2124,6 +2127,8 @@ function isNoiseText(text) {
     await _mercariRefillSellerRating(extractedData);
     // メルカリ: 説明文が未取得なら再スキャンして補完（多タブ背景ロード対策）
     _mercariRefillDescription(extractedData);
+    // メルカリ: 画像が未取得なら再スキャンして補完（多タブ背景ロード対策）
+    _mercariRefillImages(extractedData);
 
     // 既に開いている場合は閉じる
     if (multiExportPopup) {
@@ -2297,6 +2302,8 @@ function isNoiseText(text) {
     await _mercariRefillSellerRating(extractedData);
     // メルカリ: 説明文が未取得なら再スキャンして補完（多タブ背景ロード対策）
     _mercariRefillDescription(extractedData);
+    // メルカリ: 画像が未取得なら再スキャンして補完（多タブ背景ロード対策）
+    _mercariRefillImages(extractedData);
 
     // データ未取得チェック
     const originalText = exportButton.innerHTML;
@@ -6024,6 +6031,167 @@ function isNoiseText(text) {
     return filled;
   }
 
+  // メルカリ商品写真と確定できるURLかどうかを判定（v1.6.13: 関連商品サムネ・出品者アイコン・
+  // 汎用OGP画像などの誤混入対策）。
+  // 通常商品ページの商品写真: https://static.mercdn.net/item/detail/...
+  // Shops商品ページの商品写真: https://assets.mercari-shops-static.com/-/large/...
+  function _isMercariProductImageUrl(url) {
+    if (typeof url !== 'string' || !url) return false;
+    if (url.startsWith('https://static.mercdn.net/item/detail/')) return true;
+    if (url.startsWith('https://assets.mercari-shops-static.com/-/large/')) return true;
+    return false;
+  }
+
+  // extractedData（またはそれに相当するオブジェクト）が1枚以上の画像URLを持っているか判定。
+  // メルカリの imageUrl は長さ20の配列（空文字埋め）で返るため、配列自体のtruthy判定では
+  // 常に true になり未取得警告が発火しない。配列内に非空文字列が1つでもあるかで判定する。
+  function _hasAnyImageUrl(data) {
+    const value = data && data.imageUrl;
+    if (Array.isArray(value)) {
+      return value.some(u => typeof u === 'string' && u);
+    }
+    if (typeof value === 'string') {
+      return value !== '';
+    }
+    return false;
+  }
+
+  // 画像URL（最大20枚、複数の方法で取得）。extractMercariProductData と _mercariRefillImages の
+  // 両方から使用。商品写真と確定できるURLだけ採用（_isMercariProductImageUrl）。
+  // 返り値は既存と同じ長さ20の配列（空文字埋め）。
+  function _mercariGetImageUrls() {
+    const imageUrlArray = new Array(20).fill('');
+    let foundCount = 0;
+
+    // 方法1: data-testid="image-0" ~ "image-19" から取得
+    for (let i = 0; i < 20; i++) {
+      const imgEl = document.querySelector(`[data-testid="image-${i}"] img`) || document.querySelector(`img[data-testid="image-${i}"]`);
+      if (imgEl) {
+        let url = '';
+        const srcset = imgEl.getAttribute('srcset');
+        if (srcset) {
+          const match = srcset.match(/^([^\s]+)/);
+          if (match) url = match[1];
+        }
+        if (!url) {
+          url = imgEl.src || imgEl.getAttribute('src') || imgEl.getAttribute('data-src') || '';
+        }
+        if (_isMercariProductImageUrl(url)) {
+          imageUrlArray[i] = url;
+          foundCount++;
+        } else if (url) {
+          _log('📸 商品写真でないURLを除外:', url);
+        }
+      }
+    }
+
+    // 方法2: カルーセルから取得（data-testidで取得できなかった場合）
+    if (foundCount === 0) {
+      const carousel = document.querySelector('[data-testid="carousel"]') ||
+                       document.querySelector('mer-carousel-item') ||
+                       document.querySelector('[class*="imageArea"]') ||
+                       document.querySelector('[class*="ItemImage"]') ||
+                       document.querySelector('mer-item-thumbnail');
+
+      if (carousel) {
+        const images = carousel.querySelectorAll('img');
+        _log('📸 カルーセルから画像検索:', images.length, '個');
+        images.forEach((img, idx) => {
+          if (idx < 20) {
+            let url = '';
+            const srcset = img.getAttribute('srcset');
+            if (srcset) {
+              const match = srcset.match(/^([^\s]+)/);
+              if (match) url = match[1];
+            }
+            if (!url) {
+              url = img.src || img.getAttribute('src') || img.getAttribute('data-src') || '';
+            }
+            if (_isMercariProductImageUrl(url)) {
+              imageUrlArray[idx] = url;
+              foundCount++;
+            } else if (url) {
+              _log('📸 商品写真でないURLを除外:', url);
+            }
+          }
+        });
+      }
+    }
+
+    // 方法3: 全picture要素から取得
+    if (foundCount === 0) {
+      const pictures = document.querySelectorAll('picture img, picture source');
+      _log('📸 picture要素から画像検索:', pictures.length, '個');
+      pictures.forEach((el, idx) => {
+        if (idx < 20) {
+          let url = '';
+          if (el.tagName === 'SOURCE') {
+            url = el.getAttribute('srcset') || '';
+            if (url) {
+              const match = url.match(/^([^\s]+)/);
+              if (match) url = match[1];
+            }
+          } else {
+            const srcset = el.getAttribute('srcset');
+            if (srcset) {
+              const match = srcset.match(/^([^\s]+)/);
+              if (match) url = match[1];
+            }
+            if (!url) {
+              url = el.src || el.getAttribute('src') || '';
+            }
+          }
+          if (_isMercariProductImageUrl(url)) {
+            imageUrlArray[idx] = url;
+            foundCount++;
+          } else if (url) {
+            _log('📸 商品写真でないURLを除外:', url);
+          }
+        }
+      });
+    }
+
+    // 方法4: og:imageフォールバック
+    if (foundCount === 0) {
+      const ogImage = document.querySelector('meta[property="og:image"]');
+      if (ogImage) {
+        const url = ogImage.getAttribute('content');
+        _log('📸 og:imageから取得:', url);
+        if (_isMercariProductImageUrl(url)) {
+          imageUrlArray[0] = url;
+          foundCount++;
+        } else if (url) {
+          _log('📸 商品写真でないURLを除外:', url);
+        }
+      }
+    }
+
+    return imageUrlArray;
+  }
+
+  // 画像URLが未取得のまま抽出が完了した場合に再スキャンして埋める（多タブ背景ロード対策）。
+  // 同期・DOM読み取りのみ（ネットワークアクセスなし）。埋まったフィールドがあれば true を返す。
+  function _mercariRefillImages(extractedData) {
+    if (!extractedData) return false;
+    if (currentSite !== 'mercari' && currentSite !== 'mercari_shop') return false;
+    if (_hasAnyImageUrl(extractedData)) return false;
+
+    const imageUrlArray = _mercariGetImageUrls();
+    const foundCount = imageUrlArray.filter(u => u).length;
+    let filled = false;
+
+    if (foundCount > 0) {
+      extractedData.imageUrl = imageUrlArray;
+      filled = true;
+    }
+
+    if (filled) {
+      _log('🔁 _mercariRefillImages: 画像を再取得して補完しました', foundCount);
+    }
+
+    return filled;
+  }
+
   // ==========================================
   // メルカリ 出品者評価 取得（多タブ背景ロード対策・visibilitychange再取得で使えるよう関数化。
   // extractMercariProductData と _mercariRefillSellerRating の両方から使用）
@@ -6483,104 +6651,9 @@ function isNoiseText(text) {
         }
       }
 
-      // 画像URL（最大20枚、複数の方法で取得）
-      const imageUrlArray = new Array(20).fill('');
-      let foundCount = 0;
-
-      // 方法1: data-testid="image-0" ~ "image-19" から取得
-      for (let i = 0; i < 20; i++) {
-        const imgEl = document.querySelector(`[data-testid="image-${i}"] img`) || document.querySelector(`img[data-testid="image-${i}"]`);
-        if (imgEl) {
-          let url = '';
-          const srcset = imgEl.getAttribute('srcset');
-          if (srcset) {
-            const match = srcset.match(/^([^\s]+)/);
-            if (match) url = match[1];
-          }
-          if (!url) {
-            url = imgEl.src || imgEl.getAttribute('src') || imgEl.getAttribute('data-src') || '';
-          }
-          if (url && url.startsWith('http')) {
-            imageUrlArray[i] = url;
-            foundCount++;
-          }
-        }
-      }
-
-      // 方法2: カルーセルから取得（data-testidで取得できなかった場合）
-      if (foundCount === 0) {
-        const carousel = document.querySelector('[data-testid="carousel"]') ||
-                         document.querySelector('mer-carousel-item') ||
-                         document.querySelector('[class*="imageArea"]') ||
-                         document.querySelector('[class*="ItemImage"]') ||
-                         document.querySelector('mer-item-thumbnail');
-
-        if (carousel) {
-          const images = carousel.querySelectorAll('img');
-          _log('📸 カルーセルから画像検索:', images.length, '個');
-          images.forEach((img, idx) => {
-            if (idx < 20) {
-              let url = '';
-              const srcset = img.getAttribute('srcset');
-              if (srcset) {
-                const match = srcset.match(/^([^\s]+)/);
-                if (match) url = match[1];
-              }
-              if (!url) {
-                url = img.src || img.getAttribute('src') || img.getAttribute('data-src') || '';
-              }
-              if (url && url.startsWith('http')) {
-                imageUrlArray[idx] = url;
-                foundCount++;
-              }
-            }
-          });
-        }
-      }
-
-      // 方法3: 全picture要素から取得
-      if (foundCount === 0) {
-        const pictures = document.querySelectorAll('picture img, picture source');
-        _log('📸 picture要素から画像検索:', pictures.length, '個');
-        pictures.forEach((el, idx) => {
-          if (idx < 20) {
-            let url = '';
-            if (el.tagName === 'SOURCE') {
-              url = el.getAttribute('srcset') || '';
-              if (url) {
-                const match = url.match(/^([^\s]+)/);
-                if (match) url = match[1];
-              }
-            } else {
-              const srcset = el.getAttribute('srcset');
-              if (srcset) {
-                const match = srcset.match(/^([^\s]+)/);
-                if (match) url = match[1];
-              }
-              if (!url) {
-                url = el.src || el.getAttribute('src') || '';
-              }
-            }
-            if (url && url.startsWith('http')) {
-              imageUrlArray[idx] = url;
-              foundCount++;
-            }
-          }
-        });
-      }
-
-      // 方法4: og:imageフォールバック
-      if (foundCount === 0) {
-        const ogImage = document.querySelector('meta[property="og:image"]');
-        if (ogImage) {
-          const url = ogImage.getAttribute('content');
-          _log('📸 og:imageから取得:', url);
-          if (url && url.startsWith('http')) {
-            imageUrlArray[0] = url;
-            foundCount++;
-          }
-        }
-      }
+      // 画像URL（最大20枚、_mercariGetImageUrls に集約。商品写真と確定できるURLだけ採用）
+      const imageUrlArray = _mercariGetImageUrls();
+      const foundCount = imageUrlArray.filter(u => u).length;
 
       _log('=== メルカリ抽出結果 ===');
       _log('プラットフォーム: mercari');
