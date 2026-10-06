@@ -429,12 +429,18 @@
   const ebayEvaluatedRows = new WeakMap(); // row -> 未閲覧と判定した時のitemId（再問い合わせ抑止用）
   let ebayMarkRunning = false;
   let ebayMarkAgain = false;
-  async function markEbayResearchRows(force) {
+  // 保留中の「全行を判定し直す」要求（表示復帰などの force が後続の通常要求で消えないよう OR で積む）
+  let ebayPendingForce = false;
+  async function markEbayResearchRows(forceArg) {
     if (!isEbayResearchPage()) return;
+    if (forceArg) ebayPendingForce = true;
     if (ebayMarkRunning) {
+      // 実行中に来た要求は、force も含めて「やり直し」に引き継ぐ
       ebayMarkAgain = true;
       return;
     }
+    const force = ebayPendingForce;
+    ebayPendingForce = false;
     ebayMarkRunning = true;
     try {
       const rows = document.querySelectorAll('tr.research-table-row, tr.active-listing-row');
@@ -479,13 +485,32 @@
     }
   }
 
+  // テラピーク一覧の商品リンクをクリック（中ボタン含む）した時点で記録し、その行にすぐチェックを付ける
+  // ※eBay本来の動きは変えない（preventDefault / stopPropagation はしない）。委譲リスナー1つで、作り直された行にも効く
+  function onEbayResultLinkClick(event) {
+    if (!isEbayResearchPage()) return;
+    if (event.type === 'auxclick' && event.button !== 1) return;
+    const target = event.target;
+    if (!target || !target.closest) return;
+    const link = target.closest('a[href*="/itm/"]');
+    if (!link) return;
+    const row = link.closest('tr.research-table-row, tr.active-listing-row');
+    if (!row) return;
+    const itemId = getEbayRowItemId(row);
+    if (!itemId) return;
+    saveViewedItem(itemId);
+    if (!row.querySelector('.michatta-ebay-check')) addEbayCheck(row, itemId);
+  }
+
   // eBayの画面変化・表示復帰を監視してチェックを付け直す
   function observeEbayResearch() {
     let debounceTimer = null;
     const refresh = (force) => {
       if (!isEbayResearchPage()) return;
+      // force は保留フラグに積む（後続の通常要求で clearTimeout されても消えない）
+      if (force) ebayPendingForce = true;
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => markEbayResearchRows(force), 250);
+      debounceTimer = setTimeout(() => markEbayResearchRows(false), 250);
     };
 
     const observer = new MutationObserver((mutations) => {
@@ -503,6 +528,10 @@
       if (document.visibilityState === 'visible') refresh(true);
     });
     window.addEventListener('focus', () => refresh(true));
+
+    // 商品リンクのクリック・中ボタンクリックで記録（販売済み商品が /itm/ ページに転送されない場合の備え）
+    document.addEventListener('click', onEbayResultLinkClick, true);
+    document.addEventListener('auxclick', onEbayResultLinkClick, true);
   }
 
   // eBay用の初期化（専用の短い経路。これ以外の処理は呼ばない）

@@ -1180,6 +1180,7 @@ function michattaDetectSite(itemId) {
   if (itemId.startsWith('hardoff_')) return 'hardoff';
   if (itemId.startsWith('yshopping_')) return 'yahoo_shopping';
   if (itemId.startsWith('amazon_')) return 'amazon';
+  if (itemId.startsWith('ebay_')) return 'ebay';
   if (/^m[a-zA-Z0-9]+$/.test(itemId)) return 'mercari';
   return 'rakuma';
 }
