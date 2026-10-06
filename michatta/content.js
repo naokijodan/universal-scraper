@@ -26,6 +26,9 @@
   // URL変更時にクリアされる（SPA対応、実際のクリア用タイマーは init() 内で enableMichatta 確認後に開始）
   const markedItemIds = new Set();
 
+  // eBay の各ドメイン（manifest の matches / host_permissions と同じ範囲）
+  const EBAY_HOST_RE = /(?:^|\.)ebay\.(?:com\.au|com|co\.uk|co\.jp|de|fr|it|es|ca)$/;
+
   // 現在のサイトを判定
   function getCurrentSite() {
     const host = window.location.hostname;
@@ -38,11 +41,18 @@
     if (host.includes('yahoo.co.jp')) return 'yahoo';
     if (host.includes('netmall.hardoff.co.jp')) return 'hardoff';
     if (host.includes('amazon.co.jp')) return 'amazon';
+    // eBay（v1.6.14: 商品ページの閲覧記録とテラピーク一覧のチェック表示のみ。他の機能は動かさない）
+    if (EBAY_HOST_RE.test(host)) return 'ebay';
     return null;
   }
 
   // 商品IDをURLから抽出（各サイト対応）
   function extractItemId(url) {
+    // eBay: ebay.com/itm/123456789012 または ebay.com/itm/タイトル/123456789012（ebay_プレフィックス）
+    // ※ホストが eBay のURLだけが対象。他サイトの判定には影響しない
+    const ebayMatch = url.match(/^https?:\/\/(?:[a-z0-9-]+\.)*ebay\.(?:com\.au|com|co\.uk|co\.jp|de|fr|it|es|ca)(?::\d+)?\/itm\/(?:[^/?#]+\/)?(\d+)(?:[/?#]|$)/i);
+    if (ebayMatch) return 'ebay_' + ebayMatch[1];
+
     // PayPayフリマ: paypayfleamarket.yahoo.co.jp/item/z491889774
     // ※メルカリより先に判定（/item/パターンが重複するため）
     const paypayMatch = url.match(/paypayfleamarket\.yahoo\.co\.jp\/item\/([a-zA-Z0-9]+)/);
@@ -130,6 +140,11 @@
 
     const itemId = extractItemId(window.location.href);
     if (itemId) {
+      // eBay は記録だけ行い、商品ページにバッジは出さない
+      if (getCurrentSite() === 'ebay') {
+        saveViewedItem(itemId);
+        return;
+      }
       // 既に閲覧済みかチェックしてバッジを表示
       const viewedItems = await getViewedItems();
       if (viewedItems[itemId]) {
@@ -369,6 +384,148 @@
       childList: true,
       subtree: true
     });
+  }
+
+  // ==============================
+  // eBay（テラピーク結果一覧の既読チェック）
+  // eBayでは「商品ページのIDを記録」と「テラピーク一覧にチェックを足す」の2つだけを行う。
+  // 開くボタン・詳細パネル・背景取得・タブを開く処理は一切呼ばない。
+  // ==============================
+
+  // テラピーク（リサーチ）画面かどうか
+  function isEbayResearchPage() {
+    return window.location.pathname.indexOf('/sh/research') === 0;
+  }
+
+  // 行から商品IDを取り出す（最初のセルのリンク → 無ければ data-item-id）
+  function getEbayRowItemId(row) {
+    const cell = row.querySelector('td.research-table-row__product-info, td.active-listing-row__product-info') || row.cells[0];
+    if (!cell) return null;
+    const link = cell.querySelector('a[href*="/itm/"]');
+    if (link) {
+      const id = extractItemId(link.href);
+      if (id) return id;
+    }
+    const span = cell.querySelector('span[data-item-id]');
+    const num = span && span.getAttribute('data-item-id');
+    return num && /^\d+$/.test(num) ? 'ebay_' + num : null;
+  }
+
+  // 赤いチェックを行の最初のセルに1つ足す（td・列は増やさない）
+  function addEbayCheck(row, itemId) {
+    const cell = row.querySelector('td.research-table-row__product-info, td.active-listing-row__product-info') || row.cells[0];
+    if (!cell) return;
+    cell.classList.add('michatta-ebay-check-host');
+    const mark = document.createElement('span');
+    mark.className = 'michatta-ebay-check';
+    mark.setAttribute('aria-hidden', 'true');
+    mark.setAttribute('data-michatta-ebay-id', itemId);
+    mark.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#e53935" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg>';
+    cell.appendChild(mark);
+  }
+
+  // 閲覧済みなのに未判定（または未閲覧と判定済み）の行を、行のDOMを見て付け直す
+  // ※markedItemIds には頼らない（行は並べ替え・ページ送りで作り直されるため）
+  const ebayEvaluatedRows = new WeakMap(); // row -> 未閲覧と判定した時のitemId（再問い合わせ抑止用）
+  let ebayMarkRunning = false;
+  let ebayMarkAgain = false;
+  async function markEbayResearchRows(force) {
+    if (!isEbayResearchPage()) return;
+    if (ebayMarkRunning) {
+      ebayMarkAgain = true;
+      return;
+    }
+    ebayMarkRunning = true;
+    try {
+      const rows = document.querySelectorAll('tr.research-table-row, tr.active-listing-row');
+      const targets = []; // { row, itemId }
+      rows.forEach((row) => {
+        const itemId = getEbayRowItemId(row);
+        const existing = row.querySelector('.michatta-ebay-check');
+        if (existing) {
+          // 行が再利用されて別商品になっていた場合は外して判定し直す
+          if (existing.getAttribute('data-michatta-ebay-id') === itemId) return;
+          existing.remove();
+        }
+        if (!itemId) return;
+        if (!force && ebayEvaluatedRows.get(row) === itemId) return;
+        targets.push({ row, itemId });
+      });
+      if (targets.length === 0) return;
+
+      const ids = Array.from(new Set(targets.map((t) => t.itemId)));
+      let viewedItems;
+      try {
+        viewedItems = await whenStorageReady(() => window.MichattaStorage.getViewedItemsBatch(ids));
+      } catch (error) {
+        console.error('[みちゃった君] eBayバッチ取得エラー:', error);
+        return;
+      }
+
+      targets.forEach(({ row, itemId }) => {
+        if (!row.isConnected || row.querySelector('.michatta-ebay-check')) return;
+        if (viewedItems[itemId]) {
+          addEbayCheck(row, itemId);
+        } else {
+          ebayEvaluatedRows.set(row, itemId);
+        }
+      });
+    } finally {
+      ebayMarkRunning = false;
+      if (ebayMarkAgain) {
+        ebayMarkAgain = false;
+        markEbayResearchRows(false);
+      }
+    }
+  }
+
+  // eBayの画面変化・表示復帰を監視してチェックを付け直す
+  function observeEbayResearch() {
+    let debounceTimer = null;
+    const refresh = (force) => {
+      if (!isEbayResearchPage()) return;
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => markEbayResearchRows(force), 250);
+    };
+
+    const observer = new MutationObserver((mutations) => {
+      if (!isEbayResearchPage()) return;
+      // 自分が足したチェックだけの変化では再実行しない（無限ループ防止）
+      const external = mutations.some((m) => Array.from(m.addedNodes).some(
+        (n) => !(n.nodeType === 1 && n.classList.contains('michatta-ebay-check'))
+      ));
+      if (external) refresh(false);
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // 商品ページを別タブで開いて戻ってきた時、再読み込みなしで付ける
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') refresh(true);
+    });
+    window.addEventListener('focus', () => refresh(true));
+  }
+
+  // eBay用の初期化（専用の短い経路。これ以外の処理は呼ばない）
+  async function initEbay() {
+    // チェック用タブ（_mcheck=1）では何もしない
+    if (isCheckTab) return;
+
+    try {
+      await window.MichattaStorage.initDB();
+      storageReady = true;
+      pendingOperations.forEach(fn => fn());
+      pendingOperations = [];
+    } catch (error) {
+      console.error('[みちゃった君] ストレージ初期化エラー:', error);
+      storageReady = true; // フォールバックで動作
+    }
+
+    // eBay商品ページなら閲覧記録を保存（バッジは出さない）
+    checkAndSaveCurrentPage();
+
+    // テラピーク一覧にチェックを付ける
+    markEbayResearchRows(true);
+    observeEbayResearch();
   }
 
   // ==============================
@@ -988,6 +1145,12 @@
     const { enableMichatta } = await chrome.storage.sync.get({ enableMichatta: false });
     if (!enableMichatta) {
       console.log('[みちゃった君] enableMichatta=false のため何もしません');
+      return;
+    }
+
+    // eBay は専用の短い経路（開くボタン・詳細パネル・背景取得は動かさない）
+    if (getCurrentSite() === 'ebay') {
+      await initEbay();
       return;
     }
 

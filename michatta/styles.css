@@ -313,3 +313,21 @@ a.mercari-viewed-marked {
   background: #bdbdbd;
   cursor: not-allowed;
 }
+
+/* eBay テラピーク結果一覧の既読チェック（v1.6.14）
+   最初のセル内に絶対配置で1つだけ置く。位置は --michatta-ebay-check-left で切り替え可能
+   （既定: 行の左の外側。切れる場合は 4px 程度にすると商品写真の左上に重なる） */
+.michatta-ebay-check-host {
+  position: relative;
+}
+.michatta-ebay-check {
+  position: absolute;
+  left: var(--michatta-ebay-check-left, -26px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  line-height: 0;
+  pointer-events: none;
+  z-index: 1;
+}
