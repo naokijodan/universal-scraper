@@ -102,6 +102,101 @@ const _searchRatingText = () => {
   return { good, bad, normal };
 };
 
+// 共通ヘルパー: page-data-bridge.js（MAIN world）がメルカリ商品ページのReactツリーから読み取った
+// 出品日時・更新日時・評価内訳（document.documentElement.dataset.usPageItem）を同期で読む。
+// 現在のURLの商品IDと一致しない場合（SPA遷移直後の古いデータ等）は null を返す。
+const _getMercariPageItem = () => {
+  try {
+    const raw = document.documentElement.dataset.usPageItem;
+    if (!raw) return null;
+    const o = JSON.parse(raw);
+    if (!o || o.site !== 'mercari' || !o.id) return null;
+    const m = location.pathname.match(/\/item\/(m\d+)/) || location.pathname.match(/\/shops\/product\/([A-Za-z0-9]+)/);
+    if (!m || m[1] !== o.id) return null;
+    // Unixタイム秒らしい値（1e9〜1e11）だけ採用。ミリ秒値や異常値は欠損扱い
+    const isSec = (v) => typeof v === 'number' && isFinite(v) && v > 1e9 && v < 1e11;
+    if (!isSec(o.created)) return null; // 出品日時が不正ならDOM/FA経路にフォールバック
+    const created = o.created;
+    const updated = isSec(o.updated) ? o.updated : null;
+    const r = o.ratings;
+    const ratings = (r && [r.good, r.normal, r.bad].every(v => typeof v === 'number' && isFinite(v) && v >= 0))
+      ? { good: r.good, normal: r.normal, bad: r.bad } : null;
+    const name = (typeof o.name === 'string' && o.name) ? o.name : null;
+    return { id: o.id, created, updated, ratings, name };
+  } catch (e) {
+    return null;
+  }
+};
+
+// 共通ヘルパー: JST の "YYYY/MM/DD HH:MM:SS" 表記（PayPayフリマ従来のテーブル表示と同形式）
+const _fmtSlashJST = (d) => {
+  if (!(d instanceof Date) || isNaN(d.getTime())) return '';
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const j = new Date(d.getTime() + 9 * 3600 * 1000);
+  return `${j.getUTCFullYear()}/${pad2(j.getUTCMonth() + 1)}/${pad2(j.getUTCDate())} ${pad2(j.getUTCHours())}:${pad2(j.getUTCMinutes())}:${pad2(j.getUTCSeconds())}`;
+};
+
+// 共通ヘルパー: PayPayフリマの __NEXT_DATA__ から出品日時・更新日時を取得。
+// item.id が URL の商品ID（/item/z…）と一致した場合のみ返す（SPA遷移後の古いデータ対策）。取れなければ null
+let _ppDatesCache = null; // { href, val }（取得成功時のみURL単位でキャッシュ）
+const _getPayPayPageDates = () => {
+  try {
+    if (_ppDatesCache && _ppDatesCache.href === location.href) return _ppDatesCache.val;
+    if (!/\/item\/z[0-9a-zA-Z]+/.test(location.pathname)) return null; // 商品ページ以外はスキップ
+    const nextEl = document.getElementById('__NEXT_DATA__');
+    const nextItem = nextEl ? JSON.parse(nextEl.textContent)?.props?.initialState?.itemsState?.items?.item : null;
+    const urlIdM = location.pathname.match(/\/item\/(z[0-9a-zA-Z]+)/);
+    if (!nextItem || !urlIdM || nextItem.id !== urlIdM[1]) return null;
+    const cd = nextItem.createDate ? new Date(nextItem.createDate) : null;
+    const ud = nextItem.updateDate ? new Date(nextItem.updateDate) : null;
+    const created = (cd && !isNaN(cd)) ? cd : null;
+    const updated = (ud && !isNaN(ud)) ? ud : null;
+    if (!created && !updated) return null;
+    _ppDatesCache = { href: location.href, val: { created, updated } };
+    return _ppDatesCache.val;
+  } catch (e) {
+    return null;
+  }
+};
+
+// 共通ヘルパー: ラクマの出品日時を「出品からの経過時間(elapsed_time_from_exhibit)」から概算して Date で返す（時間単位に切り下げ）。
+// 対象は本商品のみ: 同じJSONオブジェクト内の item_id が meta[product:retailer_item_id]（本商品ID）と一致するものだけ採用
+// （おすすめ商品等の別商品の値を拾わない）。取れなければ null
+let _frilDateCache = null; // { href, val }（取得成功時のみURL単位でキャッシュ。経過時間はページ読み込み時点の値）
+const _getFrilEstimatedListedDate = () => {
+  try {
+    if (_frilDateCache && _frilDateCache.href === location.href) return _frilDateCache.val;
+    if (!/^\/[0-9a-f]{32}\/?$/.test(location.pathname)) return null; // 商品ページ以外はスキップ
+    const mainId = document.querySelector('meta[property="product:retailer_item_id"]')?.getAttribute('content') || '';
+    if (!mainId) return null;
+    let hours = null;
+    for (const sc of document.querySelectorAll('script:not([src])')) {
+      const txt = sc.textContent || '';
+      if (txt.indexOf('elapsed_time_from_exhibit') === -1) continue;
+      const re = /"elapsed_time_from_exhibit"\s*:\s*"(\d+)"/g;
+      let m;
+      while ((m = re.exec(txt)) !== null) {
+        // 同じ { ... } オブジェクト内を切り出して item_id を確認
+        const st = txt.lastIndexOf('{', m.index);
+        const en = txt.indexOf('}', m.index);
+        if (st === -1 || en === -1) continue;
+        const idm = txt.slice(st, en + 1).match(/"item_id"\s*:\s*"(\d+)"/);
+        if (idm && idm[1] === mainId) { hours = parseInt(m[1], 10); break; }
+      }
+      if (hours !== null) break;
+    }
+    if (hours === null || !Number.isFinite(hours) || hours < 0) return null;
+    // 注意: N はページ読み込み時点の経過時間。ページを開いたままの時間ぶんだけ概算がずれうる（時間単位の概算なので許容）
+    // 現在時刻 − N時間 を時間単位に切り下げ（JSTは整時間オフセットなのでUTC切り下げで同じ）
+    const HOUR = 3600 * 1000;
+    const val = new Date(Math.floor((Date.now() - hours * HOUR) / HOUR) * HOUR);
+    _frilDateCache = { href: location.href, val };
+    return val;
+  } catch (e) {
+    return null;
+  }
+};
+
 // 共通ヘルパー: 合計・悪い評価率の計算
 const _calcRatingResult = (good, bad, normal, totalFallback, platform) => {
   const nums = [good, normal, bad].filter(v => typeof v === 'number' && !Number.isNaN(v));
@@ -770,7 +865,7 @@ function isNoiseText(text) {
       const days = parseFloat(data.listedElapsedDays);
 
       // ヤフオクの場合は終了までの残り日数として扱う
-      if (data.platform === 'yahoo') {
+      if (data.platform === 'yahuoku') {
         if (!isNaN(days) && days >= 0) {
           alerts.push({
             type: 'info',
@@ -793,7 +888,7 @@ function isNoiseText(text) {
     }
 
     // 更新経過日数のチェック（ヤフオクでは表示しない）
-    if (data.platform !== 'yahoo' && settings.alertDaysFromUpdate && data.updatedElapsedDays) {
+    if (data.platform !== 'yahuoku' && settings.alertDaysFromUpdate && data.updatedElapsedDays) {
       const elapsedDays = parseFloat(data.updatedElapsedDays);
       if (!isNaN(elapsedDays) && elapsedDays >= settings.alertDaysFromUpdate) {
         alerts.push({
@@ -997,7 +1092,7 @@ function isNoiseText(text) {
     });
 
     document.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
+      if (!isDragging || !alertContainer.isConnected) return; // 再描画で外された古いバッジのリスナーは何もしない
 
       const deltaX = e.clientX - dragStartX;
       const deltaY = e.clientY - dragStartY;
@@ -1233,7 +1328,7 @@ function isNoiseText(text) {
       }
 
       // 出品日のハイライト（日数部分だけ）
-      if (settings.alertDaysFromListing && data.listedElapsedDays) {
+      if (data.platform !== 'yahuoku' && settings.alertDaysFromListing && data.listedElapsedDays) { // ヤフオクは残り日数のため除外
         const elapsedDays = parseFloat(data.listedElapsedDays);
         if (!isNaN(elapsedDays) && elapsedDays >= settings.alertDaysFromListing) {
           _log('📅 出品経過日数:', elapsedDays);
@@ -1328,7 +1423,9 @@ function isNoiseText(text) {
       const hasPrice = priceEl && (priceEl.content?.trim() || priceEl.textContent?.trim());
       const hasLdjson = document.querySelector('script[type="application/ld+json"]');
       // 出品日時を必須にする（更新日時は「一度も更新されていない商品」に存在しないため必須にしない）
-      const hasDates = document.querySelector('span[data-testid="出品日時"]') || document.querySelector('span[data-testid="開始日時"]');
+      // ページ内データ（page-data-bridge.js）が取れていれば日時は揃っているとみなす
+      const _pageItem = _getMercariPageItem();
+      const hasDates = document.querySelector('span[data-testid="出品日時"]') || document.querySelector('span[data-testid="開始日時"]') || (_pageItem && _pageItem.created);
       const hasSeller = document.querySelector('a[href^="/user/profile/"]') || document.querySelector('a[href^="/shops/profile/"]');
       const hasRating = document.querySelector('[data-testid="seller-link"]') || document.querySelector('[data-testid="shops-information"]') || document.querySelector('[data-testid="shops-profile-link"]');
       return hasTitle && hasPrice && hasLdjson && hasDates && hasSeller && hasRating;
@@ -1354,6 +1451,8 @@ function isNoiseText(text) {
 
         const targetNode = document.body || document.documentElement;
         observer.observe(targetNode, { childList: true, subtree: true });
+        // page-data-bridge.js（MAIN world）のデータ書き込みも検知（日時がDOMに出ない場合の準備完了判定用）
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-us-page-item'] });
       });
     } else {
       _log('✅ メルカリDOM即時準備完了');
@@ -1484,23 +1583,7 @@ function isNoiseText(text) {
   // タブが表示状態に戻った瞬間に一度だけ再スキャンする（ポーリングはしない）。
   // 注: 現状 UI 側に日時専用の常設バッジは無く、未取得警告は各送信系ボタンのクリック時に
   // _mercariRefillDates を呼ぶ形で対応済みのため、ここではデータの補完のみ行いUI再描画は行わない。
-  if ((currentSite === 'mercari' || currentSite === 'mercari_shop') && extractedData && (!extractedData.listedFmt || !extractedData.updatedFmt || !extractedData.reviewCount || !extractedData.description || !_hasAnyImageUrl(extractedData))) {
-    const _onMercariVisibleForDateRefill = async () => {
-      if (document.visibilityState !== 'visible') return;
-      const filledDates = _mercariRefillDates(extractedData);
-      const filledRating = await _mercariRefillSellerRating(extractedData);
-      const filledDescription = _mercariRefillDescription(extractedData);
-      const filledImages = _mercariRefillImages(extractedData);
-      if (filledDates || filledRating || filledDescription || filledImages) {
-        showAlertBadges(extractedData, null);
-      }
-      if (!extractedData.listedFmt || !extractedData.updatedFmt || !extractedData.reviewCount || !extractedData.description || !_hasAnyImageUrl(extractedData)) {
-        return;
-      }
-      document.removeEventListener('visibilitychange', _onMercariVisibleForDateRefill);
-    };
-    document.addEventListener('visibilitychange', _onMercariVisibleForDateRefill);
-  }
+  // （未取得項目の visibilitychange 補完は、_armMercariVisibilityRefill の定義後（下のメルカリSPA対応ブロック末尾）で登録する）
 
   // ページ要素をハイライト表示（少し遅延させてDOM構築完了を待つ）
   let detectedKeywords = null;
@@ -1539,6 +1622,239 @@ function isNoiseText(text) {
     } catch (error) {
       console.error('❌ アラートバッジ表示エラー:', error);
     }
+  }
+
+  // ==========================================
+  // メルカリ: SPA遷移（別商品への移動）対応
+  // 商品データは初回読み込み時に1回だけ抽出されるため、ページ内遷移後に前の商品のデータを
+  // 送信・コピーしないよう、(1) 各ボタン操作前の照合（_mercariGuardData）と
+  // (2) URL変化時の再抽出（_refreshMercariData）を行う。
+  // ==========================================
+  const _isMercariSite = (currentSite === 'mercari' || currentSite === 'mercari_shop');
+  const _mercariUrlItemId = () => {
+    const m = location.pathname.match(/\/item\/([a-zA-Z0-9]+)/) || location.pathname.match(/\/shops\/product\/([a-zA-Z0-9]+)/);
+    return m ? m[1] : '';
+  };
+  const _mercariNorm = (s) => (s || '').replace(/\s+/g, ' ').trim();
+  const _mercariDomTitle = () => _mercariNorm(
+    document.querySelector('h1[class*="heading"]')?.textContent ||
+    document.querySelector('[data-testid="name"]')?.textContent || '');
+  // canonical / og:url / ld+json のうち、新しい商品IDを含むものの数
+  const _mercariIdEvidence = (id) => {
+    let n = 0;
+    if ((document.querySelector('link[rel="canonical"]')?.getAttribute('href') || '').includes(id)) n++;
+    if ((document.querySelector('meta[property="og:url"]')?.getAttribute('content') || '').includes(id)) n++;
+    if ((document.querySelector('script[type="application/ld+json"]')?.textContent || '').includes(id)) n++;
+    return n;
+  };
+  // ページ（DOM）が新しい商品に切り替わったか。
+  // /item/ ページは page-data-bridge のデータ（React側・ID一致）が必須。さらにDOMのタイトルが
+  // そのデータの name と一致、または canonical/og:url/ld+json に新ID があり前の商品とタイトルが変わっていること。
+  const _mercariPageReady = (id, prevTitle) => {
+    if (_mercariUrlItemId() !== id) return false;
+    const title = _mercariDomTitle();
+    if (!title) return false;
+    const pi = _getMercariPageItem();
+    if (/\/item\//.test(location.pathname) && !(pi && pi.id === id)) return false;
+    if (pi && pi.name && _mercariNorm(pi.name) === title) return true;
+    const ev = _mercariIdEvidence(id);
+    return ev >= 1 && (title !== prevTitle || ev >= 2);
+  };
+
+  // 前の商品用のアラートバッジ・ハイライト・AI翻訳済み表示を消す
+  function _clearMercariItemUi() {
+    _closeMercariItemModals(); // 前の商品のデータを持つ AI結果モーダル・内容確認モーダルを閉じる
+    try {
+      document.getElementById('unified-scraper-alerts')?.remove();
+      document.querySelectorAll('mark[style*="padding: 2px 4px"]').forEach(mk => {
+        const sp = mk.parentElement;
+        if (sp && sp.tagName === 'SPAN' && Array.from(sp.childNodes).every(n => n.nodeType === 3 || (n.nodeType === 1 && n.tagName === 'MARK'))) {
+          sp.replaceWith(document.createTextNode(sp.textContent));
+        }
+      });
+      document.querySelectorAll('[data-scraper-highlighted]').forEach(e => e.removeAttribute('data-scraper-highlighted'));
+      const aiBtn = document.getElementById('unified-scraper-ai-btn');
+      if (aiBtn && !aiBtn.disabled) {
+        delete aiBtn.dataset.aiApplied;
+        aiBtn.innerHTML = '🤖 AI 翻訳（eBay 出品データ生成）';
+        aiBtn.style.backgroundColor = '#6a1b9a';
+      }
+    } catch (e) { /* 表示の後始末なので失敗しても続行 */ }
+  }
+
+  // 現在の extractedData に対するアラートバッジ・ハイライト（初回読み込み時と同じ内容）
+  function _renderMercariAlerts() {
+    const data = extractedData;
+    try {
+      showAlertBadges(data, null);
+      setTimeout(() => {
+        try {
+          if (extractedData !== data) return;
+          highlightAlertElements(data);
+          const kw = highlightPageElements();
+          if (kw) {
+            document.getElementById('unified-scraper-alerts')?.remove();
+            showAlertBadges(data, kw);
+          }
+        } catch (e) { console.error('❌ メルカリ再表示エラー:', e); }
+      }, 500);
+    } catch (e) { console.error('❌ アラートバッジ再表示エラー:', e); }
+  }
+
+  // タブが再表示されたとき未取得項目を一度だけ補完する（多タブ背景ロード対策）。再呼び出しで置き換え（重複登録しない）
+  let _mercariVisHandler = null;
+  function _armMercariVisibilityRefill() {
+    if (_mercariVisHandler) {
+      document.removeEventListener('visibilitychange', _mercariVisHandler);
+      _mercariVisHandler = null;
+    }
+    if (!(_isMercariSite && extractedData && (!extractedData.listedFmt || !extractedData.updatedFmt || !extractedData.reviewCount || !extractedData.description || !_hasAnyImageUrl(extractedData)))) return;
+    const handler = async () => {
+      if (document.visibilityState !== 'visible') return;
+      // 現在のページと別の商品のデータには、今のDOMから補完しない
+      if (!extractedData || extractedData.url !== _mercariUrlItemId()) return;
+      const filledDates = _mercariRefillDates(extractedData);
+      const filledRating = await _mercariRefillSellerRating(extractedData);
+      const filledDescription = _mercariRefillDescription(extractedData);
+      const filledImages = _mercariRefillImages(extractedData);
+      if (filledDates || filledRating || filledDescription || filledImages) {
+        showAlertBadges(extractedData, null);
+      }
+      if (!extractedData.listedFmt || !extractedData.updatedFmt || !extractedData.reviewCount || !extractedData.description || !_hasAnyImageUrl(extractedData)) {
+        return;
+      }
+      document.removeEventListener('visibilitychange', handler);
+      if (_mercariVisHandler === handler) _mercariVisHandler = null;
+    };
+    _mercariVisHandler = handler;
+    document.addEventListener('visibilitychange', handler);
+  }
+
+  // 現在のURLの商品を再抽出して extractedData を差し替える。成功で true。
+  // ページが新商品に切り替わったと確認できるまで最大10秒待つ。確認できなければ差し替えず false（送信系は照合で止まる）
+  let _mercariRefreshInflight = null;
+  let _mercariRefreshId = '';
+  function _refreshMercariData() {
+    const targetId = _mercariUrlItemId();
+    if (!_isMercariSite || !targetId) return Promise.resolve(false);
+    if (_mercariRefreshInflight && _mercariRefreshId === targetId) return _mercariRefreshInflight;
+    _mercariRefreshId = targetId;
+    const p = (async () => {
+      try {
+        const prevTitle = _mercariNorm(extractedData?.name || '');
+        const t0 = Date.now();
+        let ready = false;
+        while (Date.now() - t0 < 10000) {
+          if (_mercariUrlItemId() !== targetId) return false; // さらに別商品へ移動（そちらの遷移処理に任せる）
+          if (_mercariPageReady(targetId, prevTitle)) { ready = true; break; }
+          await new Promise(r => setTimeout(r, 250));
+        }
+        if (!ready) {
+          console.warn('[メルカリ再抽出] ページが新しい商品に切り替わったことを確認できませんでした:', targetId);
+          return false;
+        }
+        const fresh = await extractMercariProductData();
+        // 抽出中(await後)にURLが変わっていたら破棄（対象IDは開始時に確定したもの）
+        if (_mercariUrlItemId() !== targetId) return false;
+        if (!fresh || fresh.error || fresh.url !== targetId || !fresh.name) return false;
+        fresh.platform = location.pathname.includes('/shops/product/') ? 'mercari_shop' : 'mercari';
+        const prevRerun = extractedData && extractedData._aiRerun;
+        if (_mercariUrlItemId() !== targetId) return false; // 差し替え直前の最終確認
+        extractedData = fresh;
+        if (prevRerun) fresh._aiRerun = prevRerun; // AI翻訳の再実行フック（extractedData を参照する閉包）を引き継ぐ
+        _clearMercariItemUi();
+        _renderMercariAlerts();
+        _armMercariVisibilityRefill();
+        _log('✅ メルカリ再抽出完了:', targetId);
+        return true;
+      } catch (e) {
+        console.error('[メルカリ再抽出] 失敗:', e);
+        return false;
+      }
+    })();
+    _mercariRefreshInflight = p;
+    p.then(() => { if (_mercariRefreshInflight === p) _mercariRefreshInflight = null; });
+    return p;
+  }
+
+  const _MERCARI_MISMATCH_MSG = '商品データが現在のページと一致しません。ページを再読み込みしてください。';
+  // 安全網: 保持中のデータが現在ページの商品と一致するか確認。不一致なら再抽出し（最大10秒、更新中の通知を出す）、
+  // それでも一致しなければ中止して通知する。true=続行してよい
+  async function _mercariGuardData() {
+    if (!_isMercariSite) return true;
+    const cur = _mercariUrlItemId();
+    if (cur && extractedData && !extractedData.error && extractedData.url === cur) return true;
+    if (cur) showNotification('商品データを更新中…', '現在のページの商品情報を読み込み直しています。しばらくお待ちください。', 'info', colors);
+    const ok = cur ? await _refreshMercariData() : false;
+    if (ok && extractedData && extractedData.url === _mercariUrlItemId()) return true;
+    showNotification('エラー', _MERCARI_MISMATCH_MSG, 'error', colors);
+    return false;
+  }
+
+  // 送信・コピー系の途中（await の後）で、手元のデータがまだ現在ページの商品か確認。違えば通知して false
+  function _mercariStillCurrent(data) {
+    if (_mercariDataMatchesPage(data)) return true;
+    showNotification('エラー', _MERCARI_MISMATCH_MSG, 'error', colors);
+    return false;
+  }
+
+  // AI結果モーダル用: モーダルを開いた時点のデータ(snap)と翻訳結果(ai)が現在ページの商品のものか確認
+  function _mercariAiSnapOk(snap, ai) {
+    if (!_isMercariSite) return true;
+    if (!snap || snap.ai !== ai) return false;
+    return _mercariDataMatchesPage(snap);
+  }
+
+  // 内容確認モーダル用: モーダルを開いた時点の商品ID(origId)が今も現在ページの商品か確認し、編集データのURL(商品ID)をそれで固定する
+  // （画面上の #preview-url の値は使わない）
+  function _mercariModalCheck(origId, edited) {
+    if (!_isMercariSite) return true;
+    if (origId && origId === _mercariUrlItemId()) {
+      if (edited) edited.url = origId;
+      return true;
+    }
+    showNotification('エラー', _MERCARI_MISMATCH_MSG, 'error', colors);
+    return false;
+  }
+
+  // 送信・コピーに渡す site 引数: データの platform（mercari / mercari_shop）に合わせる（/item/ と /shops/product/ の間の遷移対策）
+  function _siteForData(data) {
+    if (_isMercariSite && data && (data.platform === 'mercari' || data.platform === 'mercari_shop')) return data.platform;
+    return currentSite;
+  }
+
+  // 再描画対象の既存データ参照モーダルを閉じる
+  function _closeMercariItemModals() {
+    try { document.getElementById('unified-scraper-ai-modal')?.remove(); } catch (e) {}
+    try { document.getElementById('unified-scraper-modal')?.remove(); } catch (e) {}
+    try { closeMultiExportPopup_(); } catch (e) {}
+  }
+
+  // 同期版（コピー・送信の最終段での二重チェック用）: data.url が現在ページの商品IDと一致するか
+  function _mercariDataMatchesPage(data) {
+    if (!_isMercariSite) return true;
+    return !!(data && data.url && data.url === _mercariUrlItemId());
+  }
+
+  // 初回抽出で未取得の項目があれば、タブ再表示時に一度だけ補完する
+  _armMercariVisibilityRefill();
+
+  // URLが別の商品に変わったら再抽出（同じ商品IDのままのURL変化は無視）
+  if (_isMercariSite) {
+    let _navTimer = null;
+    let _lastItemId = _mercariUrlItemId();
+    const onMercariNav = () => {
+      clearTimeout(_navTimer);
+      _navTimer = setTimeout(() => {
+        const id = _mercariUrlItemId();
+        if (id === _lastItemId) return;
+        _lastItemId = id;
+        _clearMercariItemUi();
+        if (id) _refreshMercariData();
+      }, 300);
+    };
+    window.addEventListener('us-url-change', onMercariNav);
+    window.addEventListener('popstate', onMercariNav);
   }
 
   // 保存された位置を取得
@@ -1738,6 +2054,31 @@ function isNoiseText(text) {
   buttonContainer.appendChild(topRow);
   buttonContainer.appendChild(bottomRow);
 
+  // 楽天・Amazon（楽天ブックス・ビック含む）は読み取りがずれることがあるため、直接送信の下に常時ヒントを出す
+  // （送信はブロックしない／クリックを妨げない／ボタン幅に影響しない）
+  if ((currentSite === 'rakuten' || currentSite === 'amazon') && !buttonContainer.querySelector('#unified-scraper-read-hint')) {
+    const readHint = document.createElement('div');
+    readHint.id = 'unified-scraper-read-hint';
+    readHint.textContent = '楽天・Amazonは読み取りがずれることがあります。送る前に『内容確認』での確認をおすすめします';
+    Object.assign(readHint.style, {
+      width: '0',
+      minWidth: '100%',
+      boxSizing: 'border-box',
+      padding: '4px 6px',
+      fontSize: '11px',
+      lineHeight: '1.4',
+      fontWeight: 'normal',
+      color: '#333',
+      backgroundColor: 'rgba(255, 255, 255, 0.92)',
+      border: '1px solid rgba(0, 0, 0, 0.15)',
+      borderRadius: '6px',
+      whiteSpace: 'normal',
+      pointerEvents: 'none',
+      userSelect: 'none'
+    });
+    buttonContainer.appendChild(readHint);
+  }
+
   // ==========================================
   // AI 翻訳ボタン（aiPlatforms[currentSite] = true のサイトで表示）
   // ==========================================
@@ -1772,21 +2113,24 @@ function isNoiseText(text) {
     // AI 翻訳実行関数（強制再翻訳にも使う）
     const runAiTranslation = async (force = false) => {
       if (aiButton.disabled) return;
+      if (!(await _mercariGuardData())) return; // メルカリ: 現在のページの商品データか確認
+      const aiTarget = extractedData; // 翻訳中にページ遷移しても別商品へ結果を付けない
       // すでに結果があり、force でなければ再表示のみ
-      if (!force && extractedData.ai && !extractedData.ai.error) {
-        showAiResultModal(extractedData.ai, colors);
+      if (!force && aiTarget.ai && !aiTarget.ai.error) {
+        showAiResultModal(aiTarget.ai, colors, aiTarget);
         return;
       }
       aiButton.disabled = true;
       aiButton.innerHTML = '🔄 AI 翻訳中...（最長 60 秒）';
       aiButton.style.cursor = 'wait';
       try {
-        const aiResult = await callAiTranslate(extractedData, settings, currentSite);
-        extractedData.ai = aiResult;
+        const aiResult = await callAiTranslate(aiTarget, settings, _siteForData(aiTarget));
+        if (aiTarget !== extractedData || !_mercariDataMatchesPage(aiTarget)) return; // 翻訳中に別商品へ遷移した場合は結果を捨てる
+        aiTarget.ai = aiResult;
         // 既存フィールド（name/description）は元の日本語のまま保持。
         // 「インポート用」は元データ（画像つき）、「v5インポート」は AI 英訳（画像なし）と役割分担。
         aiButton.dataset.aiApplied = 'true';
-        showAiResultModal(aiResult, colors);
+        showAiResultModal(aiResult, colors, aiTarget);
       } catch (err) {
         showNotification('AI 翻訳エラー', err?.message || '原因不明のエラー', 'error', colors);
       } finally {
@@ -1982,11 +2326,18 @@ function isNoiseText(text) {
   // プラットフォーム名の判定用（小文字で統一）
   const PLATFORM_NAMES = ['mercari', 'メルカリ', 'yahoo', 'ヤフオク', 'paypay', 'paypayフリマ', 'rakuma', 'ラクマ', 'rakuten', '楽天', 'amazon', 'アマゾン', 'yahooショッピング'];
 
+  // 評価件数・出品日時を実際に抽出しているプラットフォーム（data.platform の値）。
+  // これら以外（eBay・楽天系・Amazon・Yahoo!ショッピング・ハードオフ）はそもそも取得しないため未取得警告の対象外。
+  // 根拠: 各 extract*ProductData の戻り値が reviewCount / listedFmt を含むのは mercari(mercari_shop含む)・yahuoku・paypayfurima・rakuma のみ
+  const REVIEW_COUNT_PLATFORMS = ['mercari', 'mercari_shop', 'yahuoku', 'paypayfurima', 'rakuma'];
+  const LISTED_DATE_PLATFORMS = ['mercari', 'mercari_shop', 'yahuoku', 'paypayfurima', 'rakuma'];
+
   // データ未取得チェック（共通）
   const _getMissingFields = (data, includeDetail) => {
     const missing = [];
     const name = (data.name || '').toLowerCase().trim();
-    const isHardoff = data.platform === 'hardoff';
+    const needsReviewCount = REVIEW_COUNT_PLATFORMS.includes(data.platform);
+    const needsListedDate = LISTED_DATE_PLATFORMS.includes(data.platform);
     if (!name || name === '商品名を取得できませんでした' || PLATFORM_NAMES.includes(name)) {
       missing.push('商品名');
     }
@@ -2000,10 +2351,10 @@ function isNoiseText(text) {
       if (!data.description || data.description === '') {
         missing.push('説明文');
       }
-      if (!isHardoff && (!data.reviewCount || data.reviewCount === '')) {
+      if (needsReviewCount && (!data.reviewCount || data.reviewCount === '')) {
         missing.push('評価件数');
       }
-      if (!isHardoff && (!data.listedFmt || data.listedFmt === '')) {
+      if (needsListedDate && (!data.listedFmt || data.listedFmt === '')) {
         missing.push('出品日時');
       }
     }
@@ -2016,17 +2367,20 @@ function isNoiseText(text) {
   // 同じ処理を呼べるようにする（ドラッグ判定はクリックイベント由来の座標が
   // 前提のため、ショートカット側はこの関数を直接呼んで判定自体をバイパスする）。
   const _runPreviewAction = async () => {
+    if (!(await _mercariGuardData())) return; // メルカリ: 現在のページの商品データか確認
+    const data = extractedData; // 以降はこのスナップショットだけを使う（途中で差し替わっても別商品を混ぜない）
     // メルカリ: 出品日時が未取得なら再スキャンして補完（多タブ背景ロード対策）
-    _mercariRefillDates(extractedData);
+    _mercariRefillDates(data);
     // メルカリ: 評価件数が未取得なら再スキャンして補完（多タブ背景ロード対策）
-    await _mercariRefillSellerRating(extractedData);
+    await _mercariRefillSellerRating(data);
     // メルカリ: 説明文が未取得なら再スキャンして補完（多タブ背景ロード対策）
-    _mercariRefillDescription(extractedData);
+    _mercariRefillDescription(data);
     // メルカリ: 画像が未取得なら再スキャンして補完（多タブ背景ロード対策）
-    _mercariRefillImages(extractedData);
+    _mercariRefillImages(data);
+    if (!_mercariStillCurrent(data)) return;
     // データ未取得警告（内容確認時）- 基本項目 + 説明文
-    const missingFieldsPreview = _getMissingFields(extractedData, false);
-    if (!extractedData.description || extractedData.description === '') {
+    const missingFieldsPreview = _getMissingFields(data, false);
+    if (!data.description || data.description === '') {
       missingFieldsPreview.push('説明文');
     }
     if (missingFieldsPreview.length > 0) {
@@ -2037,7 +2391,7 @@ function isNoiseText(text) {
         colors
       );
     }
-    showPreviewModal(extractedData, currentSite, colors, settings);
+    showPreviewModal(data, _siteForData(data), colors, settings);
   };
 
   previewButton.addEventListener('click', (e) => {
@@ -2056,16 +2410,18 @@ function isNoiseText(text) {
   // 2. コピーボタンクリック（直接クリップボードにコピー）
   copyButton.addEventListener('click', async (e) => {
     e.stopPropagation(); // イベント伝播を停止
+    if (!(await _mercariGuardData())) return; // メルカリ: 現在のページの商品データか確認
+    const data = extractedData; // スナップショット
 
     // データ未取得警告（コピー時）
-    const missingFieldsCopy = _getMissingFields(extractedData, false);
+    const missingFieldsCopy = _getMissingFields(data, false);
     if (missingFieldsCopy.length > 0) {
       showNotification('⚠️ 未取得データあり', missingFieldsCopy.join('・') + ' が取得できていません', 'warning', colors);
     }
 
     try {
       // 既存のcopyToClipboard関数を使用
-      await copyToClipboard(extractedData, currentSite, colors, settings);
+      await copyToClipboard(data, _siteForData(data), colors, settings);
 
       // 成功フィードバック
       const originalText = copyButton.innerHTML;
@@ -2120,15 +2476,18 @@ function isNoiseText(text) {
 
   multiExportBtn.addEventListener('click', async (e) => {
     e.stopPropagation();
+    if (!(await _mercariGuardData())) return; // メルカリ: 現在のページの商品データか確認
+    const data = extractedData; // スナップショット
 
     // メルカリ: 出品日時が未取得なら再スキャンして補完（多タブ背景ロード対策）
-    _mercariRefillDates(extractedData);
+    _mercariRefillDates(data);
     // メルカリ: 評価件数が未取得なら再スキャンして補完（多タブ背景ロード対策）
-    await _mercariRefillSellerRating(extractedData);
+    await _mercariRefillSellerRating(data);
     // メルカリ: 説明文が未取得なら再スキャンして補完（多タブ背景ロード対策）
-    _mercariRefillDescription(extractedData);
+    _mercariRefillDescription(data);
     // メルカリ: 画像が未取得なら再スキャンして補完（多タブ背景ロード対策）
-    _mercariRefillImages(extractedData);
+    _mercariRefillImages(data);
+    if (!_mercariStillCurrent(data)) return;
 
     // 既に開いている場合は閉じる
     if (multiExportPopup) {
@@ -2282,32 +2641,42 @@ function isNoiseText(text) {
 
   // 単一シート送信（exportToSpreadsheet が内部で成否通知を出す）
   async function exportToSingleTarget_(target) {
-    await exportToSpreadsheet(extractedData, currentSite, colors, target);
+    if (!(await _mercariGuardData())) return;
+    const data = extractedData; // スナップショット
+    await exportToSpreadsheet(data, _siteForData(data), colors, target);
   }
 
   // 複数シート一括送信（各シートの成否通知は exportToSpreadsheet 側が出す）
   async function exportToMultipleTargets_(targets) {
+    if (!(await _mercariGuardData())) return;
+    const data = extractedData; // スナップショット（ループ中に差し替わっても同じ商品だけを送る）
     for (const target of targets) {
-      await exportToSpreadsheet(extractedData, currentSite, colors, target);
+      // 各送信(GAS往復)の前に、手元のデータがまだ現在ページの商品か確認
+      if (!_mercariStillCurrent(data)) return;
+      await exportToSpreadsheet(data, _siteForData(data), colors, target);
     }
   }
 
   // エクスポートボタンクリック（直接エクスポート）
   exportButton.addEventListener('click', async (e) => {
     e.preventDefault();
+    if (!(await _mercariGuardData())) return; // メルカリ: 現在のページの商品データか確認
+    const data = extractedData; // スナップショット
 
     // メルカリ: 出品日時が未取得なら再スキャンして補完（多タブ背景ロード対策）
-    _mercariRefillDates(extractedData);
+    _mercariRefillDates(data);
     // メルカリ: 評価件数が未取得なら再スキャンして補完（多タブ背景ロード対策）
-    await _mercariRefillSellerRating(extractedData);
+    await _mercariRefillSellerRating(data);
     // メルカリ: 説明文が未取得なら再スキャンして補完（多タブ背景ロード対策）
-    _mercariRefillDescription(extractedData);
+    _mercariRefillDescription(data);
     // メルカリ: 画像が未取得なら再スキャンして補完（多タブ背景ロード対策）
-    _mercariRefillImages(extractedData);
+    _mercariRefillImages(data);
+
+    if (!_mercariStillCurrent(data)) return;
 
     // データ未取得チェック
     const originalText = exportButton.innerHTML;
-    const missingFields = _getMissingFields(extractedData, true);
+    const missingFields = _getMissingFields(data, true);
 
     if (missingFields.length > 0) {
       const proceed = confirm(
@@ -2341,7 +2710,8 @@ function isNoiseText(text) {
 
     try {
       // データをエクスポート（モーダル表示なし）
-      await exportToSpreadsheet(extractedData, currentSite, colors);
+      if (!_mercariStillCurrent(data)) return; // confirm() 等の後に別商品へ移っていないか最終確認（finally でボタンは復帰）
+      await exportToSpreadsheet(data, _siteForData(data), colors);
     } catch (error) {
       console.error('Direct export error:', error);
       showNotification(
@@ -2406,6 +2776,8 @@ function isNoiseText(text) {
 
   // プレビューモーダル表示関数
   async function showPreviewModal(data, site, colors, settings) {
+    // メルカリ: モーダルを開いた時点の商品IDを固定（画面上の編集可能な値ではなくこちらで送信前に照合する）
+    const originalItemId = data && data.url;
     _log('🎨 モーダル表示開始');
     _log('📦 データ:', data);
     _log('🖼️ 画像URL:', data.imageUrl);
@@ -2488,7 +2860,7 @@ function isNoiseText(text) {
       }
 
       // 出品経過日数のアラート
-      if (settings.alertDaysFromListing && data.listedElapsedDays) {
+      if (data.platform !== 'yahuoku' && settings.alertDaysFromListing && data.listedElapsedDays) { // ヤフオクは残り日数のため除外
         const elapsedDays = parseFloat(data.listedElapsedDays);
         if (!isNaN(elapsedDays) && elapsedDays >= settings.alertDaysFromListing) {
           furimaAlerts.push({
@@ -2825,7 +3197,7 @@ function isNoiseText(text) {
             </div>
             <div>
               <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">32. 出品経過日数</label>
-              <input type="text" value="${data.listedElapsedDays || '-'}" readonly style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: ${settings.alertDaysFromListing && data.listedElapsedDays && parseFloat(data.listedElapsedDays) >= settings.alertDaysFromListing ? '#ffcdd2' : '#f5f5f5'}; font-size: 13px; font-weight: ${settings.alertDaysFromListing && data.listedElapsedDays && parseFloat(data.listedElapsedDays) >= settings.alertDaysFromListing ? 'bold' : 'normal'};">
+              <input type="text" value="${data.listedElapsedDays || '-'}" readonly style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: ${data.platform !== 'yahuoku' && settings.alertDaysFromListing && data.listedElapsedDays && parseFloat(data.listedElapsedDays) >= settings.alertDaysFromListing ? '#ffcdd2' : '#f5f5f5'}; font-size: 13px; font-weight: ${data.platform !== 'yahuoku' && settings.alertDaysFromListing && data.listedElapsedDays && parseFloat(data.listedElapsedDays) >= settings.alertDaysFromListing ? 'bold' : 'normal'};">
             </div>
             <div>
               <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">33. 更新経過日数</label>
@@ -3127,6 +3499,7 @@ function isNoiseText(text) {
         }
       }
 
+      if (!_mercariModalCheck(originalItemId, editedData)) return;
       await copyToClipboard(editedData, site, colors, settings);
       overlay.remove();
     });
@@ -3196,6 +3569,7 @@ function isNoiseText(text) {
         }
 
         try {
+          if (!_mercariModalCheck(originalItemId, editedData)) return;
           await exportToSpreadsheet(editedData, site, colors);
         } catch (error) {
           console.error('Export error:', error);
@@ -3239,6 +3613,10 @@ function isNoiseText(text) {
   }
 
   async function copyToClipboard(data, site, colors, settings) {
+    // メルカリ: コピー直前の最終確認（呼び出し側はエラーとして扱う）
+    if (!_mercariDataMatchesPage(data)) {
+      throw new Error('商品データが現在のページと一致しません。ページを再読み込みしてください。');
+    }
     _log('📋 クリップボードコピー開始');
     _log('📊 data.imageUrl:', data.imageUrl);
     _log('⚙️ settings.enableImageInClipboard:', settings.enableImageInClipboard);
@@ -5695,6 +6073,11 @@ function isNoiseText(text) {
    * @param {Object} colors - サイトカラー
    */
   async function exportToSpreadsheet(data, site, colors, overrideTarget) {
+    // メルカリ: 送信直前の最終確認（データの商品IDが現在ページと違えば送らない）
+    if (!_mercariDataMatchesPage(data)) {
+      showNotification('エラー', '商品データが現在のページと一致しません。ページを再読み込みしてください。', 'error', colors);
+      return;
+    }
     try {
       // 同期設定（スプレッドシート、画像枚数）を取得
       const syncSettings = await chrome.storage.sync.get(['spreadsheets', 'imageOutputCount', 'imageBase64Count']);
@@ -5959,6 +6342,20 @@ function isNoiseText(text) {
   // ==========================================
   // 出品日時・更新日時を取得（extractMercariProductData と _mercariRefillDates の両方から使用）
   function _mercariGetListingDates() {
+    // 最優先: ページ内データ（page-data-bridge.js 経由。フリマアシスト非依存）。URLの商品IDと一致した場合のみ採用
+    const pageItem = _getMercariPageItem();
+    if (pageItem && pageItem.created) {
+      const ld0 = new Date(pageItem.created * 1000);
+      const ud0 = pageItem.updated ? new Date(pageItem.updated * 1000) : null;
+      _log('[メルカリ日時] ページ内データから取得:', _formatJST(ld0), ud0 ? _formatJST(ud0) : '');
+      return {
+        listedFmt: _formatJST(ld0),
+        updatedFmt: _formatJST(ud0),
+        listedElapsedDays: _elapsedDays(ld0),
+        updatedElapsedDays: _elapsedDays(ud0)
+      };
+    }
+
     const pick = (sel) => {
       const el = document.querySelector(sel);
       if (!el) return '';
@@ -5973,6 +6370,7 @@ function isNoiseText(text) {
       const rows = document.querySelectorAll('table tr, .ProductDetail__item, dl');
       Array.from(rows || []).forEach(tr => {
         if (!tr || !tr.querySelector) return;
+        if (tr.closest && tr.closest('[data-us-injected]')) return; // とりこみ君が挿入した表示行は読まない
         const th = tr.querySelector('th,dt,.ProductDetail__title');
         const td = tr.querySelector('td,dd,.ProductDetail__desc');
         const key = (th ? th.textContent : '').trim();
@@ -6005,6 +6403,7 @@ function isNoiseText(text) {
   function _mercariRefillDates(extractedData) {
     if (!extractedData) return false;
     if (currentSite !== 'mercari' && currentSite !== 'mercari_shop') return false;
+    if (!_mercariDataMatchesPage(extractedData)) return false; // 現在ページと別の商品のデータには今のDOMの値を書かない
     if (extractedData.listedFmt && extractedData.updatedFmt) return false;
 
     const dates = _mercariGetListingDates();
@@ -6173,6 +6572,7 @@ function isNoiseText(text) {
   // 同期・DOM読み取りのみ（ネットワークアクセスなし）。埋まったフィールドがあれば true を返す。
   function _mercariRefillImages(extractedData) {
     if (!extractedData) return false;
+    if (!_mercariDataMatchesPage(extractedData)) return false; // 現在ページと別の商品のデータには今のDOMの値を書かない
     if (currentSite !== 'mercari' && currentSite !== 'mercari_shop') return false;
     if (_hasAnyImageUrl(extractedData)) return false;
 
@@ -6263,7 +6663,12 @@ function isNoiseText(text) {
     // Step 1: seller-linkから合計評価を取得（常に取得可能）
     const sellerLinkEl = document.querySelector('[data-testid="seller-link"]');
     if (sellerLinkEl) {
-      const sellerText = sellerLinkEl.innerText || '';
+      let sellerText = sellerLinkEl.innerText || '';
+      // とりこみ君自身が挿入した表示（data-us-injected）のテキストは読まない
+      sellerLinkEl.querySelectorAll('[data-us-injected]').forEach(n => {
+        const t = n.innerText || '';
+        if (t) sellerText = sellerText.replace(t, '');
+      });
       _log('[getSellerRating] seller-link テキスト:', sellerText.substring(0, 100));
 
       // 数値を全て抽出（改行や空白で区切られた数値）
@@ -6328,6 +6733,17 @@ function isNoiseText(text) {
       }
     }
 
+    // Step 2-0: ページ内データ（page-data-bridge.js）の評価内訳（フリマアシスト非依存・最優先）
+    if (good === null || bad === null) {
+      const pageItem = _getMercariPageItem();
+      if (pageItem && pageItem.ratings) {
+        good = pageItem.ratings.good;
+        normal = pageItem.ratings.normal;
+        bad = pageItem.ratings.bad;
+        _log('[getSellerRating] ページ内データから評価内訳取得:', { good, normal, bad });
+      }
+    }
+
     // Step 2: フリマアシスト連携（内訳が未取得の場合のみ）
     if (good === null || bad === null) {
       // フリマアシスト拡張がインストールされているかチェック
@@ -6373,10 +6789,12 @@ function isNoiseText(text) {
   // （reviewCountはseller-link/shops-informationのStep1のみで取得可能なため）。
   async function _mercariRefillSellerRating(extractedData) {
     if (!extractedData) return false;
+    if (!_mercariDataMatchesPage(extractedData)) return false; // 現在ページと別の商品のデータには今のDOMの値を書かない
     if (currentSite !== 'mercari' && currentSite !== 'mercari_shop') return false;
     if (extractedData.reviewCount) return false;
 
     const rating = await _mercariGetSellerRating({ assistPollMax: 0 });
+    if (!_mercariDataMatchesPage(extractedData)) return false; // await中に別商品へ遷移していたら書き込まない
     let filled = false;
 
     if (!extractedData.reviewCount && rating.reviewCount) {
@@ -6437,6 +6855,7 @@ function isNoiseText(text) {
   // ld+jsonにdescriptionが無いページ対策）。埋まった場合 true を返す。
   function _mercariRefillDescription(extractedData) {
     if (!extractedData) return false;
+    if (!_mercariDataMatchesPage(extractedData)) return false; // 現在ページと別の商品のデータには今のDOMの値を書かない
     if (currentSite !== 'mercari' && currentSite !== 'mercari_shop') return false;
     if (extractedData.description) return false;
 
@@ -6640,7 +7059,10 @@ function isNoiseText(text) {
       // 出品者の評価情報を取得（モジュールレベルの _mercariGetSellerRating に集約。
       // visibilitychange時の再取得は _mercariRefillSellerRating が同じロジックを使う）
       let rating = await _mercariGetSellerRating();
-      if (!rating.reviewCount && !window.location.pathname.includes('/shops/product/')) {
+      // ページ内データで評価内訳が取れている場合（0件の出品者を含む）はDOM描画待ちが不要なのでリトライしない
+      const _pageItemNow = _getMercariPageItem();
+      const _pageRatingsOk = !!(_pageItemNow && _pageItemNow.ratings);
+      if (!rating.reviewCount && !_pageRatingsOk && !window.location.pathname.includes('/shops/product/')) {
         _log('[getSellerRating] 1回目で取得失敗。2秒後にリトライ...');
         await new Promise(r => setTimeout(r, 2000));
         rating = await _mercariGetSellerRating();
@@ -6854,16 +7276,25 @@ function isNoiseText(text) {
 
       // 終了日時から残り日数を計算
       if (itemJson.endTime) {
-        let timestamp = parseInt(itemJson.endTime);
-        _log('📅 endTime変換前:', timestamp);
+        const rawEnd = String(itemJson.endTime).trim();
+        let endDate;
+        if (/^\d+$/.test(rawEnd)) {
+          let timestamp = parseInt(rawEnd, 10);
+          _log('📅 endTime変換前:', timestamp);
 
-        // タイムスタンプが秒単位かミリ秒単位かを判定（秒単位なら1000倍）
-        if (timestamp < 10000000000) {
-          timestamp = timestamp * 1000;
-          _log('📅 終了日時を秒→ミリ秒に変換:', timestamp);
+          // タイムスタンプが秒単位かミリ秒単位かを判定（秒単位なら1000倍）
+          if (timestamp < 10000000000) {
+            timestamp = timestamp * 1000;
+            _log('📅 終了日時を秒→ミリ秒に変換:', timestamp);
+          }
+          endDate = new Date(timestamp);
+        } else {
+          // 日付文字列（例: "2026-11-01T21:45:50+09:00" / "2026-11-01 21:45:50"）。
+          // 以前は parseInt で先頭の年だけを秒として読み、1970年になっていた。時差なしの表記は JST とみなす
+          let iso = rawEnd.replace(' ', 'T');
+          if (!/(Z|[+-]\d{2}:?\d{2})$/.test(iso)) iso += '+09:00';
+          endDate = new Date(iso);
         }
-
-        const endDate = new Date(timestamp);
         _log('📅 endDate:', endDate, 'isValid:', !isNaN(endDate.getTime()));
 
         if (!isNaN(endDate.getTime())) {
@@ -7078,6 +7509,7 @@ function isNoiseText(text) {
       let updatedElapsedDays = '';
 
       rows.forEach(row => {
+        if (row.hasAttribute('data-us-injected')) return; // とりこみ君自身が表示用に挿入した行は読まない
         const key = row.querySelector("th span")?.textContent?.trim();
         const valueNode = row.querySelector("td");
         let value = "";
@@ -7155,6 +7587,24 @@ function isNoiseText(text) {
           }
         }
       });
+
+      // 出品日時・更新日時: __NEXT_DATA__（ページ自体が持つJSON。フリマアシスト非依存）を優先。
+      // item.id が URL の商品IDと一致した場合のみ採用（SPA遷移後の古いデータ対策）。不一致・失敗時は上のテーブル値（FA経由）を維持
+      {
+        const pp = _getPayPayPageDates();
+        if (pp) {
+          if (pp.created) {
+            listedFmt = _fmtSlashJST(pp.created);
+            listedElapsedDays = _elapsedDays(pp.created);
+            _log('📅 出品日時設定（__NEXT_DATA__）:', listedFmt, listedElapsedDays);
+          }
+          if (pp.updated) {
+            updatedFmt = _fmtSlashJST(pp.updated);
+            updatedElapsedDays = _elapsedDays(pp.updated);
+            _log('📅 更新日時設定（__NEXT_DATA__）:', updatedFmt, updatedElapsedDays);
+          }
+        }
+      }
 
       infoFormatted = infoFormatted.replace(/[\n\r]+/g, ' ').trim();
 
@@ -7459,6 +7909,7 @@ function isNoiseText(text) {
       let handlingDays = '';
 
       infoRows.forEach(row => {
+        if (row.hasAttribute('data-us-injected')) return; // とりこみ君自身が表示用に挿入した行は読まない
         const key = row.querySelector('th')?.textContent?.trim();
         const value = row.querySelector('td')?.textContent?.trim().replace(/  +/g, '');
         _log('📋 詳細行:', { key, value });
@@ -7543,6 +7994,17 @@ function isNoiseText(text) {
         }
       });
 
+      // 出品日時が取れていない場合（フリマアシスト無し）: ページ内の計測JSONにある
+      // "elapsed_time_from_exhibit"（出品からの経過時間・整数）から概算する（_getFrilEstimatedListedDate）。更新日時は取得不可のため空のまま。
+      if (!listedFmt) {
+        const est = _getFrilEstimatedListedDate();
+        if (est) {
+          listedFmt = _formatJST(est);
+          listedElapsedDays = _elapsedDays(est);
+          _log('📅 出品日時設定（経過時間からの概算）:', listedFmt, listedElapsedDays);
+        }
+      }
+
       // 説明文にテーブル情報を追加
       if (allInfoFormatted) {
         description += ' ' + allInfoFormatted.replace(/\t/g, '  ');
@@ -7595,11 +8057,30 @@ function isNoiseText(text) {
         _log('[Rakuma getSellerRating] 評価情報取得開始');
         let good = null, bad = null, normal = null;
 
+        // 方法0: ラクマ標準の「取引の評価」ブロック（.review-list 内の sun/cloud/rain アイコン＋隣の<span>）。フリマアシスト非依存。
+        // ページ内に1つだけ（本商品の出品者ヘッダー内）。フリマアシストが挿入した .flea-assist-ratings 内は除外
+        const readNativeCount = (cls) => {
+          const icon = Array.from(document.querySelectorAll('.review-list .' + cls)).find(el => !el.closest('.flea-assist-ratings'));
+          if (!icon) return null;
+          const sp = icon.parentElement?.querySelector('span');
+          const n = parseInt((sp?.textContent || '').replace(/[^\d]/g, ''), 10);
+          return Number.isNaN(n) ? null : n;
+        };
+        const nGood = readNativeCount('icon_review_sun');
+        const nNormal = readNativeCount('icon_review_cloud');
+        const nBad = readNativeCount('icon_review_rain');
+        if (nGood !== null && nNormal !== null && nBad !== null) {
+          good = nGood; normal = nNormal; bad = nBad;
+          _log('[Rakuma getSellerRating] 標準の取引の評価ブロック経由:', {good, bad, normal});
+        }
+
         // 方法1: フリマアシストから取得
-        const assistResult = _parseAssistRatings();
-        if (assistResult) {
-          ({ good, bad, normal } = assistResult);
-          _log('[Rakuma getSellerRating] #furima-assist-seller-ratings経由:', {good, bad, normal});
+        if (good === null || bad === null) {
+          const assistResult = _parseAssistRatings();
+          if (assistResult) {
+            ({ good, bad, normal } = assistResult);
+            _log('[Rakuma getSellerRating] #furima-assist-seller-ratings経由:', {good, bad, normal});
+          }
         }
 
         // 方法2: .flea-assist-ratingsから取得
@@ -8055,7 +8536,9 @@ function isNoiseText(text) {
   // 編集された値は extractedData.ai に随時反映される（参照渡し）
   // 「v5インポート へエクスポート」「TSV でコピー」ボタンを提供
   // ==========================================
-  function showAiResultModal(ai, colors) {
+  function showAiResultModal(ai, colors, dataSnap) {
+    // モーダルを開いた時点の商品データを固定して使う（後で extractedData が差し替わっても別商品を混ぜない）
+    const snap = dataSnap || extractedData;
     const existing = document.getElementById('unified-scraper-ai-modal');
     if (existing) existing.remove();
 
@@ -8504,6 +8987,10 @@ function isNoiseText(text) {
     content.querySelector('#ai-export-both').addEventListener('click', async (e) => {
       const btn = e.currentTarget;
       if (btn.disabled) return;
+      if (!_mercariAiSnapOk(snap, ai)) {
+        showNotification('エラー', _MERCARI_MISMATCH_MSG, 'error', colors);
+        return;
+      }
       const originalLabel = btn.innerHTML;
       const originalBg = btn.style.background;
       btn.disabled = true;
@@ -8526,13 +9013,15 @@ function isNoiseText(text) {
         if (!target) throw new Error('スプレッドシートが登録されていません');
 
         // 両方の values を作る（content.js 側で同期的に確定）
-        const import1Values = buildImport1Values_(extractedData);
-        const _imgs = Array.isArray(extractedData.imageUrl) ? extractedData.imageUrl.filter(u => u) : (typeof extractedData.imageUrl === 'string' ? _splitImageUrls(extractedData.imageUrl) : []);
+        const import1Values = buildImport1Values_(snap);
+        const _imgs = Array.isArray(snap.imageUrl) ? snap.imageUrl.filter(u => u) : (typeof snap.imageUrl === 'string' ? _splitImageUrls(snap.imageUrl) : []);
         const imageBase64Count = _normalizeImageBase64Count(sync.imageBase64Count);
         const base64N = Math.min(imageBase64Count, _getMaxImageCount(_imgs, IMAGE_OUTPUT_ALL), 10);
         const topImageUrls = _imgs.slice(0, base64N);
-        const v5Values = await buildV5ImportValues_(ai, extractedData);
+        const v5Values = await buildV5ImportValues_(ai, snap);
 
+        // 送信直前(await後)の最終確認: モーダルを開いた時点のデータが今も現在ページの商品か
+        if (!_mercariAiSnapOk(snap, ai)) throw new Error(_MERCARI_MISMATCH_MSG);
         // キューに積む（Phase 1: バルク送信 + alarms で順次処理）
         // background.js が 15 秒ごとに最大 20 件まとめて送信する
         const enqueueRes = await chrome.runtime.sendMessage({
@@ -8584,6 +9073,10 @@ function isNoiseText(text) {
     content.querySelector('#ai-export-v5-only').addEventListener('click', async (e) => {
       const btn = e.currentTarget;
       if (btn.disabled) return;
+      if (!_mercariAiSnapOk(snap, ai)) {
+        showNotification('エラー', _MERCARI_MISMATCH_MSG, 'error', colors);
+        return;
+      }
       const originalLabel = btn.innerHTML;
       const originalBg = btn.style.background;
       btn.disabled = true;
@@ -8604,7 +9097,9 @@ function isNoiseText(text) {
         if (!target && spreadsheets.length > 0) target = spreadsheets[0];
         if (!target) throw new Error('スプレッドシートが登録されていません');
 
-        const v5Values = await buildV5ImportValues_(ai, extractedData);
+        const v5Values = await buildV5ImportValues_(ai, snap);
+        // 送信直前(await後)の最終確認: モーダルを開いた時点のデータが今も現在ページの商品か
+        if (!_mercariAiSnapOk(snap, ai)) throw new Error(_MERCARI_MISMATCH_MSG);
 
         const enqueueRes = await chrome.runtime.sendMessage({
           action: 'enqueueExport',
@@ -8673,7 +9168,7 @@ function isNoiseText(text) {
         const oldSpecKeys = JSON.stringify(Object.keys(ai.itemSpecifics || {}).sort());
         const oldSpecValues = JSON.stringify(Object.values(ai.itemSpecifics || {}).sort());
 
-        const refined = await callAiRefine(ai, instruction, extractedData, settings, currentSite);
+        const refined = await callAiRefine(ai, instruction, snap, settings, _siteForData(snap));
 
         // 結果を ai オブジェクトにマージ（参照渡しで extractedData.ai も更新される）
         // 空文字なら更新しない、それ以外（同じ内容も含む）は確実に上書き
@@ -8731,7 +9226,11 @@ function isNoiseText(text) {
 
     // 再翻訳（強制 API 再呼び出し）
     content.querySelector('#ai-rerun').addEventListener('click', async () => {
-      const rerunFn = (typeof extractedData !== 'undefined') ? extractedData._aiRerun : null;
+      if (!_mercariAiSnapOk(snap, ai)) {
+        showNotification('エラー', _MERCARI_MISMATCH_MSG, 'error', colors);
+        return;
+      }
+      const rerunFn = (typeof snap !== 'undefined') ? snap._aiRerun : null;
       if (typeof rerunFn !== 'function') {
         showNotification('再翻訳できません', '内部状態が見つかりません。一度ページを再読み込みしてください。', 'error', colors);
         return;
@@ -8740,7 +9239,7 @@ function isNoiseText(text) {
       const ok = confirm('AI 翻訳を再実行しますか？\n（API コストが発生します。現在の編集内容は破棄されます）');
       if (!ok) return;
       // 既存結果を破棄してから再実行
-      extractedData.ai = null;
+      snap.ai = null;
       overlay.remove();
       try {
         await rerunFn();
