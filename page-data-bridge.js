@@ -23,13 +23,20 @@
       typeof o.created === 'number' && isFinite(o.created);
   };
 
+  // Mercari Shops の商品オブジェクトらしいか（/shops/product/ のみ。name がURLのID、createTime がISO文字列）
+  // ※出品者評価内訳は Shops では取れない。上位の value.user.ratings は閲覧者本人のものなので絶対に使わない
+  const isShopsObj = (o, id) => {
+    return /^\/shops\/product\//.test(location.pathname) && o && typeof o === 'object' &&
+      o.name === id && typeof o.createTime === 'string';
+  };
+
   // props 内のネストしたオブジェクトを深さ4まで探索（children と _始まりのキーは除外、循環ガード）
   const findInProps = (props, id) => {
     const seen = new Set();
     const walk = (o, depth) => {
       if (!o || typeof o !== 'object' || depth > 4 || seen.has(o)) return null;
       seen.add(o);
-      if (isItemObj(o, id)) return o;
+      if (isItemObj(o, id) || isShopsObj(o, id)) return o;
       let keys;
       try { keys = Object.keys(o); } catch (e) { return null; }
       for (const k of keys) {
@@ -76,6 +83,22 @@
     try {
       const item = findItem(id);
       if (!item) return 0;
+      if (!isItemObj(item, id) && isShopsObj(item, id)) {
+        // Mercari Shops: ISO文字列(UTC) → Unix秒。評価内訳は取れないので null 固定（待たずに確定）
+        const toSec = (s) => { const ms = Date.parse(s); return isFinite(ms) ? Math.floor(ms / 1000) : null; };
+        const created = toSec(item.createTime);
+        if (created === null) return 0;
+        document.documentElement.dataset[ATTR] = JSON.stringify({
+          site: 'mercari',
+          id: id,
+          created: created,
+          updated: typeof item.updateTime === 'string' ? toSec(item.updateTime) : null,
+          ratings: null,
+          name: (typeof item.displayName === 'string' && item.displayName) ? item.displayName : null,
+          url: location.href
+        });
+        return 2;
+      }
       const r = item.seller && item.seller.ratings;
       const ratings = (r && num(r.good) !== null && num(r.normal) !== null && num(r.bad) !== null)
         ? { good: r.good, normal: r.normal, bad: r.bad } : null;
