@@ -202,6 +202,12 @@
     return false;
   }
 
+  // メルカリの いいね！一覧 かどうかを判定
+  function isMercariFavoritesPage() {
+    return window.location.hostname === 'jp.mercari.com' &&
+           /^\/mypage\/favorites\/?$/.test(window.location.pathname);
+  }
+
   // 一覧用バッジを表示しないページかどうかを判定
   function isExcludedPage() {
     const url = window.location.href;
@@ -209,8 +215,8 @@
     if (/jp\.mercari\.com\/transaction\//.test(url)) return true;
     // お知らせページ
     if (/jp\.mercari\.com\/notifications/.test(url)) return true;
-    // マイページ
-    if (/jp\.mercari\.com\/mypage\//.test(url)) return true;
+    // マイページ（いいね！一覧 /mypage/favorites だけは一覧なので対象にする）
+    if (/jp\.mercari\.com\/mypage\//.test(url) && !isMercariFavoritesPage()) return true;
     return false;
   }
 
@@ -1102,6 +1108,10 @@
         // 開くボタンを追加（バックグラウンドで開く）
         const openBtn = document.createElement('button');
         openBtn.className = 'mercari-open-btn';
+        // いいね！一覧は右上にハートがあるので、押し間違えないよう下にずらす
+        if (isMercariFavoritesPage()) {
+          openBtn.classList.add('mercari-open-btn--below-like');
+        }
         openBtn.textContent = '開く';
         // 親<a>要素のクリック・mousedownナビゲーションを阻止
         ['mousedown', 'pointerdown', 'touchstart'].forEach((evt) => {

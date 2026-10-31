@@ -115,6 +115,11 @@ a.mercari-viewed-marked {
   z-index: 100;
 }
 
+/* いいね！一覧: 右上のハート（高さ40pxまで）を避ける。ヒットエリアの8px分も含めて離す */
+.mercari-open-btn.mercari-open-btn--below-like {
+  top: 48px;
+}
+
 .mercari-open-btn:hover {
   background-color: rgba(56, 142, 60, 1);
   transform: scale(1.05);
