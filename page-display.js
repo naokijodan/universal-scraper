@@ -54,7 +54,15 @@
     const h3 = Array.from(document.querySelectorAll('.merDisplayRow h3')).find(h => h.textContent.trim() === '発送までの日数');
     if (h3) return h3.closest('.merDisplayRow');
     const sp = document.querySelector('[data-testid="発送までの日数"]');
-    return sp ? sp.closest('.merDisplayRow') : null;
+    if (!sp) return null;
+    const old = sp.closest('.merDisplayRow');
+    if (old) return old;
+    // 2026-11 メルカリの新しい作り: merDisplayRow が無く、見出し h3 と値を直下に持つ div が1行になる
+    for (let n = sp.parentElement; n && n !== document.body; n = n.parentElement) {
+      const head = n.querySelector(':scope > h3');
+      if (head) return head.textContent.trim() === '発送までの日数' ? n : null;
+    }
+    return null;
   };
 
   const makeMercariRow = (base, id, label, value) => {
