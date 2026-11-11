@@ -835,6 +835,26 @@ function isNoiseText(text) {
       }
     }
 
+    // ヤフオク: 即決価格なし・送料が読めない警告
+    if (data.platform === 'yahuoku') {
+      if (data.noBuyNow) {
+        alerts.push({
+          type: 'warning',
+          icon: '⚠️',
+          title: '即決価格なし',
+          message: '即決価格がありません。現在価格＋送料で送信します。'
+        });
+      }
+      if (data.shippingUnreadable) {
+        alerts.push({
+          type: 'error',
+          icon: '🚫',
+          title: '送料が読めません',
+          message: '送料が数字で読めないため、この商品は送信できません（着払い・未定など）。'
+        });
+      }
+    }
+
     // 評価件数のチェック（0件も含む）
     const frimaPlatforms = ['mercari', 'mercari_shop', 'yahuoku', 'paypayfurima', 'rakuma'];
     const isFrimaPlatform = frimaPlatforms.includes(data.platform);
@@ -2114,6 +2134,11 @@ function isNoiseText(text) {
     const runAiTranslation = async (force = false) => {
       if (aiButton.disabled) return;
       if (!(await _mercariGuardData())) return; // メルカリ: 現在のページの商品データか確認
+      // ヤフオク: 送料が読めない商品はAI翻訳・送信に進ませない
+      if (extractedData.platform === 'yahuoku' && extractedData.shippingUnreadable) {
+      showNotification('エラー', '送料が読めないため送信できません（着払い・未定など）', 'error', colors);
+      return;
+    }
       const aiTarget = extractedData; // 翻訳中にページ遷移しても別商品へ結果を付けない
       // すでに結果があり、force でなければ再表示のみ
       if (!force && aiTarget.ai && !aiTarget.ai.error) {
@@ -2650,6 +2675,11 @@ function isNoiseText(text) {
   async function exportToMultipleTargets_(targets) {
     if (!(await _mercariGuardData())) return;
     const data = extractedData; // スナップショット（ループ中に差し替わっても同じ商品だけを送る）
+    // ヤフオク: 送料が読めない商品は送信しない（通知はループ前に1回だけ）
+    if (data.platform === 'yahuoku' && data.shippingUnreadable) {
+      showNotification('エラー', '送料が読めないため送信できません（着払い・未定など）', 'error', colors);
+      return;
+    }
     for (const target of targets) {
       // 各送信(GAS往復)の前に、手元のデータがまだ現在ページの商品か確認
       if (!_mercariStillCurrent(data)) return;
@@ -3485,6 +3515,7 @@ function isNoiseText(text) {
           editedData.shippingPayer = data.shippingPayer || '';
           editedData.shippingMethod = data.shippingMethod || '';
           editedData.shipFrom = data.shipFrom || '';
+          if (site === 'yahuoku') { editedData.noBuyNow = !!data.noBuyNow; editedData.shippingUnreadable = !!data.shippingUnreadable; }
         }
 
         // 楽天の場合アラートチェック
@@ -3565,6 +3596,7 @@ function isNoiseText(text) {
             editedData.shippingPayer = data.shippingPayer || '';
             editedData.shippingMethod = data.shippingMethod || '';
             editedData.shipFrom = data.shipFrom || '';
+            if (site === 'yahuoku') { editedData.noBuyNow = !!data.noBuyNow; editedData.shippingUnreadable = !!data.shippingUnreadable; }
           }
         }
 
@@ -6073,6 +6105,11 @@ function isNoiseText(text) {
    * @param {Object} colors - サイトカラー
    */
   async function exportToSpreadsheet(data, site, colors, overrideTarget) {
+    // ヤフオク: 送料が読めない商品は送信しない
+    if (data.platform === 'yahuoku' && data.shippingUnreadable) {
+      showNotification('エラー', '送料が読めないため送信できません（着払い・未定など）', 'error', colors);
+      return;
+    }
     // メルカリ: 送信直前の最終確認（データの商品IDが現在ページと違えば送らない）
     if (!_mercariDataMatchesPage(data)) {
       showNotification('エラー', '商品データが現在のページと一致しません。ページを再読み込みしてください。', 'error', colors);
@@ -7126,6 +7163,36 @@ function isNoiseText(text) {
   // ==========================================
   // ヤフオク商品データ抽出
   // ==========================================
+  // ヤフオク: 即決価格と送料から価格を決める（即決あり=即決価格、なし=現在価格）。postageText が null なら送料要素なし
+  function _parseYahooPriceAndShipping(itemJson, postageText) {
+    const buyNow = Number(itemJson.taxinBidorbuy || itemJson.bidorbuy || 0);
+    let base;
+    let noBuyNow;
+    if (buyNow > 0) {
+      base = buyNow;
+      noBuyNow = false;
+    } else {
+      base = Number(itemJson.taxinPrice || itemJson.price || 0);
+      noBuyNow = true;
+    }
+    let shipping = 0;
+    let shippingUnreadable = false;
+    const text = (postageText == null) ? null : String(postageText).replace(/^\s*送料/, '');
+    if (itemJson.chargeForShipping === 'seller' || (text !== null && text.indexOf('無料') !== -1)) {
+      shipping = 0;
+    } else if (text !== null) {
+      const m = text.match(/([0-9][0-9,]*)\s*円/);
+      if (m) {
+        shipping = parseInt(m[1].replace(/,/g, ''), 10) || 0;
+      } else {
+        shippingUnreadable = true;
+      }
+    } else {
+      shippingUnreadable = true;
+    }
+    return { price: base + shipping, shipping: shipping, noBuyNow: noBuyNow, shippingUnreadable: shippingUnreadable };
+  }
+
   function extractYahooProductData() {
     _log('=== ヤフオクデータ抽出開始 ===');
 
@@ -7152,18 +7219,13 @@ function isNoiseText(text) {
       const title = itemJson.title.replace(/\t/g, '  '); // タブを空白に変換
 
       // 価格（本体価格 + 送料）
-      let price = itemJson.taxinPrice || itemJson.price || 0;
-      let shipping = 0;
-
-      // 送料を取得
       const shippingElement = document.querySelector('div[id="itemPostage"]');
-      if (shippingElement) {
-        const shippingText = shippingElement.innerText || '';
-        shipping = parseInt(shippingText.replace(/[^0-9]/g, '')) || 0;
-        _log('📦 送料:', shipping);
-      }
-
-      price = price + shipping;
+      const _yp = _parseYahooPriceAndShipping(itemJson, shippingElement ? (shippingElement.innerText || '') : null);
+      const price = _yp.price;
+      const shipping = _yp.shipping;
+      const noBuyNow = _yp.noBuyNow;
+      const shippingUnreadable = _yp.shippingUnreadable;
+      _log('📦 送料:', shipping, '即決なし:', noBuyNow, '送料読めない:', shippingUnreadable);
 
       // 説明文（description + カテゴリ + コンディション + ブランド）
       let description = itemJson.description || '';
@@ -7403,7 +7465,9 @@ function isNoiseText(text) {
         updatedElapsedDays: updatedElapsedDays,
         reviewCount: rating.reviewCount, // 評価件数
         badRate: rating.badRate, // 悪い評価率
-        keywords: '' // キーワード検知は別途処理
+        keywords: '', // キーワード検知は別途処理
+        noBuyNow: noBuyNow,
+        shippingUnreadable: shippingUnreadable
       };
 
     } catch (error) {
@@ -8991,6 +9055,11 @@ function isNoiseText(text) {
         showNotification('エラー', _MERCARI_MISMATCH_MSG, 'error', colors);
         return;
       }
+      // ヤフオク: 送料が読めない商品は送信しない
+      if (snap && snap.platform === 'yahuoku' && snap.shippingUnreadable) {
+        showNotification('エラー', '送料が読めないため送信できません（着払い・未定など）', 'error', colors);
+        return;
+      }
       const originalLabel = btn.innerHTML;
       const originalBg = btn.style.background;
       btn.disabled = true;
@@ -9075,6 +9144,11 @@ function isNoiseText(text) {
       if (btn.disabled) return;
       if (!_mercariAiSnapOk(snap, ai)) {
         showNotification('エラー', _MERCARI_MISMATCH_MSG, 'error', colors);
+        return;
+      }
+      // ヤフオク: 送料が読めない商品は送信しない
+      if (snap && snap.platform === 'yahuoku' && snap.shippingUnreadable) {
+        showNotification('エラー', '送料が読めないため送信できません（着払い・未定など）', 'error', colors);
         return;
       }
       const originalLabel = btn.innerHTML;
