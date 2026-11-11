@@ -7328,6 +7328,27 @@ function isNoiseText(text) {
     return !!(data && data.platform === 'yahuoku' && data.shippingUnreadable);
   }
 
+  // ヤフオク: 画面の商品説明（#description 内のシャドウDOM）から全文を読む。読めなければ ''。
+  // __NEXT_DATA__ の description は途中で「...」と切れた要約のことがあるため（v1.6.21）。
+  function _getYahooFullDescriptionFromDom() {
+    const box = document.getElementById('description');
+    if (!box) return '';
+    const host = Array.from(box.querySelectorAll('*')).find(el => el.shadowRoot);
+    const root = host && host.shadowRoot;
+    if (!root) return '';
+    // 直下に要素に入っていない文字（テキストノード）と <br> が並ぶ作りもあるので childNodes を順に読む
+    let out = '';
+    for (const node of Array.from(root.childNodes)) {
+      if (node.nodeType === 3) { out += node.nodeValue || ''; continue; }
+      if (node.nodeType !== 1) continue;
+      const tag = (node.tagName || '').toUpperCase();
+      if (tag === 'STYLE' || tag === 'SCRIPT' || tag === 'LINK') continue;
+      if (tag === 'BR') { out += '\n'; continue; }
+      out += '\n' + (node.innerText || node.textContent || '') + '\n';
+    }
+    return out.replace(/\n{3,}/g, '\n\n').trim();
+  }
+
   // ヤフオク: 即決価格と送料から価格を決める（即決あり=即決価格、なし=現在価格）。postageText が null なら送料要素なし
   function _parseYahooPriceAndShipping(itemJson, postageText) {
     const buyNow = Number(itemJson.taxinBidorbuy || itemJson.bidorbuy || 0);
@@ -7395,7 +7416,19 @@ function isNoiseText(text) {
       _log('📦 送料:', shipping, '即決なし:', noBuyNow, '送料読めない:', shippingUnreadable);
 
       // 説明文（description + カテゴリ + コンディション + ブランド）
-      let description = itemJson.description || '';
+      // v1.6.21: __NEXT_DATA__ の description は途中で「...」と切れた要約のことがある。
+      // 画面の #description 内のシャドウDOMに全文があるので、読めればそちらを優先する。
+      const _summaryDesc = String(itemJson.description || ''); // 従来どおり（配列はカンマ区切りの文字列になる）
+      let description = _summaryDesc;
+      try {
+        const _fullDesc = _getYahooFullDescriptionFromDom();
+        if (_fullDesc && _fullDesc.length >= _summaryDesc.replace(/\.\.\.\s*$/, '').length) {
+          description = _fullDesc;
+          _log('📝 説明は画面の全文を使用:', _fullDesc.length, '文字（要約', _summaryDesc.length, '文字）');
+        }
+      } catch (e) {
+        _log('⚠️ 説明の全文取得に失敗（要約を使用）:', e && e.message);
+      }
 
       // カテゴリを追加
       if (itemJson.category && itemJson.category.path) {
