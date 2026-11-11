@@ -2135,10 +2135,10 @@ function isNoiseText(text) {
       if (aiButton.disabled) return;
       if (!(await _mercariGuardData())) return; // メルカリ: 現在のページの商品データか確認
       // ヤフオク: 送料が読めない商品はAI翻訳・送信に進ませない
-      if (extractedData.platform === 'yahuoku' && extractedData.shippingUnreadable) {
-      showNotification('エラー', '送料が読めないため送信できません（着払い・未定など）', 'error', colors);
-      return;
-    }
+      if (_yahooSendBlocked(extractedData)) {
+        showNotification('エラー', _YAHOO_SHIPPING_BLOCK_MSG, 'error', colors);
+        return;
+      }
       const aiTarget = extractedData; // 翻訳中にページ遷移しても別商品へ結果を付けない
       // すでに結果があり、force でなければ再表示のみ
       if (!force && aiTarget.ai && !aiTarget.ai.error) {
@@ -2676,8 +2676,8 @@ function isNoiseText(text) {
     if (!(await _mercariGuardData())) return;
     const data = extractedData; // スナップショット（ループ中に差し替わっても同じ商品だけを送る）
     // ヤフオク: 送料が読めない商品は送信しない（通知はループ前に1回だけ）
-    if (data.platform === 'yahuoku' && data.shippingUnreadable) {
-      showNotification('エラー', '送料が読めないため送信できません（着払い・未定など）', 'error', colors);
+    if (_yahooSendBlocked(data)) {
+      showNotification('エラー', _YAHOO_SHIPPING_BLOCK_MSG, 'error', colors);
       return;
     }
     for (const target of targets) {
@@ -6106,8 +6106,8 @@ function isNoiseText(text) {
    */
   async function exportToSpreadsheet(data, site, colors, overrideTarget) {
     // ヤフオク: 送料が読めない商品は送信しない
-    if (data.platform === 'yahuoku' && data.shippingUnreadable) {
-      showNotification('エラー', '送料が読めないため送信できません（着払い・未定など）', 'error', colors);
+    if (_yahooSendBlocked(data)) {
+      showNotification('エラー', _YAHOO_SHIPPING_BLOCK_MSG, 'error', colors);
       return;
     }
     // メルカリ: 送信直前の最終確認（データの商品IDが現在ページと違えば送らない）
@@ -7163,6 +7163,12 @@ function isNoiseText(text) {
   // ==========================================
   // ヤフオク商品データ抽出
   // ==========================================
+  // ヤフオク: 送料が読めない商品は送信しない（通知文は共通）
+  const _YAHOO_SHIPPING_BLOCK_MSG = '送料が読めないため送信できません（着払い・未定など）';
+  function _yahooSendBlocked(data) {
+    return !!(data && data.platform === 'yahuoku' && data.shippingUnreadable);
+  }
+
   // ヤフオク: 即決価格と送料から価格を決める（即決あり=即決価格、なし=現在価格）。postageText が null なら送料要素なし
   function _parseYahooPriceAndShipping(itemJson, postageText) {
     const buyNow = Number(itemJson.taxinBidorbuy || itemJson.bidorbuy || 0);
@@ -7178,15 +7184,17 @@ function isNoiseText(text) {
     let shipping = 0;
     let shippingUnreadable = false;
     const text = (postageText == null) ? null : String(postageText).replace(/^\s*送料/, '');
-    if (itemJson.chargeForShipping === 'seller' || (text !== null && text.indexOf('無料') !== -1)) {
-      shipping = 0;
-    } else if (text !== null) {
-      const m = text.match(/([0-9][0-9,]*)\s*円/);
-      if (m) {
-        shipping = parseInt(m[1].replace(/,/g, ''), 10) || 0;
-      } else {
-        shippingUnreadable = true;
-      }
+    const amountMatch = (text !== null) ? text.match(/([0-9][0-9,]*)\s*円/) : null;
+    if (itemJson.chargeForShipping === 'seller') {
+      shipping = 0; // 出品者負担
+    } else if (text === null) {
+      shippingUnreadable = true; // 送料欄なし
+    } else if (amountMatch && text.indexOf('無料') !== -1) {
+      shippingUnreadable = true; // 「◯円以上で送料無料」等、金額と無料が混在して判断できない
+    } else if (amountMatch) {
+      shipping = parseInt(amountMatch[1].replace(/,/g, ''), 10) || 0;
+    } else if (/^\s*無料/.test(text)) {
+      shipping = 0; // 先頭が「無料」
     } else {
       shippingUnreadable = true;
     }
@@ -9056,8 +9064,8 @@ function isNoiseText(text) {
         return;
       }
       // ヤフオク: 送料が読めない商品は送信しない
-      if (snap && snap.platform === 'yahuoku' && snap.shippingUnreadable) {
-        showNotification('エラー', '送料が読めないため送信できません（着払い・未定など）', 'error', colors);
+      if (_yahooSendBlocked(snap)) {
+        showNotification('エラー', _YAHOO_SHIPPING_BLOCK_MSG, 'error', colors);
         return;
       }
       const originalLabel = btn.innerHTML;
@@ -9147,8 +9155,8 @@ function isNoiseText(text) {
         return;
       }
       // ヤフオク: 送料が読めない商品は送信しない
-      if (snap && snap.platform === 'yahuoku' && snap.shippingUnreadable) {
-        showNotification('エラー', '送料が読めないため送信できません（着払い・未定など）', 'error', colors);
+      if (_yahooSendBlocked(snap)) {
+        showNotification('エラー', _YAHOO_SHIPPING_BLOCK_MSG, 'error', colors);
         return;
       }
       const originalLabel = btn.innerHTML;
