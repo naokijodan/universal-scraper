@@ -41,7 +41,7 @@ const _normalizeImageOutputCount = (value) => {
 
 const _normalizeImageBase64Count = (value) => {
   const n = parseInt(value, 10);
-  if (!Number.isFinite(n)) return 1;
+  if (!Number.isFinite(n)) return 0;
   return Math.min(Math.max(n, 0), 10);
 };
 
@@ -391,7 +391,7 @@ function isNoiseText(text) {
     skipDaysFromListing: null,
     buttonPosition: 'top-right',
     imageOutputCount: 999,
-    imageBase64Count: 1,
+    imageBase64Count: 0,
     enableImageInClipboard: true,
     spreadsheets: [],
     lastUsedSheetId: null,
@@ -5959,7 +5959,9 @@ function isNoiseText(text) {
     if (request && request.action === 'directSendResult') {
       try {
         const sheetName = request.sheetName || '';
-        if (request.status === 'sent') {
+        if (request.status === 'sent' && request.warning) {
+          showNotification('送信完了（画像だけ未反映）', request.warning, 'info');
+        } else if (request.status === 'sent') {
           showNotification(
             '送信完了',
             `${sheetName} に追加しました`,

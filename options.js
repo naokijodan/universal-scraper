@@ -79,7 +79,7 @@ const defaultSettings = {
   lastUsedSheetId: null, // 最後に使ったシートID
   maxSheets: 10, // 最大登録数
   imageOutputCount: 999, // 出力する画像枚数（全ての画像、最大20枚）
-  imageBase64Count: 1, // セル内画像にする枚数（メルカリ非経由）
+  imageBase64Count: 0, // セル内画像にする枚数（メルカリ非経由）
   enableImageInClipboard: true, // クリップボードコピー時に画像URLを含める（デフォルト有効）
   // 画像読み込み待機時間（秒）
   amazonLoadDelay: 3,
@@ -242,7 +242,7 @@ async function loadSettings() {
 
     // 画像出力設定を設定
     document.getElementById('imageOutputCount').value = syncSettings.imageOutputCount;
-    document.getElementById('imageBase64Count').value = (() => { const v = parseInt(syncSettings.imageBase64Count, 10); return Number.isFinite(v) ? Math.min(Math.max(v, 0), 10) : 1; })();
+    document.getElementById('imageBase64Count').value = (() => { const v = parseInt(syncSettings.imageBase64Count, 10); return Number.isFinite(v) ? Math.min(Math.max(v, 0), 10) : 0; })();
     document.getElementById('enableImageInClipboard').checked = syncSettings.enableImageInClipboard;
 
     // 画像読み込み待機時間を設定
@@ -785,7 +785,7 @@ async function saveSettings() {
       excludeShippingMethods: document.getElementById('excludeShippingMethods').value.split('\n').map(s => s.trim()).filter(s => s),
       buttonPosition: document.getElementById('buttonPosition').value,
       imageOutputCount: (() => { const v = parseInt(document.getElementById('imageOutputCount').value); return isNaN(v) ? 999 : v; })(),
-      imageBase64Count: (() => { const v = parseInt(document.getElementById('imageBase64Count').value, 10); return isNaN(v) ? 1 : Math.min(Math.max(v, 0), 10); })(),
+      imageBase64Count: (() => { const v = parseInt(document.getElementById('imageBase64Count').value, 10); return isNaN(v) ? 0 : Math.min(Math.max(v, 0), 10); })(),
       enableImageInClipboard: document.getElementById('enableImageInClipboard').checked,
       enableMichatta: document.getElementById('enableMichatta').checked,
       // 画像読み込み待機時間（秒）
