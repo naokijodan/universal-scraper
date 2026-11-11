@@ -515,13 +515,18 @@ function isNoiseText(text) {
       const textNodes = [];
       let node;
       while (node = walker.nextNode()) {
+        // 2026-11-11: <style>/<script> の中身は書き換えない（ヤフオク説明文の shadowRoot に style がある）
+        const ptag = node.parentNode && node.parentNode.nodeName ? node.parentNode.nodeName.toUpperCase() : '';
+        if (ptag === 'STYLE' || ptag === 'SCRIPT') continue;
         textNodes.push(node);
       }
 
       textNodes.forEach(textNode => {
         const text = textNode.textContent;
         let hasMatch = false;
-        let newHTML = text;
+        // 2026-11-11: 元の文字を HTML として解釈させない（< や & を含む説明文が崩れないように）
+        const _esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        let newHTML = _esc(text);
 
         keywords.forEach(keyword => {
           if (!keyword.trim()) return;
@@ -530,7 +535,8 @@ function isNoiseText(text) {
           const regex = new RegExp(`(${escapedKeyword})`, 'gi');
           if (regex.test(text)) {
             hasMatch = true;
-            newHTML = newHTML.replace(regex, `<mark style="background-color: ${color}; color: #000; padding: 2px 4px; border-radius: 2px;">$1</mark>`);
+            const _escKw = _esc(keyword.trim()).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            newHTML = newHTML.replace(new RegExp(`(${_escKw})`, 'gi'), `<mark style="background-color: ${color}; color: #000; padding: 2px 4px; border-radius: 2px;">$1</mark>`);
 
             // 検出されたキーワードを記録
             if (isExclude) {
@@ -575,8 +581,9 @@ function isNoiseText(text) {
       titleSelectors = ['#productTitle', 'h1#title'];
       descriptionSelectors = ['#feature-bullets', '#productDescription'];
     } else if (currentSite === 'yahuoku') {
-      titleSelectors = ['h1.ProductTitle__text', 'h1[class*="Title"]'];
-      descriptionSelectors = ['div.ProductExplanation__commentBody', 'div[class*="Description"]'];
+      // 2026-11-11: 現行ページは #itemTitle 内の h1。説明文は #description 内の shadowRoot（下で個別に処理）
+      titleSelectors = ['#itemTitle h1', 'h1.ProductTitle__text', 'h1[class*="Title"]'];
+      descriptionSelectors = ['div.ProductExplanation__commentBody'];
     } else if (currentSite === 'paypayfurima') {
       titleSelectors = [
         'h1[class*="Name"]',
@@ -591,6 +598,7 @@ function isNoiseText(text) {
         '[class*="itemName"]'
       ];
       descriptionSelectors = [
+        '[class*="ItemText__Text"]',          // 2026-11-11: 現行ページの説明文（ページ内で1つだけ）
         'div[class*="Description"]',
         'p[class*="description"]',
         '[class*="ProductDescription"]',
@@ -599,6 +607,7 @@ function isNoiseText(text) {
       ];
     } else if (currentSite === 'rakuma') {
       titleSelectors = [
+        'h1.item__name',                      // 2026-11-11: 現行ページの商品名
         'h1[class*="item-name"]',
         'h1.item_name',
         'h1.item-name',
@@ -679,7 +688,8 @@ function isNoiseText(text) {
     }
 
     // それでも見つからない場合、商品名らしいテキストを持つ要素を探す
-    if (!titleFound && (currentSite === 'rakuma' || currentSite === 'yahuoku' || currentSite === 'paypayfurima')) {
+    // 2026-11-11: ヤフオクはページ全体を拾うとおすすめ欄等に反応するため対象外
+    if (!titleFound && (currentSite === 'rakuma' || currentSite === 'paypayfurima')) {
       console.warn('⚠️ h1/h2でも見つからなかったため、商品名を直接検索');
       const allElements = document.querySelectorAll('div, span, p');
       allElements.forEach(el => {
@@ -710,8 +720,20 @@ function isNoiseText(text) {
       }
     });
 
+    // 2026-11-11: ヤフオクの説明文は #description 内の shadowRoot にある
+    if (!descFound && currentSite === 'yahuoku') {
+      const box = document.getElementById('description');
+      const host = box && Array.from(box.querySelectorAll('*')).find(el => el.shadowRoot);
+      if (host && host.shadowRoot) {
+        _log('✅ 説明文要素発見: #description shadowRoot');
+        highlightText(host.shadowRoot, excludeKeywords, '#ffcccc', true);
+        highlightText(host.shadowRoot, attentionKeywords, '#ffeb3b', false);
+        descFound = true;
+      }
+    }
+
     // 説明文が見つからない場合も、より広範囲に検索
-    if (!descFound && (currentSite === 'rakuma' || currentSite === 'yahuoku' || currentSite === 'paypayfurima')) {
+    if (!descFound && (currentSite === 'rakuma' || currentSite === 'paypayfurima')) {
       console.warn('⚠️ 説明文セレクタで要素が見つからなかったため、汎用検索を実行');
       const allPre = document.querySelectorAll('pre, div[class*="description"], div[class*="Description"]');
       allPre.forEach(el => {
@@ -7344,6 +7366,8 @@ function isNoiseText(text) {
       const tag = (node.tagName || '').toUpperCase();
       if (tag === 'STYLE' || tag === 'SCRIPT' || tag === 'LINK') continue;
       if (tag === 'BR') { out += '\n'; continue; }
+      // 2026-11-11: キーワードのハイライト（span/mark）は行内の文字として扱い、改行を足さない
+      if ((tag === 'SPAN' || tag === 'MARK')) { out += (node.innerText || node.textContent || ''); continue; }
       out += '\n' + (node.innerText || node.textContent || '') + '\n';
     }
     return out.replace(/\n{3,}/g, '\n\n').trim();
