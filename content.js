@@ -850,7 +850,7 @@ function isNoiseText(text) {
           type: 'error',
           icon: '🚫',
           title: '送料が読めません',
-          message: '送料が数字で読めないため、この商品は送信できません（着払い・未定など）。'
+          message: '送料が数字で読めません（着払い・未定など）。送信時に送料の入力を求めます（「内容確認」で価格を直して送ることもできます）。'
         });
       }
     }
@@ -925,30 +925,13 @@ function isNoiseText(text) {
       const shippingPayer = data.shippingPayer.toString();
       _log('📦 送料負担チェック:', shippingPayer);
 
-      // 出品者負担・送料無料のパターン
-      const isFreeShipping =
-        shippingPayer.includes('出品者') ||
-        shippingPayer.match(/送料[込こ]/) || // 送料込み、送料込
-        shippingPayer.includes('無料') ||
-        shippingPayer.includes('0円') ||
-        shippingPayer.includes('FREE');
-
-      // 購入者負担のパターン
-      const isPaidShipping =
-        shippingPayer.includes('購入者') ||
-        shippingPayer.includes('落札者') ||
-        shippingPayer.includes('着払') ||
-        shippingPayer.includes('別途') ||
-        shippingPayer.includes('送料別') ||
-        shippingPayer.match(/\d+円/); // 数字+円が含まれる場合
-
-      if (!isFreeShipping || isPaidShipping) {
+      if (_isBuyerPaidShipping(shippingPayer)) {
         _log('⚠️ 送料負担アラート発動:', shippingPayer);
         alerts.push({
           type: 'warning',
           icon: '💰',
           title: '送料購入者負担',
-          message: `${shippingPayer}`
+          message: _needsShippingInput(data) ? `${shippingPayer}（送信時に送料の入力を求めます）` : `${shippingPayer}`
         });
       }
     }
@@ -1294,22 +1277,7 @@ function isNoiseText(text) {
       if (data.shippingPayer) {
         const shippingPayer = data.shippingPayer.toString();
 
-        // 出品者負担・送料無料かチェック
-        const isFreeShipping =
-          shippingPayer.includes('出品者') ||
-          shippingPayer.match(/送料[込こ]/) ||
-          shippingPayer.includes('無料') ||
-          shippingPayer.includes('0円');
-
-        const isPaidShipping =
-          shippingPayer.includes('購入者') ||
-          shippingPayer.includes('落札者') ||
-          shippingPayer.includes('着払') ||
-          shippingPayer.includes('別途') ||
-          shippingPayer.includes('送料別') ||
-          shippingPayer.match(/\d+円/);
-
-        if (!isFreeShipping || isPaidShipping) {
+        if (_isBuyerPaidShipping(shippingPayer)) {
           _log('💰 送料負担ページハイライト対象:', shippingPayer);
 
           // 送料・配送料関連の要素を検索
@@ -1797,6 +1765,190 @@ function isNoiseText(text) {
     return p;
   }
 
+  // ==========================================
+  // 送料入力（送料が別払いで金額が読めない商品の送信前ポップアップ）
+  // 対象: ヤフオク=shippingUnreadable / メルカリ・メルカリShops・ラクマ・PayPayフリマ=送料購入者負担
+  // 各サイトの抽出関数は価格に送料を足していない（ヤフオクは読めた時だけ足す）ことを確認済み。
+  // 送信・AI翻訳の直前に呼び、入力額を足した「新しいデータ」を返す（元の extractedData は変更しない）。
+  // ==========================================
+  // 送料購入者負担の判定（アラートバッジ・ページハイライト・送料入力ポップアップで共通）
+  function _isBuyerPaidShipping(payer) {
+    if (!payer) return false;
+    const s = payer.toString();
+    // 出品者負担・送料無料のパターン
+    const isFreeShipping =
+      s.includes('出品者') ||
+      /送料[込こ]/.test(s) || // 送料込み、送料込
+      s.includes('無料') ||
+      s.includes('0円') ||
+      s.includes('FREE');
+    // 購入者負担のパターン
+    const isPaidShipping =
+      s.includes('購入者') ||
+      s.includes('落札者') ||
+      s.includes('着払') ||
+      s.includes('別途') ||
+      s.includes('送料別') ||
+      /\d+円/.test(s); // 数字+円が含まれる場合
+    return !isFreeShipping || isPaidShipping;
+  }
+
+  const _SHIPPING_INPUT_PLATFORMS = ['mercari', 'mercari_shop', 'rakuma', 'paypayfurima'];
+  const _shippingInputCache = new Map(); // 商品キー → 入力済み送料(円)。ページを開いている間だけ保持
+  let _shippingPopupOpen = false;
+
+  function _needsShippingInput(data) {
+    if (!data || data.error || data._shippingAdjusted) return false;
+    if (data.platform === 'yahuoku') return !!data.shippingUnreadable;
+    if (_SHIPPING_INPUT_PLATFORMS.includes(data.platform)) return _isBuyerPaidShipping(data.shippingPayer);
+    return false; // Amazon / 楽天 / eBay 等は専用の送料ロジックがあるため聞かない
+  }
+
+  function _shippingItemKey(data) {
+    return (data.platform || '') + ':' + (data.url || location.href);
+  }
+
+  // 全角数字・全角カンマを半角に直し、0以上の整数なら数値、不正なら null
+  function _parseShippingInput(raw) {
+    const s = String(raw == null ? '' : raw)
+      .replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+      .replace(/[，、]/g, ',')
+      .replace(/[\s円¥￥]/g, '');
+    if (!/^[0-9,]+$/.test(s)) return null;
+    const digits = s.replace(/,/g, '');
+    if (!/^[0-9]{1,9}$/.test(digits)) return null;
+    return parseInt(digits, 10);
+  }
+
+  function _parseBasePrice(data) {
+    const s = String(data.price == null ? '' : data.price).replace(/[,\s円¥￥]/g, '');
+    return /^[0-9]+$/.test(s) ? parseInt(s, 10) : null;
+  }
+
+  // 元データを変更せず、価格に送料を足した新しいデータを返す
+  function _buildShippingAdjusted(data, shipping) {
+    const base = _parseBasePrice(data);
+    if (base === null) return null;
+    const adjusted = Object.assign({}, data);
+    adjusted.price = String(base + shipping);
+    adjusted.shippingUnreadable = false;
+    adjusted._shippingAdjusted = true;
+    adjusted._shippingEntered = shipping;
+    return adjusted;
+  }
+
+  // 送料入力ポップアップ。送信=数値、やめる=null
+  function _askShippingPopup(data) {
+    return new Promise((resolve) => {
+      _shippingPopupOpen = true;
+      const base = _parseBasePrice(data);
+      const payerText = data.shippingPayer ? String(data.shippingPayer) : '';
+      const overlay = document.createElement('div');
+      overlay.id = 'unified-scraper-shipping-modal';
+      Object.assign(overlay.style, {
+        position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
+        backgroundColor: 'rgba(0,0,0,0.5)', zIndex: '2147483647',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'sans-serif'
+      });
+      const box = document.createElement('div');
+      Object.assign(box.style, {
+        backgroundColor: 'white', color: '#333', borderRadius: '10px', padding: '20px 22px',
+        width: '380px', maxWidth: '92vw', boxShadow: '0 8px 30px rgba(0,0,0,0.35)', fontSize: '13px', lineHeight: '1.6'
+      });
+      const lead = (data.platform === 'yahuoku')
+        ? '送料が数字で読み取れません（着払い・未定など）。'
+        : '送料は購入者が別に支払う商品で、金額は読み取れません。';
+      box.innerHTML =
+        '<div style="font-size:16px;font-weight:bold;margin-bottom:10px;">送料を入力してください</div>' +
+        '<div style="margin-bottom:6px;">' + escapeAiText(lead) + '</div>' +
+        (payerText ? '<div style="margin-bottom:6px;color:#666;">送料の負担: ' + escapeAiText(payerText) + '</div>' : '') +
+        '<div style="margin-bottom:10px;color:#666;">' +
+          (base !== null ? '商品の価格 ' + base.toLocaleString() + ' 円に、入力した送料を足した金額を送信します。' : '入力した送料を価格に足して送信します。') +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:6px;">' +
+          '<input type="text" id="us-shipping-input" inputmode="numeric" autocomplete="off" placeholder="例: 800" style="flex:1;padding:8px;border:2px solid #2196F3;border-radius:6px;font-size:15px;">' +
+          '<span>円</span>' +
+        '</div>' +
+        '<div id="us-shipping-error" style="color:#c62828;font-size:12px;min-height:18px;margin-top:4px;"></div>' +
+        '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px;">' +
+          '<button type="button" id="us-shipping-cancel" style="padding:8px 16px;border:1px solid #ccc;border-radius:6px;background:#f5f5f5;cursor:pointer;font-size:13px;">やめる</button>' +
+          '<button type="button" id="us-shipping-ok" style="padding:8px 18px;border:none;border-radius:6px;background:#2196F3;color:white;font-weight:bold;cursor:pointer;font-size:13px;">送信</button>' +
+        '</div>';
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+      const input = box.querySelector('#us-shipping-input');
+      const errEl = box.querySelector('#us-shipping-error');
+
+      let done = false;
+      const finish = (val) => {
+        if (done) return;
+        done = true;
+        document.removeEventListener('keydown', onKey, true);
+        document.removeEventListener('keyup', swallow, true);
+        document.removeEventListener('keypress', swallow, true);
+        overlay.remove();
+        _shippingPopupOpen = false;
+        resolve(val);
+      };
+      const submit = () => {
+        const v = _parseShippingInput(input.value);
+        if (v === null) {
+          errEl.textContent = '0以上の整数（円）を入力してください。';
+          input.focus();
+          return;
+        }
+        finish(v);
+      };
+      // ポップアップ表示中は、サイト側のショートカットにキー入力を渡さない
+      const swallow = (e) => { e.stopPropagation(); };
+      const onKey = (e) => {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); finish(null); return; }
+        if (e.key === 'Enter') {
+          if (e.isComposing || e.keyCode === 229) return; // 日本語変換の確定Enterは送信にしない
+          e.preventDefault(); e.stopPropagation(); submit(); return;
+        }
+        e.stopPropagation();
+      };
+      document.addEventListener('keydown', onKey, true);
+      document.addEventListener('keyup', swallow, true);
+      document.addEventListener('keypress', swallow, true);
+      box.querySelector('#us-shipping-ok').addEventListener('click', (e) => { e.stopPropagation(); submit(); });
+      box.querySelector('#us-shipping-cancel').addEventListener('click', (e) => { e.stopPropagation(); finish(null); });
+      overlay.addEventListener('click', (e) => { e.stopPropagation(); });
+      input.addEventListener('input', () => { errEl.textContent = ''; });
+      setTimeout(() => { try { input.focus(); } catch (e) {} }, 0);
+    });
+  }
+
+  // 送信・AI翻訳の直前に呼ぶ。そのまま進めてよいデータ（必要なら送料加算済みの新データ）を返す。中止なら null
+  async function _prepareShippingForSend(data) {
+    if (!_needsShippingInput(data)) return data;
+    const key = _shippingItemKey(data);
+    let shipping = _shippingInputCache.get(key);
+    if (shipping === undefined) {
+      // すでに入力待ち（ポップアップが外から消えていたら待ち状態を解除）
+      if (_shippingPopupOpen && !document.getElementById('unified-scraper-shipping-modal')) _shippingPopupOpen = false;
+      if (_shippingPopupOpen) return null;
+      if (_parseBasePrice(data) === null) {
+        showNotification('エラー', '価格が読み取れないため、送料を足せません。「内容確認」で価格を入力して送信してください。', 'error', colors);
+        return null;
+      }
+      shipping = await _askShippingPopup(data);
+      if (shipping === null) {
+        showNotification('送信を中止しました', '送料が未入力のため、何も送信していません。', 'info', colors);
+        return null;
+      }
+      _shippingInputCache.set(key, shipping);
+    }
+    const adjusted = _buildShippingAdjusted(data, shipping);
+    if (!adjusted) {
+      showNotification('エラー', '価格が読み取れないため、送料を足せません。', 'error', colors);
+      return null;
+    }
+    return adjusted;
+  }
+
   const _MERCARI_MISMATCH_MSG = '商品データが現在のページと一致しません。ページを再読み込みしてください。';
   // 安全網: 保持中のデータが現在ページの商品と一致するか確認。不一致なら再抽出し（最大10秒、更新中の通知を出す）、
   // それでも一致しなければ中止して通知する。true=続行してよい
@@ -2134,12 +2286,11 @@ function isNoiseText(text) {
     const runAiTranslation = async (force = false) => {
       if (aiButton.disabled) return;
       if (!(await _mercariGuardData())) return; // メルカリ: 現在のページの商品データか確認
-      // ヤフオク: 送料が読めない商品はAI翻訳・送信に進ませない
-      if (_yahooSendBlocked(extractedData)) {
-        showNotification('エラー', _YAHOO_SHIPPING_BLOCK_MSG, 'error', colors);
-        return;
-      }
-      const aiTarget = extractedData; // 翻訳中にページ遷移しても別商品へ結果を付けない
+      const aiOrig = extractedData; // 翻訳中にページ遷移しても別商品へ結果を付けない
+      // 送料が別払いで金額不明の商品: 送料を入力してもらい、価格に足した新データで翻訳・送信する（元データは変更しない）
+      const aiTarget = await _prepareShippingForSend(aiOrig);
+      if (!aiTarget) return;
+      if (aiTarget !== aiOrig && !_mercariStillCurrent(aiOrig)) return; // 入力待ちの間に別商品へ移っていないか
       // すでに結果があり、force でなければ再表示のみ
       if (!force && aiTarget.ai && !aiTarget.ai.error) {
         showAiResultModal(aiTarget.ai, colors, aiTarget);
@@ -2150,8 +2301,9 @@ function isNoiseText(text) {
       aiButton.style.cursor = 'wait';
       try {
         const aiResult = await callAiTranslate(aiTarget, settings, _siteForData(aiTarget));
-        if (aiTarget !== extractedData || !_mercariDataMatchesPage(aiTarget)) return; // 翻訳中に別商品へ遷移した場合は結果を捨てる
+        if (aiOrig !== extractedData || !_mercariDataMatchesPage(aiTarget)) return; // 翻訳中に別商品へ遷移した場合は結果を捨てる
         aiTarget.ai = aiResult;
+        if (aiTarget !== aiOrig) aiOrig.ai = aiResult; // 送料加算済みの複製で翻訳した場合も、元データに結果を残す（再表示用。結果は同じ参照）
         // 既存フィールド（name/description）は元の日本語のまま保持。
         // 「インポート用」は元データ（画像つき）、「v5インポート」は AI 英訳（画像なし）と役割分担。
         aiButton.dataset.aiApplied = 'true';
@@ -2667,19 +2819,21 @@ function isNoiseText(text) {
   // 単一シート送信（exportToSpreadsheet が内部で成否通知を出す）
   async function exportToSingleTarget_(target) {
     if (!(await _mercariGuardData())) return;
-    const data = extractedData; // スナップショット
+    const data0 = extractedData; // スナップショット
+    const data = await _prepareShippingForSend(data0); // 送料が別払いで金額不明なら入力ポップアップ（やめる=null）
+    if (!data) return;
+    if (!_mercariStillCurrent(data0)) return;
     await exportToSpreadsheet(data, _siteForData(data), colors, target);
   }
 
   // 複数シート一括送信（各シートの成否通知は exportToSpreadsheet 側が出す）
   async function exportToMultipleTargets_(targets) {
     if (!(await _mercariGuardData())) return;
-    const data = extractedData; // スナップショット（ループ中に差し替わっても同じ商品だけを送る）
-    // ヤフオク: 送料が読めない商品は送信しない（通知はループ前に1回だけ）
-    if (_yahooSendBlocked(data)) {
-      showNotification('エラー', _YAHOO_SHIPPING_BLOCK_MSG, 'error', colors);
-      return;
-    }
+    const data0 = extractedData; // スナップショット（ループ中に差し替わっても同じ商品だけを送る）
+    // 送料が別払いで金額不明なら入力ポップアップ（ループ前に1回だけ。やめる=何も送らない）
+    const data = await _prepareShippingForSend(data0);
+    if (!data) return;
+    if (!_mercariStillCurrent(data0)) return;
     for (const target of targets) {
       // 各送信(GAS往復)の前に、手元のデータがまだ現在ページの商品か確認
       if (!_mercariStillCurrent(data)) return;
@@ -2741,7 +2895,11 @@ function isNoiseText(text) {
     try {
       // データをエクスポート（モーダル表示なし）
       if (!_mercariStillCurrent(data)) return; // confirm() 等の後に別商品へ移っていないか最終確認（finally でボタンは復帰）
-      await exportToSpreadsheet(data, _siteForData(data), colors);
+      // 送料が別払いで金額不明なら入力ポップアップ（やめる=何も送らない）。入力額を足した新データで送る
+      const sendData = await _prepareShippingForSend(data);
+      if (!sendData) return;
+      if (!_mercariStillCurrent(data)) return; // ポップアップの入力待ちの間に別商品へ移っていないか
+      await exportToSpreadsheet(sendData, _siteForData(sendData), colors);
     } catch (error) {
       console.error('Direct export error:', error);
       showNotification(
@@ -3596,7 +3754,8 @@ function isNoiseText(text) {
             editedData.shippingPayer = data.shippingPayer || '';
             editedData.shippingMethod = data.shippingMethod || '';
             editedData.shipFrom = data.shipFrom || '';
-            if (site === 'yahuoku') { editedData.noBuyNow = !!data.noBuyNow; editedData.shippingUnreadable = !!data.shippingUnreadable; }
+            // ヤフオク: 送料が読めない商品も、内容確認で価格を直して送る場合は送信を通す
+            if (site === 'yahuoku') { editedData.noBuyNow = !!data.noBuyNow; editedData.shippingUnreadable = false; }
           }
         }
 
@@ -7164,7 +7323,7 @@ function isNoiseText(text) {
   // ヤフオク商品データ抽出
   // ==========================================
   // ヤフオク: 送料が読めない商品は送信しない（通知文は共通）
-  const _YAHOO_SHIPPING_BLOCK_MSG = '送料が読めないため送信できません（着払い・未定など）';
+  const _YAHOO_SHIPPING_BLOCK_MSG = '送料が読めないため送信できません。送信ボタンを押すと送料の入力画面が出ます（「内容確認」で価格を直して送ることもできます）。';
   function _yahooSendBlocked(data) {
     return !!(data && data.platform === 'yahuoku' && data.shippingUnreadable);
   }
@@ -7289,8 +7448,16 @@ function isNoiseText(text) {
         _log('✅ 配送料の負担（方法1 - shippingFee）:', shippingPayer);
       }
 
-      // 方法2: 送料の有無から判定（送料0円なら出品者負担、それ以外なら落札者負担）
-      if (!shippingPayer && shipping !== undefined) {
+      // 方法1.5: ページ自身のデータ（chargeForShipping: 'seller'=出品者負担 / 'winner'=落札者負担）
+      if (!shippingPayer && itemJson.chargeForShipping === 'seller') {
+        shippingPayer = '出品者負担';
+      } else if (!shippingPayer && itemJson.chargeForShipping === 'winner') {
+        shippingPayer = shippingUnreadable ? '落札者負担（送料不明）' : '落札者負担';
+      }
+      if (shippingPayer) _log('✅ 配送料の負担（方法1.5 - chargeForShipping）:', shippingPayer);
+
+      // 方法2: 送料の有無から判定（送料0円なら出品者負担、それ以外なら落札者負担）。送料が読めない時は使わない
+      if (!shippingPayer && shipping !== undefined && !shippingUnreadable) {
         if (shipping === 0) {
           shippingPayer = '出品者負担';
           _log('✅ 配送料の負担（方法2 - 送料0円）:', shippingPayer);
@@ -7396,6 +7563,12 @@ function isNoiseText(text) {
           if (rating.good != null) good = rating.good;
           if (rating.bad != null) bad = rating.bad;
           if (rating.normal != null) normal = rating.normal;
+          // 現行の形: rating.ult.goodPoint / badPoint
+          const ult = rating.ult;
+          if (ult && ult.goodPoint != null && ult.badPoint != null && (good === null || bad === null)) {
+            const g = Number(ult.goodPoint), b = Number(ult.badPoint);
+            if (Number.isFinite(g) && Number.isFinite(b)) { good = g; bad = b; }
+          }
           _log('[Yahoo getSellerRating] itemJson.seller.rating経由:', {good, bad, normal});
         }
 
@@ -7745,6 +7918,29 @@ function isNoiseText(text) {
         if (assistResult) {
           ({ good, bad, normal } = assistResult);
           _log('[PayPay getSellerRating] #furima-assist-seller-ratings経由:', {good, bad, normal});
+        }
+
+        // 方法1.5: ページ自身のデータ（__NEXT_DATA__ の seller.rating = {total, goodRatio}）。
+        // 商品ページには良い/悪いの内訳がないため、悪い評価率は 100 − 良い評価の割合（整数%）で近似する。
+        // item.id が URL の商品IDと一致した場合だけ採用（画面内遷移後の古いデータ対策）
+        if (good === null || bad === null) {
+          try {
+            const nextEl = document.getElementById('__NEXT_DATA__');
+            const nextItem = nextEl ? JSON.parse(nextEl.textContent)?.props?.initialState?.itemsState?.items?.item : null;
+            const urlIdM = location.pathname.match(/\/item\/([0-9a-zA-Z]+)/);
+            const pr = nextItem?.seller?.rating;
+            if (nextItem && urlIdM && nextItem.id === urlIdM[1] && pr && pr.total != null && pr.goodRatio != null) {
+              const total = Number(pr.total), ratio = Number(pr.goodRatio);
+              if (Number.isFinite(total) && Number.isFinite(ratio) && total >= 0 && ratio >= 0 && ratio <= 100) {
+                const res = {
+                  reviewCount: reviewCountOverride !== null ? reviewCountOverride : String(total),
+                  badRate: total > 0 ? (100 - ratio).toFixed(2) + '%' : ''
+                };
+                _log('[PayPay getSellerRating] __NEXT_DATA__ seller.rating経由:', { total, goodRatio: ratio, res });
+                return res;
+              }
+            }
+          } catch (e) { /* 取れなければ従来の方法へ */ }
         }
 
         // 方法2: Rating関連のspan要素から取得
