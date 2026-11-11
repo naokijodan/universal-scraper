@@ -216,7 +216,6 @@
     if (typeof timing.imageMs === 'number' && timing.imageMs > 0) detail.push('画像 ' + formatSeconds(timing.imageMs));
     if (typeof timing.fetchMs === 'number' && timing.fetchMs > 0) detail.push('シート応答 ' + formatSeconds(timing.fetchMs));
     if (detail.length) parts.push('(' + detail.join(' / ') + ')');
-    if (item.warning) parts.push('注意: 画像だけセルに入りませんでした');
     if (item.lastError) parts.push('エラー: ' + truncate(item.lastError, ERROR_MAX));
     line2.textContent = parts.join(' ');
     if (detail.length) {

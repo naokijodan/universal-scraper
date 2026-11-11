@@ -5959,9 +5959,7 @@ function isNoiseText(text) {
     if (request && request.action === 'directSendResult') {
       try {
         const sheetName = request.sheetName || '';
-        if (request.status === 'sent' && request.warning) {
-          showNotification('送信完了（画像だけ未反映）', request.warning, 'info');
-        } else if (request.status === 'sent') {
+        if (request.status === 'sent') {
           showNotification(
             '送信完了',
             `${sheetName} に追加しました`,

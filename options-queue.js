@@ -286,7 +286,6 @@
         parts.push('理由: ' + truncate(item.lastError, 80));
       }
     }
-    if (item.warning) parts.push('注意: 画像だけセルに入りませんでした');
     line2.textContent = parts.join(' / ');
     body.appendChild(line2);
     return body;

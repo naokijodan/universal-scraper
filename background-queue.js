@@ -561,8 +561,7 @@ function applyResults(queue, batch, sendResult, config) {
     if (json.success === true) {
       console.log('[queue:apply] PATTERN 2a (no results, success=true) all sent, batch=', batch.length);
       return queue.map((q) => batchIds.has(q.id)
-        ? { ...q, status: 'sent', completedAt: now, lastError: null,
-            ...((json.imageFailed || json.warning) ? { warning: String(json.warning || '行は入りました。画像だけセルに入りませんでした') } : {}) }
+        ? { ...q, status: 'sent', completedAt: now, lastError: null }
         : q);
     }
     const errMsg = String(json.error || '不明なエラー');
@@ -588,8 +587,7 @@ function applyResults(queue, batch, sendResult, config) {
     const r = idToResult.get(q.id);
     if (r && r.ok === true) {
       sentCount++;
-      const w = (r.imageFailed || r.warning) ? String(r.warning || '行は入りました。画像だけセルに入りませんでした') : null;
-      return w ? { ...q, status: 'sent', completedAt: now, lastError: null, warning: w } : { ...q, status: 'sent', completedAt: now, lastError: null };
+      return { ...q, status: 'sent', completedAt: now, lastError: null };
     }
     const errMsg = r?.error
       ? String(r.error)

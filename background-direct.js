@@ -170,7 +170,6 @@ async function processDirectQueueOnce() {
 
     if (outcome.kind === 'success') {
       updated = { ...current, status: 'sent', completedAt: now, lastError: null, timing };
-      if (outcome.warning) updated.warning = outcome.warning;
     } else if (outcome.kind === 'timeout') {
       // タイムアウト = 書き込まれたか不明。自動リトライはしない（二重送信防止）。
       updated = { ...current, status: 'unknown', completedAt: now, lastError: DIRECT_TIMEOUT_MESSAGE, timing };
@@ -211,7 +210,6 @@ async function processDirectQueueOnce() {
           status: updated.status,
           sheetName: updated.sheetName,
           message: outcome.message || null,
-          warning: updated.warning || null,
           error: updated.lastError || null
         }).catch(() => {});
       } catch (_) {
@@ -293,13 +291,6 @@ async function postDirectSend(webhookUrl, body) {
       return { kind: 'definite_failure', error: '応答 JSON のパースに失敗しました' };
     }
     if (json && json.success === true) {
-      if (json.imageFailed || json.warning) {
-        return {
-          kind: 'success',
-          message: json.message || null,
-          warning: String(json.warning || '行は入りました。画像だけセルに入りませんでした')
-        };
-      }
       return { kind: 'success', message: json.message || null };
     }
     return { kind: 'definite_failure', error: String((json && json.error) || '不明なエラー') };
