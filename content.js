@@ -5947,141 +5947,128 @@ function isNoiseText(text) {
   }
 
   function extractAmazonImage() {
-    let imageUrls = [];
-    const seenImageIds = new Set(); // 画像ID重複チェック用
+    // 方針: 「その商品自身のギャラリー」だけを画像の出所にする。
+    // ページ全体を対象にするセレクタ（おすすめ商品ウィジェット等を拾う）は使わない。
+    const imageUrls = [];
 
-    // 画像IDを抽出（例: https://m.media-amazon.com/images/I/51ozZz0CsiL._AC_SL1500_.jpg → 51ozZz0CsiL）
+    // 画像IDを完全な形で抽出（小文字・ハイフン・プラスも保持）
+    // 例: https://m.media-amazon.com/images/I/71-XNWLGlgL._AC_SL1500_.jpg → 71-XNWLGlgL
     const getImageId = (url) => {
       if (!url) return '';
-      const match = url.match(/\/I\/([A-Z0-9]+)/);
-      return match ? match[1] : url;
+      const match = String(url).match(/\/images\/I\/([^.\/]+)/);
+      return match ? match[1] : '';
     };
 
-    // Amazonの画像URLを高解像度に正規化
-    // パターン例（全て /images/I/<ID> の後ろが変動する）:
-    //   <ID>.jpg                         → そのまま (._AC_SL1500_.jpg を付け直す)
-    //   <ID>._AC_SL1500_.jpg             → そのまま
-    //   <ID>._AC_SR38,50_.jpg            → ._AC_SL1500_.jpg
-    //   <ID>.SX38_SY50_CR                → ._AC_SL1500_.jpg（拡張子なし & _AC_ なし）
-    // 戦略: <ID> 抽出 → "._AC_SL1500_.jpg" に統一する。OpenAI 等の外部 fetch で
-    // 400 が返るパターン（拡張子なし・サムネイル指定）を一律解消する。
-    const toHighResUrl = (url) => {
-      if (!url) return url;
-      return url.replace(
-        /(\/images\/I\/[^.\/]+)\.[^\/]*$/,
-        '$1._AC_SL1500_.jpg'
-      );
-    };
+    // 出力URLを統一形式に正規化（ホスト違い・/images/W/... 等のパス違いも除去）
+    const toNormalizedUrl = (id) => `https://m.media-amazon.com/images/I/${id}._AC_SL1500_.jpg`;
 
-    const addUniqueUrl = (url) => {
-      if (!url || !url.startsWith('http')) return false;
-      const imageId = getImageId(url);
-      if (seenImageIds.has(imageId)) {
-        _log(`⚠️ 重複スキップ: ${imageId}`);
-        return false;
+    // data-a-dynamic-image から最大解像度のURLを取得
+    const getLargestDynamicUrl = (el) => {
+      const dynamicImage = el.getAttribute('data-a-dynamic-image');
+      if (!dynamicImage) return '';
+      try {
+        const imageObj = JSON.parse(dynamicImage);
+        const urls = Object.keys(imageObj);
+        if (urls.length === 0) return '';
+        return urls.reduce((max, url) => {
+          const maxSize = imageObj[max] ? imageObj[max][0] * imageObj[max][1] : 0;
+          const urlSize = imageObj[url] ? imageObj[url][0] * imageObj[url][1] : 0;
+          return urlSize > maxSize ? url : max;
+        }, urls[0]);
+      } catch (e) {
+        _log('⚠️ data-a-dynamic-image パースエラー:', e);
+        return '';
       }
-      seenImageIds.add(imageId);
-      // 高解像度URLに変換してから追加
-      const highResUrl = toHighResUrl(url);
-      imageUrls.push(highResUrl);
-      _log(`📸 高解像度変換: ${url.substring(url.lastIndexOf('/') + 1)} → ${highResUrl.substring(highResUrl.lastIndexOf('/') + 1)}`);
-      return true;
     };
 
-    // メイン画像を取得
-    const mainImageSelectors = [
-      '#landingImage',
-      '#imgBlkFront',
-      '#main-image',
-      'img[data-old-hires]',
-      'img[data-a-dynamic-image]'
-    ];
-
-    for (const selector of mainImageSelectors) {
-      const imgElement = document.querySelector(selector);
-      if (imgElement) {
-        _log(`🖼️ Amazon画像要素発見: ${selector}`);
-
-        // data-old-hires属性があれば高解像度画像を取得（最優先）
-        const hiresUrl = imgElement.getAttribute('data-old-hires');
-        if (hiresUrl && addUniqueUrl(hiresUrl)) {
-          _log(`✅ Amazonメイン画像（data-old-hires）: ${hiresUrl}`);
-        }
-
-        // data-a-dynamic-imageからは最大解像度の1つだけ取得
-        const dynamicImage = imgElement.getAttribute('data-a-dynamic-image');
-        if (dynamicImage && imageUrls.length === 0) { // メイン画像がまだない場合のみ
-          try {
-            const imageObj = JSON.parse(dynamicImage);
-            const urls = Object.keys(imageObj);
-            // 最大解像度の画像を1つだけ取得
-            if (urls.length > 0) {
-              const maxResUrl = urls.reduce((max, url) => {
-                const maxSize = imageObj[max] ? imageObj[max][0] * imageObj[max][1] : 0;
-                const urlSize = imageObj[url] ? imageObj[url][0] * imageObj[url][1] : 0;
-                return urlSize > maxSize ? url : max;
-              }, urls[0]);
-
-              if (addUniqueUrl(maxResUrl)) {
-                _log(`✅ Amazon画像（dynamic-image最高解像度）: ${maxResUrl}`);
-              }
-            }
-          } catch (e) {
-            _log('⚠️ JSON パースエラー:', e);
+    // 1. インラインscriptの colorImages.initial を解析（あれば）
+    //    各エントリ: ids = hiRes/large/thumb/main のキー全ての画像ID, best = hiRes || large || thumb のID
+    const colorEntries = [];
+    const scripts = document.querySelectorAll('script:not([src])');
+    for (const s of scripts) {
+      const text = s.textContent || '';
+      const m = text.match(/'colorImages'\s*:\s*\{\s*'initial'\s*:\s*A\.\$\.parseJSON\('((?:[^'\\]|\\.)*)'\)/);
+      if (!m) continue;
+      try {
+        const arr = JSON.parse(m[1].replace(/\\'/g, "'"));
+        arr.forEach((entry) => {
+          if (!entry) return;
+          const best = getImageId(entry.hiRes) || getImageId(entry.large) || getImageId(entry.thumb);
+          if (!best) return;
+          const ids = new Set([best]);
+          [entry.hiRes, entry.large, entry.thumb].forEach((u) => { const id = getImageId(u); if (id) ids.add(id); });
+          if (entry.main && typeof entry.main === 'object') {
+            Object.keys(entry.main).forEach((u) => { const id = getImageId(u); if (id) ids.add(id); });
           }
-        }
+          colorEntries.push({ ids, best });
+        });
+        _log(`📜 colorImages解析: ${colorEntries.length}件`);
+      } catch (e) {
+        _log('⚠️ colorImages パースエラー:', e);
+      }
+      if (colorEntries.length > 0) break;
+    }
 
-        // メイン画像が見つかったらループを抜ける
-        if (imageUrls.length > 0) break;
+    // 2. 主: #altImages のサムネイル（動画は除外）→ colorImagesの最良IDに置き換え
+    const galleryIds = [];
+    const addGalleryId = (id) => {
+      if (!id) return;
+      if (galleryIds.includes(id)) {
+        _log(`⚠️ 重複スキップ: ${id}`);
+        return;
+      }
+      galleryIds.push(id);
+    };
+
+    const thumbItems = document.querySelectorAll('#altImages li.imageThumbnail');
+    _log(`🔍 Amazonギャラリー候補(#altImages): ${thumbItems.length}個`);
+    const domIds = [];
+    let domBroken = false; // ID が取れないサムネイル（遅延読み込みのプレースホルダ等）があった
+    thumbItems.forEach((li) => {
+      if (/video/i.test(li.className)) return;
+      const action = li.querySelector('[data-thumb-action]');
+      if (action) {
+        try {
+          const info = JSON.parse(action.getAttribute('data-thumb-action') || '{}');
+          if (info && info.type && info.type !== 'image') return;
+        } catch (e) {
+          // パースできなければ画像として扱う
+        }
+      }
+      const img = li.querySelector('img');
+      const id = img ? getImageId(img.getAttribute('src') || img.src) : '';
+      if (!id) { domBroken = true; return; }
+      domIds.push(id);
+    });
+
+    if (domIds.length > 0 && !(domBroken && colorEntries.length > 0)) {
+      domIds.forEach((id) => {
+        const entry = colorEntries.find((e) => e.ids.has(id));
+        addGalleryId(entry ? entry.best : id);
+      });
+    } else if (colorEntries.length > 0) {
+      // #altImages が空 / 遅延読み込みで取れない場合は colorImages を使う
+      _log('📜 colorImagesをギャラリーとして使用');
+      colorEntries.forEach((e) => addGalleryId(e.best));
+    }
+
+    // 3. ギャラリーが空なら #landingImage（書籍は #imgBlkFront）だけを使う
+    if (galleryIds.length === 0) {
+      for (const sel of ['#landingImage', '#imgBlkFront']) {
+        const el = document.querySelector(sel);
+        if (!el) continue;
+        const id = getImageId(el.getAttribute('data-old-hires') || getLargestDynamicUrl(el));
+        if (id) {
+          _log(`🖼️ Amazonメイン画像要素(${sel})のみ使用: ${id}`);
+          addGalleryId(id);
+          break;
+        }
       }
     }
 
-    // サムネイル画像も取得（メイン画像と重複しないもののみ）
-    const thumbnails = document.querySelectorAll('#altImages img, .imageThumbnail img, ul.a-unordered-list.a-nostyle.a-button-list img');
-    _log(`🔍 Amazonサムネイル候補: ${thumbnails.length}個`);
+    galleryIds.forEach((id) => imageUrls.push(toNormalizedUrl(id)));
 
-    thumbnails.forEach((img, index) => {
-      const hiresUrl = img.getAttribute('data-old-hires');
-      const dynamicImage = img.getAttribute('data-a-dynamic-image');
-      const srcUrl = img.src;
-
-      _log(`🔎 サムネイル${index + 1}:`, {
-        'data-old-hires': hiresUrl ? 'あり' : 'なし',
-        'data-a-dynamic-image': dynamicImage ? 'あり' : 'なし',
-        'src': srcUrl ? srcUrl.substring(0, 80) : 'なし'
-      });
-
-      // data-old-hiresを優先
-      if (hiresUrl && addUniqueUrl(hiresUrl)) {
-        _log(`📷 Amazonサムネイル（hires）: ${hiresUrl}`);
-      } else if (dynamicImage) {
-        try {
-          const imageObj = JSON.parse(dynamicImage);
-          const urls = Object.keys(imageObj);
-          // 最大解像度の1つだけ取得
-          if (urls.length > 0) {
-            const maxResUrl = urls.reduce((max, url) => {
-              const maxSize = imageObj[max] ? imageObj[max][0] * imageObj[max][1] : 0;
-              const urlSize = imageObj[url] ? imageObj[url][0] * imageObj[url][1] : 0;
-              return urlSize > maxSize ? url : max;
-            }, urls[0]);
-
-            if (addUniqueUrl(maxResUrl)) {
-              _log(`📷 Amazonサムネイル（dynamic）: ${maxResUrl}`);
-            }
-          }
-        } catch (e) {
-          _log(`⚠️ サムネイル${index + 1} JSONパースエラー:`, e);
-        }
-      } else if (srcUrl && srcUrl.includes('/images/I/')) {
-        // data属性がない場合は、srcから直接取得
-        if (addUniqueUrl(srcUrl)) {
-          _log(`📷 Amazonサムネイル（src）: ${srcUrl}`);
-        }
-      }
-    });
-
-    // og:imageもフォールバック
+    // og:imageもフォールバック（何も取れなかった場合のみ）
     if (imageUrls.length === 0) {
       const ogImage = document.querySelector('meta[property="og:image"]');
       if (ogImage) {
