@@ -137,15 +137,17 @@ const _fmtSlashJST = (d) => {
 };
 
 // 共通ヘルパー: PayPayフリマの __NEXT_DATA__ から出品日時・更新日時を取得。
-// item.id が URL の商品ID（/item/z…）と一致した場合のみ返す（SPA遷移後の古いデータ対策）。取れなければ null
+// item.id が URL の商品ID（/item/z… n… g… など先頭が英字1文字）と一致した場合のみ返す（SPA遷移後の古いデータ対策）。取れなければ null
+// v1.6.24: 2026-11 から z 以外（n・g 等）で始まる商品番号が出てきたため、先頭の英字を限定しない。PayPayフリマのホスト以外では動かない
 let _ppDatesCache = null; // { href, val }（取得成功時のみURL単位でキャッシュ）
 const _getPayPayPageDates = () => {
   try {
     if (_ppDatesCache && _ppDatesCache.href === location.href) return _ppDatesCache.val;
-    if (!/\/item\/z[0-9a-zA-Z]+/.test(location.pathname)) return null; // 商品ページ以外はスキップ
+    if (location.hostname !== 'paypayfleamarket.yahoo.co.jp') return null; // PayPayフリマ以外（メルカリ等）では動かない
+    if (!/\/item\/[a-zA-Z][0-9a-zA-Z]+/.test(location.pathname)) return null; // 商品ページ以外はスキップ
     const nextEl = document.getElementById('__NEXT_DATA__');
     const nextItem = nextEl ? JSON.parse(nextEl.textContent)?.props?.initialState?.itemsState?.items?.item : null;
-    const urlIdM = location.pathname.match(/\/item\/(z[0-9a-zA-Z]+)/);
+    const urlIdM = location.pathname.match(/\/item\/([a-zA-Z][0-9a-zA-Z]+)/);
     if (!nextItem || !urlIdM || nextItem.id !== urlIdM[1]) return null;
     const cd = nextItem.createDate ? new Date(nextItem.createDate) : null;
     const ud = nextItem.updateDate ? new Date(nextItem.updateDate) : null;
